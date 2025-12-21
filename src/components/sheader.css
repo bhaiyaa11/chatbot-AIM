@@ -1,0 +1,23 @@
+
+
+.top {
+  height: 60px;
+  background-color: #000;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  /* border-bottom-width: 1px; */
+}
+
+a{
+  color: white;
+}
+
+.user_profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
