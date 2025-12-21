@@ -1,5 +1,5 @@
 import { useState } from "react";
-import "./FloatingEdit.css";
+import "./floatingEdit.css";
 
 function FloatingEditMenu({ position, onAction, onAskAI }) {
 //   const [customPrompt, setCustomPrompt] = useState("");
