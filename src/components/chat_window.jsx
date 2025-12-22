@@ -279,7 +279,7 @@ Rules:
   );
 
   const res = await axios.post(
-    "",
+    "chatbot-backend-try2.vercel.app",
     formData,
     { headers: { "Content-Type": "multipart/form-data" } }
   );
