@@ -256,6 +256,9 @@ import axios from "axios";
 import ChatResponse from "./chat_message.jsx";
 import FloatingEditMenu from "./floatingEdit.jsx";
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+
 /* ---------- AI EDIT HELPER ---------- */
 async function runAIEdit(selectedText, instruction) {
   const formData = new FormData();
@@ -278,11 +281,18 @@ Rules:
 `
   );
 
-  const res = await axios.post(
-    "chatbot-backend-try2.vercel.app",
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
+  // const res = await axios.post(
+  //   "chatbot-backend-try2.vercel.app",
+  //   formData,
+  //   { headers: { "Content-Type": "multipart/form-data" } }
+  // );
+
+  axios.post(
+  `${API_BASE_URL}/chat`,
+  formData,
+  { headers: { "Content-Type": "multipart/form-data" } }
+);
+
 
   return res.data.reply.trim();
 }
@@ -319,10 +329,10 @@ function ChatWindow() {
 
     try {
       const res = await axios.post(
-        "http://127.0.0.1:8000/chat",
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
+  `${API_BASE_URL}/edit`,
+  formData,
+  { headers: { "Content-Type": "multipart/form-data" } }
+);
 
       addMessage(activeChat.id, {
         sender: "bot",
