@@ -1,5 +1,7 @@
 
 
+
+
 // import { useState, useRef } from "react";
 // import "./chatWindow.css";
 // import { useChat } from "../contexts/ChatContext";
@@ -280,12 +282,16 @@ Rules:
 - Do NOT change formatting
 `
   );
-
   const res = await axios.post(
-    "http://127.0.0.1:8000/chat",
-    formData,
-    { headers: { "Content-Type": "multipart/form-data" } }
-  );
+        `${API_BASE_URL}/chat`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+  // const res = await axios.post(
+  //   "http://127.0.0.1:8000/chat",
+  //   formData,
+  //   { headers: { "Content-Type": "multipart/form-data" } }
+  // );
 
   return res.data.reply.trim();
 }
