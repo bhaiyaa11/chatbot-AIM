@@ -281,18 +281,11 @@ Rules:
 `
   );
 
-  // const res = await axios.post(
-  //   "chatbot-backend-try2.vercel.app",
-  //   formData,
-  //   { headers: { "Content-Type": "multipart/form-data" } }
-  // );
-
-  axios.post(
-  `${API_BASE_URL}/chat`,
-  formData,
-  { headers: { "Content-Type": "multipart/form-data" } }
-);
-
+  const res = await axios.post(
+    "http://127.0.0.1:8000/chat",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
 
   return res.data.reply.trim();
 }
@@ -326,13 +319,20 @@ function ChatWindow() {
 
     setInput("");
     setFile(null);
-
+    
     try {
       const res = await axios.post(
-  `${API_BASE_URL}/edit`,
-  formData,
-  { headers: { "Content-Type": "multipart/form-data" } }
-);
+        `${API_BASE_URL}/chat`,
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+
+    // try {
+    //   const res = await axios.post(
+    //     "http://127.0.0.1:8000/chat",
+    //     formData,
+    //     { headers: { "Content-Type": "multipart/form-data" } }
+    //   );
 
       addMessage(activeChat.id, {
         sender: "bot",
