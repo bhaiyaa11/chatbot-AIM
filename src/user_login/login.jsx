@@ -52,7 +52,7 @@ export default function Login() {
         <MDBCol sm="6">
           <div className="d-flex flex-row ps-5 pt-5 align-items-center">
             <MDBIcon fas icon="crow fa-3x me-3" style={{marginTop:"40%"}} />
-            <span className="h1 fw-bold mb-0" style={{ color: "#2d8cdf" }}>ALLINMOTION</span>
+            <span className="h1 fw-bold mb-0" style={{ color: "#2d8cdf" }}>Welcome Back!</span>
           </div>
 
           <div className="d-flex flex-column justify-content-center h-custom-2 w-75 pt-4 ps-5">

@@ -7,7 +7,6 @@
   display: flex;
   flex-direction: column;
 }
-
 .sidebar button {
   background: #282A2C;
   color: white;
@@ -42,6 +41,145 @@
   color: white;
   font-weight: 600;
   border-radius: 12px;
+} 
+
+
+/* SIDEBAR CONTAINER */
+/* .sidebar {
+  background-color: #000;
+  color: #fff;
+  width: 130px;
+  height: 100vh;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  transition: width 0.25s ease;
+} */
+
+/* EXPANDED STATE */
+/* .sidebar.open {
+  width: 130px;
+} */
+
+/* INNER SCROLL AREA */
+/* .sidebar .inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+} */
+
+/* HEADER */
+/* .sidebar-header {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  gap: 10px;
 }
 
+.sidebar-burger {
+  border: 0;
+  background: transparent;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  cursor: pointer;
+}
 
+.sidebar-title {
+  opacity: 0;
+  transition: 0.25s;
+  white-space: nowrap;
+}
+
+.sidebar.open .sidebar-title {
+  opacity: 1;
+} */
+
+/* SECTIONS */
+/* .section {
+  margin-top: 14px;
+}
+
+.section-title {
+  font-size: 12px;
+  opacity: 0.6;
+  margin: 6px 10px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: 0.25s;
+}
+
+.sidebar.open .section-title {
+  opacity: 1;
+} */
+
+/* BUTTONS */
+/* .new-chat-btn,
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  width: 124px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.sidebar.open .new-chat-btn,
+.sidebar.open .chat-item {
+  width: 100%;
+} */
+
+/* TEXT INSIDE BUTTONS */
+/* .new-chat-btn p,
+.chat-item p {
+  margin: 0;
+  opacity: 0;
+  transition: 0.25s;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar.open .new-chat-btn p,
+.sidebar.open .chat-item p {
+  opacity: 1;
+} */
+
+/* ACTIVE CHAT */
+/* .chat-item.active {
+  background: #1c1c1c;
+} */
+
+/* HOVER EFFECT */
+/* .new-chat-btn:hover,
+.chat-item:hover {
+  background: #1c1c1c;
+} */
+
+/* CHAT LIST */
+/* .chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+} */
+
+/* SCROLLBAR CLEAN */
+/* .sidebar .inner::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar .inner::-webkit-scrollbar-thumb {
+  background: #222;
+  border-radius: 10px;
+}  */

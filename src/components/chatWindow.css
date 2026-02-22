@@ -30,15 +30,32 @@
   background-color: #282A2C;
   color: white;
   align-self: flex-end;
+  box-shadow:  20px 9px 20px 11px rgb(116, 106, 106);
 }
 
 .chat-bubble.bot {
   background-color:  #282A2C;
   color: white;
   align-self: flex-start;
+  box-shadow:  20px 9px 20px 11px rgb(64, 59, 59);
 }
 
+.chat-input-area-og{
+    border-radius: 40px;
+    background-color: #000;
+    color: white;
+    border: 1px solid #3a3a3a;
+    box-shadow: 0 20px 20px rgb(64, 59, 59);
 
+}
+
+.attach-btn-og{
+    border-radius: 40px;
+    background-color: transparent;
+    color: white;
+    border: 1px solid #3a3a3a;
+    box-shadow: 0 20px 20px rgb(64, 59, 59);
+}
 
 .chat-input-area {
   display: flex;
@@ -63,6 +80,7 @@
   border-radius: 12px;
   background-color: #282A2C;
   color: white;
+  box-shadow: 0 20px 20px rgb(64, 59, 59);
 
 }
 
@@ -112,7 +130,6 @@
   border: 2px solid black;
   cursor: pointer;
   border-radius: 12px;
-
 }
 
 .attach-btn:hover {
@@ -129,7 +146,7 @@
   border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-
+  box-shadow: 0 20px 20px rgb(64, 59, 59);
 }
 
 .chat-input-area button:hover {
@@ -230,18 +247,6 @@
     flex-direction: column;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 .empty-wrapper{
     height:100%;
     display:flex;
@@ -255,4 +260,55 @@
     display:flex;
     gap:12px;
     margin-top:20px;
+    background-color: #000;
+}
+
+.feedback-row {
+  position: relative;   /* important */
+
+}
+
+.feedback-row- button {
+  position: absolute;
+  bottom: -10px;
+  right: 10px;
+  cursor: pointer;
+}
+
+
+/*  */
+
+.chat-input-area-og {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  width: 500px;
+  border-radius: 40px;
+  background-color: #000;
+  color: white;
+  border: 1px solid #3a3a3a;
+  box-shadow: 0 20px 20px rgb(64, 59, 59);
+}
+
+.chat-input-area-og input[type="text"] {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: white;
+  font-size: 14px;
+  min-width: 120px;
+}
+
+.chat-input-area-og button[type="button"],
+.chat-input-area-og button:not(.attach-btn-og) {
+  padding: 8px 16px;
+  background: #282A2C;
+  color: white;
+  border: 1px solid #3a3a3a;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: 600;
 }

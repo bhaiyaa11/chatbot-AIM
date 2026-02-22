@@ -1,6 +1,6 @@
 import './App.css'
 import ChatWindow from './components/chat_window.jsx'
-import Sidebar from './components/siderbar.jsx'
+import Ssidebar from './components/siderbar.jsx'
 import Sheader from './components/sheader.jsx'
 import { ChatProvider } from './contexts/ChatContext.jsx'
 import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
@@ -24,7 +24,7 @@ function App() {
       <ChatProvider>
         <Sheader />
         <div className="app-layout">
-          <Sidebar />
+          <Ssidebar />
           <ChatWindow />
         </div>
       </ChatProvider>

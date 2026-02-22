@@ -17,7 +17,10 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
+    "react-pro-sidebar": "^1.1.0",
+    "react-select": "^5.10.2",
     "remark-gfm": "^4.0.1",
+    "sass": "^1.97.3",
     "slate": "^0.120.0",
     "slate-history": "^0.113.1",
     "slate-react": "^0.120.0"

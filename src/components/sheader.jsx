@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 
 
-const ALLOWED_DOMAIN = "gmail.com"; // change to your company domain
+const ALLOWED_DOMAIN = "allinmotion.com"; // change to your company domain
 
 export default function Sheader() {
   const [session, setSession] = useState(null);
@@ -49,12 +49,25 @@ export default function Sheader() {
   const user = session?.user;
 
   return (
-    <div className="top">
+    <div className="top"
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        position: "relative",
+      }}
+    >
       {/* LEFT: TITLE */}
       <div className="sheader">
-        <h2>ALLINMOTION</h2>
+        {/* <h2>ALLINMOTION</h2> */}
+        <img src="51501-24-AiM-LOGO_White.png" alt="Logo" style={{border: "10px solid transparent", width: "150px", height: "100%" }} />
       </div>
       {/* RIGHT: USER PROFILE / LOGIN */}
+      <div className="title" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "25px", fontWeight: "bold" }}>
+        <p>
+          AllinMotion
+        </p>
+      </div>
       <div className="user_profile">
         {user ? (
           <div style={{ display: "inline-flex", alignItems: "center", gap: "10px" }}>
