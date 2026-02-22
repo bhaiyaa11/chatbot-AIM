@@ -1,66 +1,39 @@
-// import { createContext, useContext, useEffect, useState } from 'react';
-// import { 
-//   signInWithPopup,
-//   GoogleAuthProvider,
-//   signOut,
-//   onAuthStateChanged
-// } from 'firebase/auth';
-// import { auth , provider  } from "../firebase"; 
-// const AuthContext = createContext();
+import { createContext, useContext, useEffect, useState } from "react";
+import { supabase } from "../supabase";
 
-// export const AuthProvider = ({ children }) => {
-//   const [user, setUser] = useState(null);
-//   const [loading, setLoading] = useState(true);
+const AuthContext = createContext(null);
 
-//   // Handle auth state changes
-//   useEffect(() => {
-//     const unsubscribe = onAuthStateChanged(auth, (user) => {
-//       setUser(user);
-//       setLoading(false);
-//     });
+export const AuthProvider = ({ children }) => {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    
+  useEffect(() => {
+    // 1. Get existing session (on refresh)
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setLoading(false);
+    });
 
-//     return unsubscribe;
-//   }, []);
+    // 2. Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
-//   // Sign in with Google
-//   const signInWithGoogle = async () => {
-//     const provider = new GoogleAuthProvider();
-//     try {
-//       await signInWithPopup(auth, provider);
-//     } catch (error) {
-//       console.error('Error signing in with Google:', error);
-//     }
-//   };
+    return () => subscription.unsubscribe();
+  }, []);
 
-//   // Sign out
-//   const logOut = async () => {
-//     try {
-//       await signOut(auth);
-//     } catch (error) {
-//       console.error('Error signing out:', error);
-//     }
-//   };
+  return (
+    <AuthContext.Provider value={{ session, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
 
-//   const value = {
-//     user,
-//     loading,
-//     signInWithGoogle,
-//     logOut
-//   };
+export const useAuth = () => useContext(AuthContext);
 
-//   return (
-//     <AuthContext.Provider value={value}>
-//       {!loading && children}
-//     </AuthContext.Provider>
-//   );
-// };
 
-// export const useAuth = () => {
-//   const context = useContext(AuthContext);
-//   if (!context) {
-//     throw new Error('useAuth must be used within an AuthProvider');
-//   }
-//   return context;
-// };
+
+
+

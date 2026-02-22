@@ -1,24 +1,40 @@
 import './App.css'
 import ChatWindow from './components/chat_window.jsx'
 import Sidebar from './components/siderbar.jsx'
-// import Sheader from './components/sheader.jsx'
+import Sheader from './components/sheader.jsx'
 import { ChatProvider } from './contexts/ChatContext.jsx'
-// import { AuthProvider } from './contexts/AuthContext.jsx'
+import { AuthProvider, useAuth } from './contexts/AuthContext.jsx'
+import Login from './user_login/login.jsx'
+
 function App() {
+  const { session, loading } = useAuth();
+
+  // if (loading) {
+  //   return <div style={{ padding: "2rem" }}>Loading...</div>;
+  // }
+
+  // 🔒 NOT LOGGED IN
+  if (!session) {
+    return <Login />;
+  }
+
+  // ✅ LOGGED IN
   return (
-    // <AuthProvider>
+    <AuthProvider>
       <ChatProvider>
-        {/* <Sheader /> */}
+        <Sheader />
         <div className="app-layout">
           <Sidebar />
           <ChatWindow />
         </div>
       </ChatProvider>
-    // </AuthProvider>
-  )
+    </AuthProvider>
+  );
 }
 
-
-
-
 export default App;
+
+
+
+
+
