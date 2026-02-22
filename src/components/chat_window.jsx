@@ -497,15 +497,15 @@ function ChatWindow() {
     formData.append("rating", rating)
 
 
-//    await fetch("API_BASE_URL/feedback", {
-//       method: "POST",
-//       body: formData,
-//     })
-
-    await fetch("http://127.0.0.1:8000/feedback", {
+   await fetch("API_BASE_URL/feedback", {
       method: "POST",
       body: formData,
     })
+
+    // await fetch("http://127.0.0.1:8000/feedback", {
+    //   method: "POST",
+    //   body: formData,
+    // })
   }
 
   // ── File Preview ─────────────────────────────────────────────
@@ -619,12 +619,12 @@ function ChatWindow() {
         .select()
         .single();
 
-//       // const res = await fetch("API_BASE_URL/chat", {
-//       //   method: "POST",
-//       //   body: formData,
-      const res = await fetch("http://127.0.0.1:8000/chat", {
+      const res = await fetch("API_BASE_URL/chat", {
         method: "POST",
         body: formData,
+      // const res = await fetch("http://127.0.0.1:8000/chat", {
+      //   method: "POST",
+      //   body: formData,
       });
 
       const reader = res.body.getReader();
