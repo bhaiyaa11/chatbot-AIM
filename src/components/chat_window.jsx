@@ -496,11 +496,10 @@ function ChatWindow() {
     formData.append("output", lastOutputRef.current)
     formData.append("rating", rating)
 
-
-   await fetch("API_BASE_URL/feedback", {
-      method: "POST",
-      body: formData,
-    })
+    await fetch(`${API_BASE_URL}/feedback`, {
+    method: "POST",
+    body: formData,
+  })
 
     // await fetch("http://127.0.0.1:8000/feedback", {
     //   method: "POST",
@@ -619,9 +618,9 @@ function ChatWindow() {
         .select()
         .single();
 
-      const res = await fetch("API_BASE_URL/chat", {
-        method: "POST",
-        body: formData,
+        const res = await fetch(`${API_BASE_URL}/chat`, {
+          method: "POST",
+          body: formData,
       // const res = await fetch("http://127.0.0.1:8000/chat", {
       //   method: "POST",
       //   body: formData,
