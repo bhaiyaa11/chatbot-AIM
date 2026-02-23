@@ -1770,7 +1770,6 @@ function ChatWindow() {
           <FloatingEditMenu
             position={menuPosition}
             onAction={handleFloatingAction}
-            {/* onAskAI={handleAskAI} */}
           />
         </div>
       )}
