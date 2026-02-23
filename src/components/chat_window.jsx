@@ -1382,11 +1382,11 @@ function ChatWindow() {
   };
 
   // ── Floating menu — Ask AI (custom prompt) ─────────────────────
-  const handleAskAI = async (customPrompt) => {
-    if (!selectedText) return;
-    setMenuPosition(null);
-    await handleFloatingAction(customPrompt);
-  };
+  // const handleAskAI = async (customPrompt) => {
+  //   if (!selectedText) return;
+  //   setMenuPosition(null);
+  //   await handleFloatingAction(customPrompt);
+  // };
 
   // ── Drag & Drop ────────────────────────────────────────────────
   const handleDragOver = (e) => {
@@ -1770,7 +1770,7 @@ function ChatWindow() {
           <FloatingEditMenu
             position={menuPosition}
             onAction={handleFloatingAction}
-            onAskAI={handleAskAI}
+            {/* onAskAI={handleAskAI} */}
           />
         </div>
       )}
