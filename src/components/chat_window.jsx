@@ -2098,7 +2098,7 @@ function ChatWindow() {
                 <div style={{ fontSize: "12px", marginTop: "8px", color: "#666" }}>
                   Preview not available for this file type
                 </div>
-                
+                <a
                   href={previewFile.url}
                   download={previewFile.name}
                   style={{ display: "inline-block", marginTop: "16px", color: "#7b7bf7", fontSize: "13px" }}
