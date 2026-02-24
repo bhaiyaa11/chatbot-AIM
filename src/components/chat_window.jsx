@@ -1346,7 +1346,7 @@ function ChatWindow() {
 
   // ── Floating menu — edit selected text inline via /edit ────────
   const handleFloatingAction = async (instruction) => {
-    if (!selectedText || !savedRangeRef.current) return;
+    if (!selectedText || !savedRangeRef.current) return;    
     setMenuPosition(null);
 
     const formData = new FormData();
@@ -1383,9 +1383,40 @@ function ChatWindow() {
 
   // ── Floating menu — Ask AI (custom prompt) ─────────────────────
   const handleAskAI = async (customPrompt) => {
-    if (!selectedText) return;
+    if (!selectedText || !savedRangeRef.current) return;    
     setMenuPosition(null);
-    await handleFloatingAction(customPrompt);
+
+    const formData = new FormData();
+      try {
+      const res = await fetch(`${API_BASE_URL}/edit`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      const editedText = data.result;
+      if (!editedText) return;
+
+      // Restore saved range and replace selected text in place
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(savedRangeRef.current);
+
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      range.insertNode(document.createTextNode(editedText));
+
+      // Clean up
+      selection.removeAllRanges();
+      savedRangeRef.current = null;
+      setSelectedText("");
+    } catch {
+      console.error("Inline edit failed");
+    }
+    
+    // if (!selectedText) return;
+    // setMenuPosition(null);
+    // await handleFloatingAction(customPrompt);
   };
 
   // ── Drag & Drop ────────────────────────────────────────────────
