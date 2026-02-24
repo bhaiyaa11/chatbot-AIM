@@ -1382,11 +1382,11 @@ function ChatWindow() {
   };
 
   // ── Floating menu — Ask AI (custom prompt) ─────────────────────
-  // const handleAskAI = async (customPrompt) => {
-  //   if (!selectedText) return;
-  //   setMenuPosition(null);
-  //   await handleFloatingAction(customPrompt);
-  // };
+  const handleAskAI = async (customPrompt) => {
+    if (!selectedText) return;
+    setMenuPosition(null);
+    await handleFloatingAction(customPrompt);
+  };
 
   // ── Drag & Drop ────────────────────────────────────────────────
   const handleDragOver = (e) => {
@@ -1761,6 +1761,7 @@ function ChatWindow() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              onAskAI={handleAskAI}
             />
 
             <button onClick={sendMessage}>Send</button>
