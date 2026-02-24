@@ -40,7 +40,7 @@ const [askInput, setAskInput] = useState("");
         onChange={(e) => setAskInput(e.target.value)}
         onMouseDown={(e) => e.stopPropagation()}  // ← add this
         onKeyDown={(e) => {
-        //   e.stopPropagation(); // 🔒 prevent chat Enter handling
+        e.stopPropagation(); // 🔒 prevent chat Enter handling
 
           if (e.key === "Enter" && askInput.trim()) {
             onAskAI(askInput.trim());
