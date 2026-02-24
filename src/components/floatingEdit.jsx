@@ -32,23 +32,27 @@ const [askInput, setAskInput] = useState("");
         🎬 Cinematic
       </button> */}
 
-      <div className="ask-ai">
-      <input
-        type="text"
-        placeholder="Ask AI…"
-        value={askInput}
-        onChange={(e) => setAskInput(e.target.value)}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => {
-        e.stopPropagation(); // 🔒 prevent chat Enter handling
 
-          if (e.key === "Enter" && askInput.trim()) {
-            onAskAI(askInput.trim());
-            setAskInput("");
-          }
-        }}
-      />
-      </div> 
+      <div 
+  className="ask-ai"
+  onMouseDown={(e) => e.stopPropagation()}  // ← this is the key fix
+>
+  <input
+    type="text"
+    placeholder="Ask AI…"
+    value={askInput}
+    onChange={(e) => setAskInput(e.target.value)}
+    onMouseDown={(e) => e.stopPropagation()}  // ← on input too
+    onClick={(e) => e.stopPropagation()}
+    onKeyDown={(e) => {
+      e.stopPropagation();
+      if (e.key === "Enter" && askInput.trim()) {
+        onAskAI(askInput.trim());
+        setAskInput("");
+      }
+    }}
+  />
+</div>
     </div>
   );
 }
