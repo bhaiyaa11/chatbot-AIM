@@ -10,6 +10,7 @@ const [askInput, setAskInput] = useState("");
   return (
     <div
       className="floating-menu"
+      onMouseDown={(e) => e.stopPropagation()}  // ← add this here
       style={{
         position: "absolute",
         top: position.top,
