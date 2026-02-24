@@ -32,13 +32,16 @@ const [askInput, setAskInput] = useState("");
         🎬 Cinematic
       </button> */}
 
-      <div className="ask-ai">
+      <div className="ask-ai"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}  // ← add onClick too>
       <input
         type="text"
         placeholder="Ask AI…"
         value={askInput}
         onChange={(e) => setAskInput(e.target.value)}
         onMouseDown={(e) => e.stopPropagation()}  // ← add this
+        onClick={(e) => e.stopPropagation()}  // ← add this
         onKeyDown={(e) => {
         e.stopPropagation(); // 🔒 prevent chat Enter handling
 
