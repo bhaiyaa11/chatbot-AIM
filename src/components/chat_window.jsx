@@ -1761,7 +1761,6 @@ function ChatWindow() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-              onAskAI={handleAskAI}
             />
 
             <button onClick={sendMessage}>Send</button>
@@ -1771,6 +1770,7 @@ function ChatWindow() {
           <FloatingEditMenu
             position={menuPosition}
             onAction={handleFloatingAction}
+            onAskAI={handleAskAI}
           />
         </div>
       )}
