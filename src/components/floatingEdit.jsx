@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./floatingEdit.css";
 
 function FloatingEditMenu({ position, onAction, onAskAI }) {
-//   const [customPrompt, setCustomPrompt] = useState("");
+const [customPrompt, setCustomPrompt] = useState("");
 const [askInput, setAskInput] = useState("");
 
   if (!position) return null;
