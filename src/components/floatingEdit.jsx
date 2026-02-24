@@ -38,6 +38,7 @@ const [askInput, setAskInput] = useState("");
         placeholder="Ask AI…"
         value={askInput}
         onChange={(e) => setAskInput(e.target.value)}
+        onMouseDown={(e) => e.stopPropagation()}  // ← add this
         onKeyDown={(e) => {
         //   e.stopPropagation(); // 🔒 prevent chat Enter handling
 
