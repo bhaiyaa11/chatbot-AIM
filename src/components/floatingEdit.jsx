@@ -35,6 +35,7 @@ const [askInput, setAskInput] = useState("");
       <div className="ask-ai"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}  // ← add onClick too>
+        >
       <input
         type="text"
         placeholder="Ask AI…"
