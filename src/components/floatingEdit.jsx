@@ -42,10 +42,7 @@ const [askInput, setAskInput] = useState("");
         value={askInput}
         onChange={(e) => setAskInput(e.target.value)}
         onMouseDown={(e) => e.stopPropagation()}  // ← add this
-        onClick={(e) => {
-          e.preventDefault();   // ⭐ THIS IS THE KEY
-          e.stopPropagation()
-        }}  // ← add this
+        onClick={(e) => e.stopPropagation()}
         onKeyDown={(e) => {
         e.stopPropagation(); // 🔒 prevent chat Enter handling
 
