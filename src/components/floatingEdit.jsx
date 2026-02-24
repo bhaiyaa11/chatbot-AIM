@@ -32,7 +32,7 @@ const [askInput, setAskInput] = useState("");
         🎬 Cinematic
       </button> */}
 
-      {/* <div className="ask-ai">
+      <div className="ask-ai">
       <input
         type="text"
         placeholder="Ask AI…"
@@ -47,7 +47,7 @@ const [askInput, setAskInput] = useState("");
           }
         }}
       />
-      </div> */}
+      </div> 
     </div>
   );
 }
