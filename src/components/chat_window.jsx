@@ -1383,10 +1383,20 @@ function ChatWindow() {
 
   // ── Floating menu — Ask AI (custom prompt) ─────────────────────
   const handleAskAI = async (customPrompt) => {
-    if (!selectedText || !savedRangeRef.current) return;    
-    setMenuPosition(null);
+    // if (!selectedText || !savedRangeRef.current) return;    
+    // setMenuPosition(null);
 
-    const formData = new FormData();
+    // const formData = new FormData();
+
+      const textToEdit = selectedText;           // ← snapshot before clearing
+  const savedRange = savedRangeRef.current;  // ← snapshot before clearing
+  
+  if (!textToEdit || !savedRange) return;
+  setMenuPosition(null);
+
+  const formData = new FormData();
+  formData.append("instruction", customPrompt);  // ← you forgot this line!
+  formData.append("selected_text", textToEdit);
       try {
       const res = await fetch(`${API_BASE_URL}/edit`, {
         method: "POST",
@@ -1411,7 +1421,7 @@ function ChatWindow() {
       savedRangeRef.current = null;
       setSelectedText("");
     } catch {
-      console.error("Inline edit failed");
+      console.error("askAI edit failed");
     }
     
     // if (!selectedText) return;
