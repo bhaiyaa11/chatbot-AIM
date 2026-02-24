@@ -1313,7 +1313,7 @@ function ChatWindow() {
   }, []);
 
   // ── Mouse up — only show menu inside bot bubbles ───────────────
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
     if (e.target.closest(".floating-menu")) return;  // ← add this 
     const selection = window.getSelection();
     const text = selection.toString();
@@ -1691,7 +1691,7 @@ function ChatWindow() {
 
   // ── Render ─────────────────────────────────────────────────────
   return (
-    <div className="chat-window" onMouseUp={handleMouseUp}>
+  <div className="chat-window" onMouseUp={(e) => handleMouseUp(e)}>
       <FilePreviewModal />
 
       {isEmpty ? (
