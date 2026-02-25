@@ -1469,7 +1469,7 @@ function ChatWindow() {
   };
 
   // ── Feedback ───────────────────────────────────────────────────
-  const sendFeedback = async (rating) => {
+  const sendFeedback = async (rating, prompt, output ) => {
     const formData = new FormData();
     formData.append("prompt", lastPromptRef.current);
     formData.append("output", lastOutputRef.current);
