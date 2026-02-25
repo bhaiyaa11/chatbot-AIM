@@ -1223,7 +1223,7 @@ const BotMessage = ({ msg, onFeedback }) => {
 
   return (
     <div className="feedback-row-rating">
-      <button style={{ backgroundColor: "#282a2c" }} onClick={() => onFeedback(1)}>
+      <button style={{ backgroundColor: "#282a2c" }} onClick={() => onFeedback(1, msg.prompt, msg.content)}>
         👍
       </button>
       <CopyButton editableRef={editableRef} />
@@ -1565,6 +1565,12 @@ function ChatWindow() {
 
       lastOutputRef.current = fullText;
       setPipelineStatus(null);
+      
+        await safeAddMessage({
+        role: "assistant",
+        content: fullText,
+        prompt: finalPrompt,
+      });
 
       await supabase
         .from("messages")
