@@ -1227,7 +1227,7 @@ const BotMessage = ({ msg, onFeedback }) => {
         👍
       </button>
       <CopyButton editableRef={editableRef} />
-      <ChatResponse ref={editableRef} reply={msg.text} />
+      <ChatResponse ref={editableRef} reply={msg.content} />
     </div>
   );
 };
@@ -1474,14 +1474,7 @@ function ChatWindow() {
     formData.append("prompt", lastPromptRef.current);
     formData.append("output", lastOutputRef.current);
     formData.append("rating", rating);
-    // ------------------------------------------------------------------
-      await safeAddMessage({
-        role: "user",
-        content: fullText,
-        prompt: finalPrompt,
-      });
-// -----------------------------------------------------------------------------
-    
+
  const res = await fetch(`${API_BASE_URL}/feedback`, {
       method: "POST",
       body: formData,
@@ -1575,11 +1568,8 @@ function ChatWindow() {
       lastOutputRef.current = fullText;
       setPipelineStatus(null);
       
-// -----------------------------------------------------------------------------
-
+     updateLastMessage(chatId, fullText, finalPrompt);  // attach prompt to message
       
-      // -----------------------------------------------------------------------------
-
       await supabase
         .from("messages")
         .update({ content: fullText })
