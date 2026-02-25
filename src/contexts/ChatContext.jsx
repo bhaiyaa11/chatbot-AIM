@@ -104,7 +104,8 @@ export const ChatProvider = ({ children }) => {
   const updateLastMessage = (chatId, content) => {
     setMessages((prev) =>
       prev.map((m, i) =>
-        i === prev.length - 1 ? { ...m, content } : m
+        // i === prev.length - 1 ? { ...m, content } : m
+        i === prev.length - 1 ? { ...m, content, prompt: prompt ?? m.prompt ?? "" } : m
       )
     );
   };
@@ -146,6 +147,8 @@ export const ChatProvider = ({ children }) => {
         messages: messages.map((m) => ({
           sender: m.role === "assistant" ? "bot" : "user",
           text: m.content,
+          content: m.content,
+          prompt: m.prompt ?? "",
           files: [],
         })),
       }
