@@ -1474,8 +1474,15 @@ function ChatWindow() {
     formData.append("prompt", lastPromptRef.current);
     formData.append("output", lastOutputRef.current);
     formData.append("rating", rating);
-
-    await fetch(`${API_BASE_URL}/feedback`, {
+    // ------------------------------------------------------------------
+      await safeAddMessage({
+        role: "user",
+        content: fullText,
+        prompt: finalPrompt,
+      });
+// -----------------------------------------------------------------------------
+    
+ const res = await fetch(`${API_BASE_URL}/feedback`, {
       method: "POST",
       body: formData,
     });
@@ -1510,6 +1517,8 @@ function ChatWindow() {
 
     setInput("");
     setFiles([]);
+
+    
 
     try {
       const { data: inserted } = await supabase
@@ -1566,11 +1575,10 @@ function ChatWindow() {
       lastOutputRef.current = fullText;
       setPipelineStatus(null);
       
-        await safeAddMessage({
-        role: "assistant",
-        content: fullText,
-        prompt: finalPrompt,
-      });
+// -----------------------------------------------------------------------------
+
+      
+      // -----------------------------------------------------------------------------
 
       await supabase
         .from("messages")
