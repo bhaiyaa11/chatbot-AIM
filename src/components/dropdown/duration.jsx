@@ -72,7 +72,7 @@ function Duration({ onChange }) {
       style={{          
         borderRadius: "40px",
         backgroundColor: "black",
-        color: "white",
+        color: "rgb(136, 136, 136)",
         border: "1px solid #3a3a3a",
         boxShadow: "0 20px 20px rgb(64, 59, 59)",
       }}

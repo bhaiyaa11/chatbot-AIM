@@ -71,7 +71,7 @@
 }
 
 
-.chat-input-area input[type="text"] {
+.chat-input-area textarea[type="text"] {
   flex: 1;
   padding: 12px 14px;
   border: 2px solid #000;
@@ -81,6 +81,11 @@
   background-color: #282A2C;
   color: white;
   box-shadow: 0 20px 20px rgb(64, 59, 59);
+  height: 53px;
+  resize: vertical; 
+  overflow: auto;
+  white-space: pre-wrap; 
+  overflow-wrap: break-word;
 
 }
 
@@ -280,8 +285,8 @@
 
 .chat-input-area-og {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
+  /* align-items: center;
+  flex-wrap: wrap; */
   gap: 8px;
   padding: 10px 16px;
   width: 500px;
@@ -292,14 +297,20 @@
   box-shadow: 0 20px 20px rgb(64, 59, 59);
 }
 
-.chat-input-area-og input[type="text"] {
+.chat-input-area-og textarea[type="text"] {
   flex: 1;
   background: transparent;
   border: none;
   outline: none;
   color: white;
   font-size: 14px;
-  min-width: 120px;
+  /* min-width: 120px; */
+  /* width: 200px;  */
+  height: 40px;
+  resize: vertical; 
+  overflow: auto;
+  white-space: pre-wrap; 
+  overflow-wrap: break-word;
 }
 
 .chat-input-area-og button[type="button"],

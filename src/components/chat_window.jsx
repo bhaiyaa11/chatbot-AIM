@@ -1735,13 +1735,15 @@ function ChatWindow() {
 
               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} />}
 
-              <input
-                className="chat-input-area-og"
+              <textarea
+                // className="chat-input-area-og"
                 type="text"
                 placeholder="Start generating..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                // onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                rows={4}
+                cols={50}
               />
 
               <button onClick={sendMessage}>Send</button>
@@ -1801,12 +1803,14 @@ function ChatWindow() {
 
             {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} />}
 
-            <input
+            <textarea
               type="text"
               placeholder="Start generating..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              // onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+              rows={4}
+              cols={50}
             />
 
             <button onClick={sendMessage}>Send</button>
@@ -1825,3 +1829,6 @@ function ChatWindow() {
 }
 
 export default ChatWindow;
+
+
+
