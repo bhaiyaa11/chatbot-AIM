@@ -72,7 +72,7 @@
 
 
 .chat-input-area textarea {
-  flex: 1;
+  /* flex: 1;
   padding: 12px 14px;
   border: 2px solid #000;
   outline: none;
@@ -85,8 +85,27 @@
   resize: vertical; 
   overflow: auto;
   white-space: pre-wrap; 
+  overflow-wrap: break-word; */
+    flex: 1;
+  padding: 12px 14px;
+  border: 2px solid #000;
+  outline: none;
+  font-size: 15px;
+  overflow: hidden;
+  white-space: pre-wrap;
   overflow-wrap: break-word;
-
+  line-height: 1.5;
+  padding: 0;
+  border-radius: 12px;
+  background-color: #282A2C;
+  color: white;
+  box-shadow: 0 20px 20px rgb(64, 59, 59);
+  height: 53px;
+  min-height: 53px;
+  max-height: 120px;
+  resize: none;
+  resize: vertical; 
+  line-height: 1.5;
 }
 
 .chat-input-area input[type="file"] {
