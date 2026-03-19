@@ -13,8 +13,8 @@ import Videotype from "./dropdown/videoType.jsx";
 import VideoTone from "./dropdown/video_tone.jsx";
 import DURATION_OPTIONS from "./dropdown/duration.jsx";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-// const API_BASE_URL = "http://localhost:8000";
+// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "http://localhost:8000";
 // ── Copy Button ────────────────────────────────────────────────
 const CopyButton = ({ editableRef }) => {
   const [copied, setCopied] = useState(false);
@@ -817,13 +817,13 @@ function ChatWindow() {
                 {isResearching ? "🔍 Researching…" : "🔍 Research & Generate"}
               </button>
 
-              {/* <button
+              <button
                 onClick={() => generateScript(null)}
                 disabled={!input.trim() && files.length === 0}
                 style={{ opacity: !input.trim() && files.length === 0 ? 0.5 : 1 }}
               >
                 Send
-              </button> */}
+              </button>
             </div>
           </div>
 
@@ -929,13 +929,13 @@ function ChatWindow() {
               {isResearching ? "🔍 Researching…" : "🔍 Research & Generate"}
             </button>
 
-            {/* <button
+             <button
               onClick={() => generateScript(null)}
               disabled={!input.trim() && files.length === 0}
               style={{ opacity: !input.trim() && files.length === 0 ? 0.5 : 1 }}
             >
               Send
-            </button> */}
+            </button> 
           </div>
 
           <FloatingEditMenu
