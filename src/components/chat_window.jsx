@@ -929,7 +929,7 @@ function ChatWindow() {
               {isResearching ? "🔍 Researching…" : "🔍 Research & Generate"}
             </button>
 
-             <button
+            <button
               onClick={() => generateScript(null)}
               disabled={!input.trim() && files.length === 0}
               style={{ opacity: !input.trim() && files.length === 0 ? 0.5 : 1 }}
