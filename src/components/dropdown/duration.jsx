@@ -1,3 +1,4 @@
+
 // import { useState } from "react";
 
 
@@ -11,13 +12,6 @@
 // ];
 
 // function Duration({ onChange }) {
-//     <style>  
-//     borderRadius: "40px",
-//     backgroundColor: "black",
-//     color: "white",
-//     border: "1px solid #3a3a3a",
-//     boxShadow: "0 20px 20px rgb(64, 59, 59)",
-//   </style>
 //   const [selected, setSelected] = useState("");
 
 //   const handleChange = (e) => {
@@ -30,6 +24,13 @@
 //       className="dropdown"
 //       value={selected}
 //       onChange={handleChange}
+//       style={{          
+//         borderRadius: "40px",
+//         backgroundColor: "black",
+//         color: "rgb(136, 136, 136)",
+//         border: "1px solid #3a3a3a",
+//         boxShadow: "0 20px 20px rgb(64, 59, 59)",
+//       }}
 //     >
 //       <option value="">Duration</option>
 //       {DURATION_OPTIONS.map((opt) => (
@@ -44,8 +45,10 @@
 // export default Duration;
 
 
-import { useState } from "react";
 
+
+import { useState } from "react";
+import "./dropdown.css";
 
 const DURATION_OPTIONS = [
   "30 seconds",
@@ -65,25 +68,19 @@ function Duration({ onChange }) {
   };
 
   return (
-    <select
-      className="dropdown"
-      value={selected}
-      onChange={handleChange}
-      style={{          
-        borderRadius: "40px",
-        backgroundColor: "black",
-        color: "rgb(136, 136, 136)",
-        border: "1px solid #3a3a3a",
-        boxShadow: "0 20px 20px rgb(64, 59, 59)",
-      }}
-    >
-      <option value="">Duration</option>
-      {DURATION_OPTIONS.map((opt) => (
-        <option key={opt} value={opt}>
-          {opt}
-        </option>
-      ))}
-    </select>
+    <div className="dropdown-select-wrap">
+      <select
+        className="dropdown-select"
+        value={selected}
+        onChange={handleChange}
+        style={{ color: selected ? "#e5e5e5" : "#ababab" }}
+      >
+        <option value="">Duration</option>
+        {DURATION_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    </div>
   );
 }
 
