@@ -969,8 +969,8 @@ import Videotype from "./dropdown/videoType.jsx";
 import VideoTone from "./dropdown/video_tone.jsx";
 import DURATION_OPTIONS from "./dropdown/duration.jsx";
 
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = "http://localhost:8000";
 // ── Copy Button ────────────────────────────────────────────────
 const CopyButton = ({ editableRef }) => {
   const [copied, setCopied] = useState(false);
