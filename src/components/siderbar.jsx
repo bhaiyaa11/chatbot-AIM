@@ -312,13 +312,7 @@ function Ssidebar() {
           </a>
         )}
 
-        {/* Brand Assets */}
-        {!collapsed && (
-          <a className="nav-item" href="#">
-            <span className="nav-icon">✨</span>
-            Brand Assets
-          </a>
-        )}
+ 
 
         {/* ── History Section ── */}
         {!collapsed && (
@@ -387,12 +381,7 @@ function Ssidebar() {
 
       {/* ── Footer ── */}
       <div className="sidebar-footer">
-        <button
-          className="sidebar-upgrade-btn"
-          title="Upgrade to Pro"
-        >
-          {collapsed ? "⚡" : "Upgrade to Pro"}
-        </button>
+  
 
         {!collapsed && (
           <>
