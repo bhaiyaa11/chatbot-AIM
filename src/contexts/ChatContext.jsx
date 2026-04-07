@@ -10,6 +10,7 @@ export const ChatProvider = ({ children }) => {
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [conversationId, setConversationId] = useState(
     localStorage.getItem("conversation_id") || null
   );
@@ -74,6 +75,24 @@ export const ChatProvider = ({ children }) => {
     setMessages([]);
     localStorage.removeItem("conversation_id");
   };
+const deleteConversation = async (id) => {
+  try {
+    await fetch(`${API_BASE_URL}/conversations/${id}`, { method: "DELETE" });
+  } catch (err) {
+    console.error("Failed to delete conversation:", err);
+  }
+
+  // If the deleted conversation is the active one, reset
+  if (conversationId === id) {
+    setConversationId(null);
+    setMessages([]);
+    localStorage.removeItem("conversation_id");
+  }
+
+  // Remove from local list
+  setConversations((prev) => prev.filter((c) => c.id !== id));
+};
+
 
   return (
     <ChatContext.Provider
@@ -88,6 +107,7 @@ export const ChatProvider = ({ children }) => {
         addMessage,
         updateLastMessage,
         createNewChat,
+        deleteConversation,
         loading,
         setLoading,
       }}

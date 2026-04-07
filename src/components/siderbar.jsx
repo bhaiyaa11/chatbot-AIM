@@ -8,13 +8,32 @@ function Ssidebar() {
     setConversationId,
     conversations,
     createNewChat,
+    deleteConversation,
   } = useChat();
 
   const [collapsed, setCollapsed] = useState(true);
+  const [hoveredConvId, setHoveredConvId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   const handleSelectConversation = (id) => {
     setConversationId(id);
     localStorage.setItem("conversation_id", id);
+  };
+
+  const handleDeleteClick = (e, id) => {
+    e.stopPropagation();
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = (e, id) => {
+    e.stopPropagation();
+    deleteConversation(id);
+    setConfirmDeleteId(null);
+  };
+
+  const handleCancelDelete = (e) => {
+    e.stopPropagation();
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -60,15 +79,53 @@ function Ssidebar() {
               {conversations?.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`history-item ${
-                    conv.id === conversationId ? "active-chat" : ""
-                  }`}
-                  onClick={() => handleSelectConversation(conv.id)}
-                  style={{ cursor: "pointer" }}
+                  onMouseEnter={() => setHoveredConvId(conv.id)}
+                  onMouseLeave={() => {
+                    setHoveredConvId(null);
+                    if (confirmDeleteId === conv.id) setConfirmDeleteId(null);
+                  }}
                 >
-                  <span className="history-item-title">
-                    {conv.title || "Untitled Conversation"}
-                  </span>
+                  {confirmDeleteId === conv.id ? (
+                    /* Confirm delete bar */
+                    <div className="confirm-delete-bar">
+                      <span>Delete chat?</span>
+                      <button
+                        className="confirm-delete-btn"
+                        onClick={(e) => handleConfirmDelete(e, conv.id)}
+                      >
+                        Delete
+                      </button>
+                      <button
+                        className="confirm-cancel-btn"
+                        onClick={handleCancelDelete}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    /* Normal chat row */
+                    <div
+                      className={`history-item ${
+                        conv.id === conversationId ? "active-chat" : ""
+                      }`}
+                      onClick={() => handleSelectConversation(conv.id)}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <span className="history-item-title">
+                        {conv.title || "Untitled Conversation"}
+                      </span>
+
+                      {hoveredConvId === conv.id && (
+                        <button
+                          className="history-delete-btn"
+                          onClick={(e) => handleDeleteClick(e, conv.id)}
+                          title="Delete chat"
+                        >
+                          🗑
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -76,8 +133,8 @@ function Ssidebar() {
         )}
 
         {/* Collapsed indicator */}
-        {collapsed && conversationId && (
-          <div className="collapsed-count">1</div>
+        {collapsed && (
+          <div className="collapsed-count">{conversations.length}</div>
         )}
       </nav>
 
