@@ -1,202 +1,95 @@
 
+
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../supabase";
 
 const ChatContext = createContext();
+// const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const ChatProvider = ({ children }) => {
-  const [chats, setChats] = useState([]);
-  const [activeChatId, setActiveChatId] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [messageFiles, setMessageFiles] = useState({});
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(
+    localStorage.getItem("conversation_id") || null
+  );
 
-  /* -------- LOAD CHATS -------- */
-  const loadChats = async () => {
-    const { data } = await supabase
-      .from("chats")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (data) {
-      setChats(data);
-      if (!activeChatId && data.length) {
-        setActiveChatId(data[0].id);
+  const loadConversations = async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/conversations`);
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        setConversations(data);
+      } else if (data.conversations && Array.isArray(data.conversations)) {
+        setConversations(data.conversations);
       }
+    } catch (err) {
+      console.error("Failed to load conversations:", err);
     }
   };
 
-  /* -------- LOAD MESSAGES -------- */
-  const loadMessages = async (chatId) => {
-    if (!chatId) return;
+  useEffect(() => {
+    loadConversations();
+  }, []);
 
-    const { data } = await supabase
-      .from("messages")
-      .select("*")
-      .eq("chat_id", chatId)
-      .order("created_at");
-
-    if (data) setMessages(data);
-  };
-
-  /* -------- CREATE NEW CHAT -------- */
-  const createNewChat = async () => {
-    const { data, error } = await supabase
-      .from("chats")
-      .insert([{ title: "New Chat" }])
-      .select()
-      .single();
-
-    if (error) {
-      console.error(error);
-      return;
+  // When conversationId changes, persist it to localStorage
+  useEffect(() => {
+    if (conversationId) {
+      localStorage.setItem("conversation_id", conversationId);
+    } else {
+      localStorage.removeItem("conversation_id");
     }
+  }, [conversationId]);
 
-    setChats((prev) => [data, ...prev]);
-    setActiveChatId(data.id);
-    setMessages([]);
-  };
-
-  /* -------- DELETE CHAT -------- */
-  const deleteChat = async (chatId) => {
-    await supabase.from("messages").delete().eq("chat_id", chatId);
-
-    const { error } = await supabase.from("chats").delete().eq("id", chatId);
-
-    if (error) {
-      console.error("Failed to delete chat:", error);
-      return;
-    }
-
-    const remaining = chats.filter((c) => c.id !== chatId);
-    setChats(remaining);
-
-    if (activeChatId === chatId) {
-      if (remaining.length > 0) {
-        setActiveChatId(remaining[0].id);
-      } else {
-        setActiveChatId(null);
-        setMessages([]);
-      }
-    }
-  };
-
-  /* -------- ADD MESSAGE (AUTO-CREATE CHAT) -------- */
-  const addMessage = async (chatId, message) => {
-    let targetChatId = chatId;
-
-    if (!targetChatId) {
-      const { data: newChat } = await supabase
-        .from("chats")
-        .insert({})
-        .select()
-        .single();
-
-      setChats((prev) => [newChat, ...prev]);
-      setActiveChatId(newChat.id);
-      setMessages([]);
-
-      targetChatId = newChat.id;
-    }
-
-    const { data: inserted } = await supabase
-      .from("messages")
-      .insert({
-        chat_id: targetChatId,
-        role: message.role ?? "user",
+  /* -------- ADD MESSAGE (LOCAL ONLY) -------- */
+  const addMessage = (id, message) => {
+    // Note: 'id' was traditionally chatId, now we use it as conversationId if needed
+    // But backend is the single source of truth, so we only update local state for UI responsiveness
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: message.role === "assistant" ? "bot" : "user",
+        text: message.content ?? message,
         content: message.content ?? message,
-      })
-      .select()
-      .single();
-
-    if (inserted && message.files?.length > 0) {
-      setMessageFiles((prev) => ({ ...prev, [inserted.id]: message.files }));
-    }
-
-    /* ---------- AUTO CHAT TITLE ---------- */
-    if (message.role === "user") {
-      const chat = chats.find((c) => c.id === targetChatId);
-
-      if (!chat?.title || chat.title === "New Chat") {
-        const title = (message.content || "").slice(0, 40);
-
-        await supabase.from("chats").update({ title }).eq("id", targetChatId);
-
-        setChats((prev) =>
-          prev.map((c) => (c.id === targetChatId ? { ...c, title } : c))
-        );
-      }
-    }
+        prompt: message.prompt ?? "",
+        files: message.files ?? [],
+      },
+    ]);
   };
 
   /* -------- STREAMING UPDATE -------- */
-  // FIX: original had `prompt` undefined in scope — added it as a parameter
-  const updateLastMessage = (chatId, content, prompt) => {
+  const updateLastMessage = (id, content, prompt) => {
     setMessages((prev) =>
       prev.map((m, i) =>
         i === prev.length - 1
-          ? { ...m, content, prompt: prompt ?? m.prompt ?? "" }
+          ? { ...m, content, text: content, prompt: prompt ?? m.prompt ?? "" }
           : m
       )
     );
   };
 
-  /* -------- REALTIME -------- */
-  useEffect(() => {
-    if (!activeChatId) return;
-
-    const channel = supabase
-      .channel(`messages-${activeChatId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `chat_id=eq.${activeChatId}`,
-        },
-        (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
-        }
-      )
-      .subscribe();
-
-    return () => supabase.removeChannel(channel);
-  }, [activeChatId]);
-
-  useEffect(() => {
-    loadChats().finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    loadMessages(activeChatId);
-  }, [activeChatId]);
-
-  const activeChat = chats.find((c) => c.id === activeChatId)
-    ? {
-        ...chats.find((c) => c.id === activeChatId),
-        messages: messages.map((m) => ({
-          sender: m.role === "assistant" ? "bot" : "user",
-          text: m.content,
-          content: m.content,
-          prompt: m.prompt ?? "",
-          files: messageFiles[m.id] ?? [],
-        })),
-      }
-    : null;
+  /* -------- CREATE NEW CHAT (RESET) -------- */
+  const createNewChat = () => {
+    setConversationId(null);
+    setMessages([]);
+    localStorage.removeItem("conversation_id");
+  };
 
   return (
     <ChatContext.Provider
       value={{
-        chats,
-        activeChat,
-        activeChatId,
-        setActiveChatId,
-        createNewChat,
-        deleteChat,
+        messages,
+        setMessages,
+        conversations,
+        setConversations,
+        loadConversations,
+        conversationId,
+        setConversationId,
         addMessage,
         updateLastMessage,
+        createNewChat,
         loading,
+        setLoading,
       }}
     >
       {children}
