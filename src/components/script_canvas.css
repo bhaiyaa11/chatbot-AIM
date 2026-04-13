@@ -1,0 +1,209 @@
+/* ─────────────────────────────────────────────────────────────
+   script_canvas.css
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Wrapper ─────────────────────────────────────────────────── */
+.script-canvas-wrapper {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: #0d0d0d;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────── */
+.canvas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: #111;
+  gap: 8px;
+}
+
+.canvas-toolbar__left,
+.canvas-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tb-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.45);
+  cursor: pointer;
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  padding: 4px 12px;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.tb-btn:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.tb-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.tb-btn--copy {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.tb-wordcount {
+  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.2);
+  user-select: none;
+}
+
+/* ── Canvas ──────────────────────────────────────────────────── */
+.script-canvas {
+  flex: 1;
+  min-height: 400px;
+  padding: 24px 28px;
+  outline: none;
+  color: rgba(255, 255, 255, 0.87);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  caret-color: rgba(255, 255, 255, 0.6);
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+
+  /* native scroll anchoring — avoids jitter on content changes */
+  overflow-anchor: auto;
+}
+
+/* Placeholder when empty */
+.script-canvas:empty::before {
+  content: attr(data-placeholder);
+  color: rgba(255, 255, 255, 0.18);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Selection highlight */
+.script-canvas ::selection {
+  background: rgba(139, 92, 246, 0.35);
+  color: inherit;
+}
+
+/* ── Floating edit menu ───────────────────────────────────────── */
+.floating-menu {
+  position: fixed; /* set in JS — kept here as fallback */
+  z-index: 9999;
+  background: #1a1a1a;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.85rem;
+  padding: 6px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  min-width: 240px;
+  max-width: 340px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+
+  /* entrance animation */
+  animation: menuIn 0.14s ease;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.fm-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  padding: 5px 11px;
+  white-space: nowrap;
+  transition: color 0.12s, background 0.12s, border-color 0.12s;
+}
+
+.fm-btn:hover {
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.fm-btn--send {
+  padding: 5px 10px;
+  font-size: 14px;
+}
+
+.fm-divider {
+  width: 100%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 2px 0;
+}
+
+.fm-ask-row {
+  width: 100%;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.fm-ask-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9999px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  padding: 5px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.fm-ask-input:focus {
+  border-color: rgba(139, 92, 246, 0.6);
+}
+
+.fm-ask-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+/* Loading state inside menu */
+.floating-menu__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.floating-menu__spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-top-color: rgba(139, 92, 246, 0.8);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
