@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import "./script_canvas.css";
 
-const API_BASE_URL = "http://localhost:8000";
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // ─────────────────────────────────────────────────────────────────────────────
 // FloatingEditMenu — rendered in a portal OUTSIDE contentEditable so selection
 // is never disturbed by React re-renders inside the editable div.
