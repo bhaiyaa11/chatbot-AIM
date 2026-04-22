@@ -824,20 +824,14 @@ function ChatWindow() {
 
   // Fix: prompt instructs the AI to produce a markdown table format
   const buildFinalPrompt = () =>
-    `Create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"}, which operates in ${formatList(selectedBU)} sectors, about ${input}. Maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.
-
-Format the entire script as a markdown table with these exact columns:
-| Scene / Time | Visuals | Voiceover / Dialogue | Notes |
-
-Each row = one scene. Use clear scene labels in the first column (e.g. "Scene 1 — Hook (0:00–0:08)"). Do not add any text outside the table except a single # heading at the top.`.trim();
-
-  const sendFeedback = async (rating, prompt, output) => {
-    const fd = new FormData();
-    fd.append("prompt", prompt||lastPromptRef.current);
-    fd.append("output", output||lastOutputRef.current);
-    fd.append("rating", rating);
-    await fetch(`${API_BASE_URL}/feedback`, {method:"POST", body:fd});
-  };
+  `create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"} ,which operates in ${formatList(selectedBU)} sectors, about ${input}, maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.`.trim();
+const sendFeedback = async (rating, prompt, output) => {
+  const fd = new FormData();
+  fd.append("prompt", prompt || lastPromptRef.current);
+  fd.append("output", output || lastOutputRef.current);
+  fd.append("rating", rating);
+  await fetch(`${API_BASE_URL}/feedback`, { method:"POST", body:fd });
+};
 
   const runResearch = async () => {
     if (!input.trim()) return;
