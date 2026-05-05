@@ -7,6 +7,7 @@ import Business_Unit from "./dropdown/BU.jsx";
 import Videotype from "./dropdown/videoType.jsx";
 import VideoTone from "./dropdown/video_tone.jsx";
 import DURATION_OPTIONS from "./dropdown/duration.jsx";
+import ContextDebugBar from "./ContextDebugBar";
 
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -1001,6 +1002,7 @@ const sendFeedback = async (rating, prompt, output) => {
             )}
 
             {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>}
+            <ContextDebugBar conversationId={conversationId} isStreaming={isStreaming} />
             <div className="scroll-anchor" ref={chatEndRef}/>
           </div>
 
