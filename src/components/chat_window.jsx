@@ -8,9 +8,14 @@ import Videotype from "./dropdown/videoType.jsx";
 import VideoTone from "./dropdown/video_tone.jsx";
 import DURATION_OPTIONS from "./dropdown/duration.jsx";
 import ContextDebugBar from "./ContextDebugBar";
+import SliderSizes from "./dropdown/slider.jsx";
+import EnhancePromptButton from "./dropdown/enhancePrompt.jsx";
+
 
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+
 
 // Storage key for persisting script canvas content per bot message
 const scriptKey = (msgId) => `script_content_${msgId}`;
@@ -737,6 +742,7 @@ function ChatWindow() {
   const [selectedVideoType,setSelectedVideoType]=useState("");
   const [selectedVideoTone,setSelectedVideoTone]=useState("");
   const [selectedDuration, setSelectedDuration]= useState("");
+  const [sliderValue, setSliderValue] = useState(50);
   const [isResearching,    setIsResearching]   = useState(false);
   const [editedResearch,   setEditedResearch]  = useState(null);
   const [researchId,       setResearchId]      = useState(null);
@@ -947,6 +953,11 @@ const sendFeedback = async (rating, prompt, output) => {
               <Videotype onChange={setSelectedVideoType}/>
               <VideoTone onChange={setSelectedVideoTone}/>
               <DURATION_OPTIONS onChange={setSelectedDuration}/>
+               <SliderSizes
+              value={sliderValue}
+              onChange={setSliderValue}
+            />
+
             </div>
             <div className={`chat-input-area-og ${isDragging?"drag-active":""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e)=>setFiles(Array.from(e.target.files))}/>
@@ -957,6 +968,11 @@ const sendFeedback = async (rating, prompt, output) => {
                   <button className="attach-btn-og" onClick={()=>fileInputRef.current.click()} title="Attach files">📎</button>
                 </div>
                 <div className="og-bottom-right">
+                  <EnhancePromptButton
+                    input={input}
+                    setInput={setInput}
+                  />
+
                   <button className="btn-research" onClick={runResearch} disabled={isResearching||!input.trim()} style={{opacity:isResearching||!input.trim()?.4:1}}>🔍 {isResearching?"Researching…":"Research"}</button>
                   <button className="btn-send"     onClick={generateScript} disabled={!input.trim()&&!files.length&&!editedResearch} style={{opacity:(!input.trim()&&!files.length&&!editedResearch)?.4:1}}>{editedResearch?"✦ Generate Script →":"Send →"}</button>
                 </div>
