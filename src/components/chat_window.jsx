@@ -22,7 +22,6 @@ const scriptKey = (msgId) => `script_content_${msgId}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // safeWriteClipboard — clipboard helper with execCommand fallback
-// (Fix 8: safe clipboard handling)
 // ─────────────────────────────────────────────────────────────────────────────
 async function safeWriteClipboard(text) {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -69,7 +68,6 @@ function parseMarkdownTable(tableLines) {
       .map(cell => cell.trim());
 
   const headers  = parseRow(rows[0]);
-  // rows[1] is the separator (---|---), skip it
   const bodyRows = rows.slice(2);
 
   const thCells = headers.map(h =>
@@ -116,7 +114,6 @@ function markdownToHtml(md) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // ── Fenced code block ──────────────────────────────────────
     if (line.trimStart().startsWith("```")) {
       const codeLines = [];
       i++;
@@ -132,7 +129,6 @@ function markdownToHtml(md) {
       i++; continue;
     }
 
-    // ── Markdown table — collect all consecutive pipe lines ────
     if (line.trim().startsWith("|")) {
       const tableLines = [];
       while (i < lines.length && lines[i].trim().startsWith("|")) {
@@ -144,7 +140,6 @@ function markdownToHtml(md) {
       continue;
     }
 
-    // ── Headings ───────────────────────────────────────────────
     const h3 = line.match(/^###\s+(.*)/);
     const h2 = line.match(/^##\s+(.*)/);
     const h1 = line.match(/^#\s+(.*)/);
@@ -152,13 +147,11 @@ function markdownToHtml(md) {
     if (h2) { out.push(`<h2 style="font-size:1.12em;font-weight:700;margin:16px 0 5px;color:rgba(255,255,255,.88);font-family:'Manrope',sans-serif;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.07);">${inlineFormat(h2[1])}</h2>`); i++; continue; }
     if (h3) { out.push(`<h3 style="font-size:1.0em;font-weight:600;margin:12px 0 4px;color:rgba(255,255,255,.75);font-family:'Manrope',sans-serif;">${inlineFormat(h3[1])}</h3>`); i++; continue; }
 
-    // ── Horizontal rule ────────────────────────────────────────
     if (/^(-{3,}|\*{3,}|_{3,})$/.test(line.trim())) {
       out.push(`<hr style="border:none;border-top:1px solid rgba(255,255,255,.08);margin:14px 0;" />`);
       i++; continue;
     }
 
-    // ── Unordered list ─────────────────────────────────────────
     if (/^[\*\-]\s+/.test(line)) {
       const items = [];
       while (i < lines.length && /^[\*\-]\s+/.test(lines[i])) {
@@ -169,7 +162,6 @@ function markdownToHtml(md) {
       continue;
     }
 
-    // ── Ordered list ───────────────────────────────────────────
     if (/^\d+\.\s+/.test(line)) {
       const items = [];
       while (i < lines.length && /^\d+\.\s+/.test(lines[i])) {
@@ -180,13 +172,11 @@ function markdownToHtml(md) {
       continue;
     }
 
-    // ── Blank line ─────────────────────────────────────────────
     if (line.trim() === "") {
       out.push(`<div style="height:0.5em;"></div>`);
       i++; continue;
     }
 
-    // ── Normal paragraph ───────────────────────────────────────
     out.push(`<p style="margin:0 0 4px;font-family:'Inter',sans-serif;font-size:14px;line-height:1.75;color:rgba(255,255,255,.82);">${inlineFormat(line)}</p>`);
     i++;
   }
@@ -261,8 +251,349 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// AudioPlayer — manual audio player with play/pause, seek, time, volume
+// ─────────────────────────────────────────────────────────────────────────────
+const AudioPlayer = ({ src, onClose }) => {
+  const audioRef        = useRef(null);
+  const [playing,       setPlaying]       = useState(false);
+  const [currentTime,   setCurrentTime]   = useState(0);
+  const [duration,      setDuration]      = useState(0);
+  const [volume,        setVolume]        = useState(1);
+  const [muted,         setMuted]         = useState(false);
+  const [loading,       setLoading]       = useState(true);
+  const animFrameRef    = useRef(null);
+
+  // Auto-play once loaded
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onCanPlay  = () => { setLoading(false); audio.play().then(() => setPlaying(true)).catch(() => {}); };
+    const onLoaded   = () => setDuration(audio.duration);
+    const onEnded    = () => { setPlaying(false); setCurrentTime(0); cancelAnimationFrame(animFrameRef.current); };
+    const onError    = () => setLoading(false);
+
+    audio.addEventListener("canplaythrough", onCanPlay);
+    audio.addEventListener("loadedmetadata", onLoaded);
+    audio.addEventListener("ended",          onEnded);
+    audio.addEventListener("error",          onError);
+    return () => {
+      audio.removeEventListener("canplaythrough", onCanPlay);
+      audio.removeEventListener("loadedmetadata", onLoaded);
+      audio.removeEventListener("ended",          onEnded);
+      audio.removeEventListener("error",          onError);
+      cancelAnimationFrame(animFrameRef.current);
+      audio.pause();
+    };
+  }, [src]);
+
+  // RAF-based smooth seek bar update
+  useEffect(() => {
+    const tick = () => {
+      if (audioRef.current && playing) {
+        setCurrentTime(audioRef.current.currentTime);
+        animFrameRef.current = requestAnimationFrame(tick);
+      }
+    };
+    if (playing) animFrameRef.current = requestAnimationFrame(tick);
+    else cancelAnimationFrame(animFrameRef.current);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, [playing]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current; if (!audio) return;
+    if (playing) { audio.pause(); setPlaying(false); }
+    else         { audio.play().then(() => setPlaying(true)).catch(() => {}); }
+  };
+
+  const handleSeek = (e) => {
+    const audio = audioRef.current; if (!audio || !duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct  = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    audio.currentTime = pct * duration;
+    setCurrentTime(audio.currentTime);
+  };
+
+  const handleVolume = (e) => {
+    const v = parseFloat(e.target.value);
+    setVolume(v);
+    if (audioRef.current) audioRef.current.volume = v;
+    setMuted(v === 0);
+  };
+
+  const toggleMute = () => {
+    const audio = audioRef.current; if (!audio) return;
+    const next = !muted;
+    setMuted(next);
+    audio.muted = next;
+  };
+
+  const fmt = (s) => {
+    if (!s || isNaN(s)) return "0:00";
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2,"0")}`;
+  };
+
+  const progress = duration > 0 ? currentTime / duration : 0;
+
+  return (
+    <>
+      <style>{`
+        @keyframes apIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        .ap-seek:hover .ap-seek-fill { background: rgba(168,85,247,1) !important; }
+        .ap-seek:hover .ap-seek-thumb { opacity: 1 !important; }
+        .ap-vol-track { -webkit-appearance:none; appearance:none; height:3px; border-radius:9999px; outline:none; cursor:pointer; }
+        .ap-vol-track::-webkit-slider-thumb { -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.8); cursor:pointer; margin-top:-4px; }
+        .ap-vol-track::-moz-range-thumb { width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.8); border:none; cursor:pointer; }
+        .ap-ctrl-btn { background:none; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:background .15s, transform .1s; padding:6px; }
+        .ap-ctrl-btn:hover { background:rgba(255,255,255,.08); }
+        .ap-ctrl-btn:active { transform:scale(.9); }
+        .ap-close-btn:hover { background:rgba(255,80,80,.12) !important; color:rgba(255,100,100,.8) !important; }
+      `}</style>
+      <audio ref={audioRef} src={src} preload="auto" style={{ display:"none" }} />
+      <div style={{
+        display:"flex", flexDirection:"column", gap:"10px",
+        background:"linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))",
+        border:"1px solid rgba(168,85,247,.25)", borderRadius:"14px",
+        padding:"14px 16px", marginTop:"10px",
+        boxShadow:"0 4px 24px rgba(168,85,247,.12), 0 2px 8px rgba(0,0,0,.5)",
+        animation:"apIn .2s ease"
+      }}>
+
+        {/* Top row: icon + label + close */}
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+            <span style={{ fontSize:"14px" }}>🎙</span>
+            <span style={{ fontSize:"11px", fontFamily:"'Inter',sans-serif", fontWeight:600, color:"rgba(168,85,247,.9)", letterSpacing:".6px", textTransform:"uppercase" }}>
+              Voice Over
+            </span>
+            {loading && (
+              <span style={{ display:"inline-block", width:"10px", height:"10px", border:"1.5px solid rgba(168,85,247,.2)", borderTopColor:"rgba(168,85,247,.9)", borderRadius:"50%", animation:"spin .7s linear infinite" }} />
+            )}
+          </div>
+          <button
+            className="ap-ctrl-btn ap-close-btn"
+            onClick={onClose}
+            style={{ color:"rgba(255,255,255,.3)", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 10px", border:"1px solid rgba(255,255,255,.07)", borderRadius:"9999px" }}
+          >✕ Close</button>
+        </div>
+
+        {/* Seek bar */}
+        <div
+          className="ap-seek"
+          onClick={handleSeek}
+          style={{ position:"relative", height:"20px", display:"flex", alignItems:"center", cursor:"pointer", userSelect:"none" }}
+        >
+          {/* Track */}
+          <div style={{ position:"absolute", width:"100%", height:"3px", background:"rgba(255,255,255,.08)", borderRadius:"9999px" }} />
+          {/* Fill */}
+          <div
+            className="ap-seek-fill"
+            style={{ position:"absolute", height:"3px", borderRadius:"9999px", background:"rgba(168,85,247,.85)", width:`${progress*100}%`, transition:"background .15s", pointerEvents:"none" }}
+          />
+          {/* Thumb */}
+          <div
+            className="ap-seek-thumb"
+            style={{ position:"absolute", left:`calc(${progress*100}% - 6px)`, width:"12px", height:"12px", borderRadius:"50%", background:"#fff", boxShadow:"0 0 6px rgba(168,85,247,.6)", opacity: playing ? 1 : 0.6, transition:"opacity .15s", pointerEvents:"none" }}
+          />
+        </div>
+
+        {/* Controls row */}
+        <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+
+          {/* Rewind 10s */}
+          <button
+            className="ap-ctrl-btn"
+            onClick={() => { if(audioRef.current) { audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); setCurrentTime(audioRef.current.currentTime); }}}
+            title="Rewind 10s"
+            style={{ color:"rgba(255,255,255,.5)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.45"/>
+            </svg>
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            className="ap-ctrl-btn"
+            onClick={togglePlay}
+            disabled={loading}
+            style={{
+              width:"36px", height:"36px", background:"rgba(168,85,247,.18)",
+              border:"1px solid rgba(168,85,247,.4)", color:"rgba(200,160,255,.95)",
+              opacity: loading ? 0.5 : 1
+            }}
+          >
+            {playing ? (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            )}
+          </button>
+
+          {/* Forward 10s */}
+          <button
+            className="ap-ctrl-btn"
+            onClick={() => { if(audioRef.current) { audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10); setCurrentTime(audioRef.current.currentTime); }}}
+            title="Forward 10s"
+            style={{ color:"rgba(255,255,255,.5)" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.45"/>
+            </svg>
+          </button>
+
+          {/* Time */}
+          <span style={{ fontSize:"11px", fontFamily:"'Inter',sans-serif", color:"rgba(255,255,255,.4)", marginLeft:"2px", minWidth:"72px" }}>
+            {fmt(currentTime)} / {fmt(duration)}
+          </span>
+
+          {/* Spacer */}
+          <div style={{ flex:1 }} />
+
+          {/* Mute toggle */}
+          <button
+            className="ap-ctrl-btn"
+            onClick={toggleMute}
+            style={{ color:"rgba(255,255,255,.4)" }}
+          >
+            {muted || volume === 0 ? (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+              </svg>
+            ) : (
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+            )}
+          </button>
+
+          {/* Volume slider */}
+          <input
+            type="range" min="0" max="1" step="0.02" value={muted ? 0 : volume}
+            onChange={handleVolume}
+            className="ap-vol-track"
+            style={{
+              width:"70px",
+              background: `linear-gradient(to right, rgba(168,85,247,.8) ${(muted?0:volume)*100}%, rgba(255,255,255,.1) ${(muted?0:volume)*100}%)`
+            }}
+          />
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ScriptCanvas — contentEditable canvas + floating AI menu + persistence
 // ─────────────────────────────────────────────────────────────────────────────
+
+function htmlToMarkdown(container) {
+
+  if (!container) return "";
+
+  let markdown = "";
+
+  const elements =
+    container.childNodes;
+
+  elements.forEach((node) => {
+
+    // TABLES
+    if (node.nodeName === "DIV") {
+
+      const table =
+        node.querySelector?.("table");
+
+      if (table) {
+
+        const rows =
+          table.querySelectorAll("tr");
+
+        rows.forEach((row, rowIndex) => {
+
+          const cols =
+            row.querySelectorAll("th, td");
+
+          const values =
+            Array.from(cols).map((cell) =>
+              cell.innerText
+                .replace(/\n/g, " ")
+                .trim()
+            );
+
+          markdown +=
+            `| ${values.join(" | ")} |\n`;
+
+          if (rowIndex === 0) {
+
+            markdown +=
+              `| ${values
+                .map(() => "---")
+                .join(" | ")} |\n`;
+          }
+        });
+
+        markdown += "\n";
+
+        return;
+      }
+    }
+
+    // HEADINGS
+    if (node.nodeName === "H1") {
+      markdown += `# ${node.innerText}\n\n`;
+      return;
+    }
+
+    if (node.nodeName === "H2") {
+      markdown += `## ${node.innerText}\n\n`;
+      return;
+    }
+
+    if (node.nodeName === "H3") {
+      markdown += `### ${node.innerText}\n\n`;
+      return;
+    }
+
+    // PARAGRAPHS
+    if (node.nodeName === "P") {
+      markdown += `${node.innerText}\n\n`;
+      return;
+    }
+
+    // LISTS
+    if (node.nodeName === "UL") {
+
+      const items =
+        node.querySelectorAll("li");
+
+      items.forEach((li) => {
+        markdown += `- ${li.innerText}\n`;
+      });
+
+      markdown += "\n";
+      return;
+    }
+
+    if (node.nodeName === "OL") {
+
+      const items =
+        node.querySelectorAll("li");
+
+      items.forEach((li, index) => {
+        markdown += `${index + 1}. ${li.innerText}\n`;
+      });
+
+      markdown += "\n";
+      return;
+    }
+  });
+
+  return markdown.trim();
+}
+
+
 const ScriptCanvas = ({ content, msgId }) => {
   const canvasRef          = useRef(null);
   const savedRange         = useRef(null);
@@ -271,24 +602,72 @@ const ScriptCanvas = ({ content, msgId }) => {
   const snapshotTimer      = useRef(null);
   const persistTimer       = useRef(null);
   const skipSnap           = useRef(false);
-  const isUserEditing      = useRef(false);   // Fix 1: guard against prop overwrites
-  const lastPersistedHtml  = useRef(null);    // Fix 4: skip identical localStorage writes
+  const isUserEditing      = useRef(false);
+  const lastPersistedHtml  = useRef(null);
   const aiHighlightTimer   = useRef(null);
+  // Always hold the latest raw markdown so voice generation sends pipe-delimited
+  // table text, not the stripped innerText from the rendered HTML canvas.
+  const rawMarkdownRef     = useRef(content ?? "");
 
-  const [menuPos,   setMenuPos]   = useState(null);
-  const [selText,   setSelText]   = useState("");
-  const [loading,   setLoading]   = useState(false);
-  const [copied,    setCopied]    = useState(false);
-  const [wordCount, setWordCount] = useState(0);
-  const [canUndo,   setCanUndo]   = useState(false);
-  const [canRedo,   setCanRedo]   = useState(false);
+  const [menuPos,        setMenuPos]        = useState(null);
+  const [selText,        setSelText]        = useState("");
+  const [loading,        setLoading]        = useState(false);
+  const [copied,         setCopied]         = useState(false);
+  const [wordCount,      setWordCount]      = useState(0);
+  const [canUndo,        setCanUndo]        = useState(false);
+  const [canRedo,        setCanRedo]        = useState(false);
+  const [selectedVoice,  setSelectedVoice]  = useState("british_female");
+  const [voiceGenerating,setVoiceGenerating]= useState(false);
+
+  // ── NEW: audio player state ──────────────────────────────────
+  const [audioSrc,       setAudioSrc]       = useState(null);   // URL of generated audio
+  const [showPlayer,     setShowPlayer]     = useState(false);  // whether player is visible
 
   const refreshBtns = () => {
     setCanUndo(undoStack.current.length > 0);
     setCanRedo(redoStack.current.length > 0);
   };
 
-  // Fix 3: clean up all timers on unmount
+  // ── Voice generation ─────────────────────────────────────────
+  // Send rawMarkdownRef (pipe-delimited markdown table) so the backend parser
+  // can find the | separators. innerText from the rendered HTML canvas loses
+  // all pipe characters, which caused "Parsed 0 scenes" on the backend.
+  const generateVoiceOver = async () => {
+    try {
+      setVoiceGenerating(true);
+      const currentScript = rawMarkdownRef.current?.trim() ?? "";
+
+      if (!currentScript) {
+        console.error("No script found");
+        setVoiceGenerating(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/generate-voice`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script: currentScript, voice_type: selectedVoice })
+      });
+
+      const data = await response.json();
+      console.log("VOICE RESPONSE:", data);
+
+      if (data.success && data.audio_url) {
+        // Build the full URL and hand it to the audio player
+        const fullUrl = `${API_BASE_URL}${data.audio_url}`;
+        setAudioSrc(fullUrl);
+        setShowPlayer(true);     // show the manual player
+      } else {
+        console.error("No audio returned", data);
+      }
+    } catch (err) {
+      console.error("Voice generation failed:", err);
+    } finally {
+      setVoiceGenerating(false);
+    }
+  };
+
+  // ── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       clearTimeout(snapshotTimer.current);
@@ -297,40 +676,37 @@ const ScriptCanvas = ({ content, msgId }) => {
     };
   }, []);
 
-  // Fix 4: debounced localStorage write — 1500ms, skip if content unchanged
+  // Keep rawMarkdownRef in sync when a new script arrives from the stream
+  useEffect(() => {
+    if (content) rawMarkdownRef.current = content;
+  }, [content]);
+
   const persistContent = useCallback(() => {
     if (!msgId || !canvasRef.current) return;
     clearTimeout(persistTimer.current);
     persistTimer.current = setTimeout(() => {
       const html = canvasRef.current.innerHTML;
-      if (html === lastPersistedHtml.current) return;   // Fix 4: no-op if unchanged
+      if (html === lastPersistedHtml.current) return;
       try {
         localStorage.setItem(scriptKey(msgId), html);
         lastPersistedHtml.current = html;
-      } catch(e) { /* quota exceeded — silently fail */ }
-    }, 1500);                                            // Fix 4: was 800
+      } catch(e) {}
+    }, 1500);
   }, [msgId]);
 
-  // Fix 1 + markdown: load content, guard against overwriting user edits
   useEffect(() => {
     if (!canvasRef.current) return;
-
-    // Fix 1: once the user has typed, never let incoming props overwrite their work
     if (isUserEditing.current) return;
-
     let saved = null;
     try { saved = msgId ? localStorage.getItem(scriptKey(msgId)) : null; } catch {}
-
     if (saved) {
       canvasRef.current.innerHTML = saved;
     } else if (content) {
-      // Render as formatted HTML instead of plain text
       canvasRef.current.innerHTML = markdownToHtml(content);
     }
     countWords();
   }, [content, msgId]);
 
-  // Fix 2: seed undo stack with initial content so the first edit is undoable
   useEffect(() => {
     const el = canvasRef.current;
     if (!el) return;
@@ -342,7 +718,7 @@ const ScriptCanvas = ({ content, msgId }) => {
       }
     }, 0);
     return () => clearTimeout(id);
-  }, [msgId]); // re-seed only when the message changes
+  }, [msgId]);
 
   const countWords = () => {
     const el = canvasRef.current;
@@ -367,11 +743,10 @@ const ScriptCanvas = ({ content, msgId }) => {
     persistContent();
   };
 
-  // Fix 5: read innerHTML once per operation into a local variable
   const undo = useCallback(() => {
     if (!undoStack.current.length) return;
     const el = canvasRef.current; if (!el) return;
-    const current = el.innerHTML;               // Fix 5: single read
+    const current = el.innerHTML;
     redoStack.current.push(current);
     applyHtml(undoStack.current.pop());
     refreshBtns();
@@ -380,14 +755,18 @@ const ScriptCanvas = ({ content, msgId }) => {
   const redo = useCallback(() => {
     if (!redoStack.current.length) return;
     const el = canvasRef.current; if (!el) return;
-    const current = el.innerHTML;               // Fix 5: single read
+    const current = el.innerHTML;
     undoStack.current.push(current);
     applyHtml(redoStack.current.pop());
     refreshBtns();
   }, []);
 
   const onInput = useCallback(() => {
-    isUserEditing.current = true;               // Fix 1: mark user as editing
+    isUserEditing.current = true;
+    rawMarkdownRef.current =
+  htmlToMarkdown(
+    canvasRef.current
+  );
     if (skipSnap.current) { skipSnap.current = false; return; }
     clearTimeout(snapshotTimer.current);
     snapshotTimer.current = setTimeout(() => { pushUndo(); countWords(); }, 600);
@@ -400,7 +779,6 @@ const ScriptCanvas = ({ content, msgId }) => {
     if (e.key === "Escape") setMenuPos(null);
   }, [undo, redo]);
 
-  // Fix 6: clamp menu position within viewport with safe margins
   const onMouseUp = useCallback((e) => {
     if (e.target.closest?.("[data-sfm]")) return;
     const sel  = window.getSelection();
@@ -414,17 +792,16 @@ const ScriptCanvas = ({ content, msgId }) => {
     const MENU_WIDTH  = 350;
     const SAFE_MARGIN = 8;
     const clampedLeft = Math.min(
-      Math.max(rect.left, SAFE_MARGIN),                           // Fix 6: clamp left
-      window.innerWidth - MENU_WIDTH - SAFE_MARGIN               // Fix 6: clamp right
+      Math.max(rect.left, SAFE_MARGIN),
+      window.innerWidth - MENU_WIDTH - SAFE_MARGIN
     );
     const clampedTop  = Math.min(
       rect.bottom + 8,
-      window.innerHeight - 160 - SAFE_MARGIN                     // Fix 6: clamp bottom
+      window.innerHeight - 160 - SAFE_MARGIN
     );
     setMenuPos({ top: clampedTop, left: clampedLeft });
   }, []);
 
-  // Apply AI edit with a highlight span — Fix 7: timeout corrected to 4000ms
   const applyEdit = useCallback((edited) => {
     const range = savedRange.current; const el = canvasRef.current;
     if (!range || !el) return;
@@ -446,10 +823,14 @@ const ScriptCanvas = ({ content, msgId }) => {
     after.setStartAfter(span); after.collapse(true);
     sel.removeAllRanges(); sel.addRange(after);
 
+    // Keep rawMarkdown in sync: replace the edited selection in the stored markdown
+    // if (selText && edited) {
+    //   rawMarkdownRef.current = rawMarkdownRef.current.replace(selText, edited);
+    // }
+
     savedRange.current = null; setMenuPos(null); setSelText(""); countWords();
     persistContent();
 
-    // Fix 7: was 120000 (2 minutes) — corrected to 4000ms as intended
     clearTimeout(aiHighlightTimer.current);
     aiHighlightTimer.current = setTimeout(() => {
       span.classList.add("ai-highlight-fade");
@@ -477,7 +858,6 @@ const ScriptCanvas = ({ content, msgId }) => {
     finally { setLoading(false); }
   }, [selText, applyEdit]);
 
-  // Fix 8: safe clipboard with fallback
   const copy = useCallback(async () => {
     try {
       await safeWriteClipboard(canvasRef.current?.innerText ?? "");
@@ -493,20 +873,75 @@ const ScriptCanvas = ({ content, msgId }) => {
   });
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", border:"1px solid rgba(255,255,255,.08)", borderRadius:"1rem", overflow:"hidden", background:"#0d0d0d", marginTop:"4px", width:"100%" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+        border: "1px solid rgba(255,255,255,.08)",
+        borderRadius: "1rem",
+        overflow: "hidden",
+        background: "#0d0d0d",
+        marginTop: "4px",
+        width: "100%"
+      }}
+    >
+      {/* Loading bar during voice generation */}
+      {voiceGenerating && (
+        <div style={{ position:"absolute", top:0, left:0, width:"100%", height:"2px", overflow:"hidden", zIndex:20, background:"rgba(168,85,247,.08)" }}>
+          <div style={{ position:"relative", top:0, left:"-35%", width:"35%", height:"100%", borderRadius:"999px", background:"linear-gradient(90deg, transparent, rgba(168,85,247,1), transparent)", boxShadow:"0 0 18px rgba(168,85,247,.95)", animation:"voiceLoading 1s linear infinite" }} />
+        </div>
+      )}
+
       {/* Toolbar */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", borderBottom:"1px solid rgba(255,255,255,.06)", background:"#111", gap:"6px" }}>
-        <div style={{ display:"flex", gap:"6px" }}>
+        <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
           <button style={tbBtn(!canUndo)} disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)">↩ Undo</button>
           <button style={tbBtn(!canRedo)} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)">↪ Redo</button>
+
+          <select
+            value={selectedVoice}
+            onChange={(e) => setSelectedVoice(e.target.value)}
+            style={{ background:"#111", border:"1px solid rgba(255,255,255,.08)", borderRadius:"9999px", color:"rgba(255,255,255,.75)", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", cursor:"pointer", outline:"none" }}
+          >
+            <option value="british_female">🇬🇧 British Female</option>
+            <option value="british_male">🇬🇧 British Male</option>
+            <option value="american_female">🇺🇸 American Female</option>
+            <option value="american_male">🇺🇸 American Male</option>
+            <option value="indian_female">🇮🇳 Indian Female</option>
+            <option value="indian_male">🇮🇳 Indian Male</option>
+          </select>
+
+          {/* Generate Voice button */}
+          <button
+            onClick={generateVoiceOver}
+            disabled={voiceGenerating}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
+            onMouseUp={(e)   => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e)=> (e.currentTarget.style.transform = "scale(1)")}
+            style={{ background:"none", border:"1px solid rgba(255,255,255,.07)", borderRadius:"9999px", color:"rgb(255,255,255)", cursor: voiceGenerating ? "not-allowed" : "pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", opacity: voiceGenerating ? 0.5 : 1 }}
+          >
+            🎙 {voiceGenerating ? "Generating…" : "Generate Voice"}
+          </button>
+
+          {/* Re-open player button if audio exists but player is hidden */}
+          {audioSrc && !showPlayer && !voiceGenerating && (
+            <button
+              onClick={() => setShowPlayer(true)}
+              style={{ background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:"9999px", color:"rgba(200,160,255,.9)", cursor:"pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px" }}
+            >
+              ▶ Show Player
+            </button>
+          )}
         </div>
+
         <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
           <span style={{ fontSize:"11px", fontFamily:"'Inter',sans-serif", color:"rgba(255,255,255,.2)" }}>{wordCount} words</span>
           <button style={{ ...tbBtn(false), color:copied?"#6fcf97":"rgba(255,255,255,.5)" }} onClick={copy}>{copied?"✓ Copied":"⧉ Copy"}</button>
         </div>
       </div>
 
-      {/* Editable area — removed whiteSpace:"pre-wrap" so HTML block elements render correctly */}
+      {/* Editable area */}
       <div
         ref={canvasRef}
         contentEditable suppressContentEditableWarning spellCheck={false}
@@ -515,7 +950,14 @@ const ScriptCanvas = ({ content, msgId }) => {
         style={{ minHeight:"300px", padding:"20px 24px", outline:"none", color:"rgba(255,255,255,.87)", fontFamily:"'Inter',sans-serif", fontSize:"14px", lineHeight:1.8, wordBreak:"break-word", caretColor:"rgba(255,255,255,.6)", overflowY:"auto" }}
       />
 
-      {/* Menu rendered outside contentEditable */}
+      {/* ── Audio Player — rendered below the editable area ── */}
+      {showPlayer && audioSrc && (
+        <div style={{ padding:"0 16px 16px" }}>
+          <AudioPlayer src={audioSrc} onClose={() => setShowPlayer(false)} />
+        </div>
+      )}
+
+      {/* Floating selection menu */}
       <ScriptFloatingMenu
         position={menuPos}
         onAction={handleAction}
@@ -531,6 +973,10 @@ const ScriptCanvas = ({ content, msgId }) => {
         .ai-highlight-fade{background:transparent!important;box-shadow:none!important;}
         @keyframes aiIn{from{background:rgba(139,92,246,.45)}to{background:rgba(139,92,246,.28)}}
         .ai-highlight{animation:aiIn .3s ease;}
+        @keyframes voiceLoading {
+          0%   { left: -35%; }
+          100% { left: 100%; }
+        }
       `}</style>
     </div>
   );
@@ -539,7 +985,6 @@ const ScriptCanvas = ({ content, msgId }) => {
 // ── Copy Button ────────────────────────────────────────────────
 const CopyButton = ({ editableRef }) => {
   const [copied, setCopied] = useState(false);
-  // Fix 8: safe clipboard with fallback
   const handleCopy = async () => {
     try {
       await safeWriteClipboard(editableRef.current?.innerText ?? "");
@@ -829,16 +1274,16 @@ function ChatWindow() {
 
   const safeAddMessage   = (msg) => { if (conversationId) return addMessage(conversationId, msg); };
 
-  // Fix: prompt instructs the AI to produce a markdown table format
   const buildFinalPrompt = () =>
-  `create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"} ,which operates in ${formatList(selectedBU)} sectors, about ${input}, maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.`.trim();
-const sendFeedback = async (rating, prompt, output) => {
-  const fd = new FormData();
-  fd.append("prompt", prompt || lastPromptRef.current);
-  fd.append("output", output || lastOutputRef.current);
-  fd.append("rating", rating);
-  await fetch(`${API_BASE_URL}/feedback`, { method:"POST", body:fd });
-};
+  `create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"} ,which operates in ${formatList(selectedBU)} sectors, about ${input}, creative freedom ${formatList(sliderValue)||"unspecified"}, and  maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.`.trim();
+
+  const sendFeedback = async (rating, prompt, output) => {
+    const fd = new FormData();
+    fd.append("prompt", prompt || lastPromptRef.current);
+    fd.append("output", output || lastOutputRef.current);
+    fd.append("rating", rating);
+    await fetch(`${API_BASE_URL}/feedback`, { method:"POST", body:fd });
+  };
 
   const runResearch = async () => {
     if (!input.trim()) return;
@@ -848,6 +1293,7 @@ const sendFeedback = async (rating, prompt, output) => {
     const bid = crypto.randomUUID();
     setMessages(prev => dedupeById([...prev, {id:bid,sender:"user",text:ci,content:ci,prompt:"",files:fpd,researchPending:true,researchData:null,hideText:false,researchLoading:false,researchId:null,_researchId:bid}]));
     const fd = new FormData();
+    fd.append("semantic_ratio", sliderValue);
     fd.append("client",formatList(selectedClient)); fd.append("business_unit",formatList(selectedBU));
     fd.append("video_type",formatList(selectedVideoType)); fd.append("video_tone",formatList(selectedVideoTone));
     fd.append("duration",selectedDuration); fd.append("prompt",ci);
@@ -921,7 +1367,6 @@ const sendFeedback = async (rating, prompt, output) => {
       setIsStreaming(false); setActiveStreamText(""); setPipelineStatus(null);
       updateLastMessage(rcid, fullText, fp);
       setMessages(prev => dedupeById(prev.map(m => m.id===botId ? {...m,content:fullText,text:fullText,prompt:fp} : m)));
-      // Seed localStorage as rendered HTML so canvas loads correctly on reload
       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
 
     } catch(err) {
@@ -953,11 +1398,7 @@ const sendFeedback = async (rating, prompt, output) => {
               <Videotype onChange={setSelectedVideoType}/>
               <VideoTone onChange={setSelectedVideoTone}/>
               <DURATION_OPTIONS onChange={setSelectedDuration}/>
-               <SliderSizes
-              value={sliderValue}
-              onChange={setSliderValue}
-            />
-
+              <SliderSizes value={sliderValue} onChange={setSliderValue} />
             </div>
             <div className={`chat-input-area-og ${isDragging?"drag-active":""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e)=>setFiles(Array.from(e.target.files))}/>
@@ -968,11 +1409,7 @@ const sendFeedback = async (rating, prompt, output) => {
                   <button className="attach-btn-og" onClick={()=>fileInputRef.current.click()} title="Attach files">📎</button>
                 </div>
                 <div className="og-bottom-right">
-                  <EnhancePromptButton
-                    input={input}
-                    setInput={setInput}
-                  />
-
+                  <EnhancePromptButton input={input} setInput={setInput} />
                   <button className="btn-research" onClick={runResearch} disabled={isResearching||!input.trim()} style={{opacity:isResearching||!input.trim()?.4:1}}>🔍 {isResearching?"Researching…":"Research"}</button>
                   <button className="btn-send"     onClick={generateScript} disabled={!input.trim()&&!files.length&&!editedResearch} style={{opacity:(!input.trim()&&!files.length&&!editedResearch)?.4:1}}>{editedResearch?"✦ Generate Script →":"Send →"}</button>
                 </div>
@@ -1002,7 +1439,6 @@ const sendFeedback = async (rating, prompt, output) => {
               </div>
             ))}
 
-            {/* Streaming bubble — renders markdown live so there's no flash when canvas takes over */}
             {isStreaming && (
               <div className="chat-bubble bot streaming">
                 <div className="feedback-row-rating">
@@ -1041,5 +1477,3 @@ const sendFeedback = async (rating, prompt, output) => {
 }
 
 export default ChatWindow;
-
-
