@@ -263,7 +263,6 @@ const AudioPlayer = ({ src, onClose }) => {
   const [loading,       setLoading]       = useState(true);
   const animFrameRef    = useRef(null);
 
-  // Auto-play once loaded
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -287,7 +286,6 @@ const AudioPlayer = ({ src, onClose }) => {
     };
   }, [src]);
 
-  // RAF-based smooth seek bar update
   useEffect(() => {
     const tick = () => {
       if (audioRef.current && playing) {
@@ -360,7 +358,6 @@ const AudioPlayer = ({ src, onClose }) => {
         animation:"apIn .2s ease"
       }}>
 
-        {/* Top row: icon + label + close */}
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
           <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
             <span style={{ fontSize:"14px" }}>🎙</span>
@@ -378,30 +375,23 @@ const AudioPlayer = ({ src, onClose }) => {
           >✕ Close</button>
         </div>
 
-        {/* Seek bar */}
         <div
           className="ap-seek"
           onClick={handleSeek}
           style={{ position:"relative", height:"20px", display:"flex", alignItems:"center", cursor:"pointer", userSelect:"none" }}
         >
-          {/* Track */}
           <div style={{ position:"absolute", width:"100%", height:"3px", background:"rgba(255,255,255,.08)", borderRadius:"9999px" }} />
-          {/* Fill */}
           <div
             className="ap-seek-fill"
             style={{ position:"absolute", height:"3px", borderRadius:"9999px", background:"rgba(168,85,247,.85)", width:`${progress*100}%`, transition:"background .15s", pointerEvents:"none" }}
           />
-          {/* Thumb */}
           <div
             className="ap-seek-thumb"
             style={{ position:"absolute", left:`calc(${progress*100}% - 6px)`, width:"12px", height:"12px", borderRadius:"50%", background:"#fff", boxShadow:"0 0 6px rgba(168,85,247,.6)", opacity: playing ? 1 : 0.6, transition:"opacity .15s", pointerEvents:"none" }}
           />
         </div>
 
-        {/* Controls row */}
         <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-
-          {/* Rewind 10s */}
           <button
             className="ap-ctrl-btn"
             onClick={() => { if(audioRef.current) { audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); setCurrentTime(audioRef.current.currentTime); }}}
@@ -413,7 +403,6 @@ const AudioPlayer = ({ src, onClose }) => {
             </svg>
           </button>
 
-          {/* Play / Pause */}
           <button
             className="ap-ctrl-btn"
             onClick={togglePlay}
@@ -431,7 +420,6 @@ const AudioPlayer = ({ src, onClose }) => {
             )}
           </button>
 
-          {/* Forward 10s */}
           <button
             className="ap-ctrl-btn"
             onClick={() => { if(audioRef.current) { audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10); setCurrentTime(audioRef.current.currentTime); }}}
@@ -443,15 +431,12 @@ const AudioPlayer = ({ src, onClose }) => {
             </svg>
           </button>
 
-          {/* Time */}
           <span style={{ fontSize:"11px", fontFamily:"'Inter',sans-serif", color:"rgba(255,255,255,.4)", marginLeft:"2px", minWidth:"72px" }}>
             {fmt(currentTime)} / {fmt(duration)}
           </span>
 
-          {/* Spacer */}
           <div style={{ flex:1 }} />
 
-          {/* Mute toggle */}
           <button
             className="ap-ctrl-btn"
             onClick={toggleMute}
@@ -468,7 +453,6 @@ const AudioPlayer = ({ src, onClose }) => {
             )}
           </button>
 
-          {/* Volume slider */}
           <input
             type="range" min="0" max="1" step="0.02" value={muted ? 0 : volume}
             onChange={handleVolume}
@@ -489,107 +473,41 @@ const AudioPlayer = ({ src, onClose }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function htmlToMarkdown(container) {
-
   if (!container) return "";
-
   let markdown = "";
-
-  const elements =
-    container.childNodes;
-
+  const elements = container.childNodes;
   elements.forEach((node) => {
-
-    // TABLES
     if (node.nodeName === "DIV") {
-
-      const table =
-        node.querySelector?.("table");
-
+      const table = node.querySelector?.("table");
       if (table) {
-
-        const rows =
-          table.querySelectorAll("tr");
-
+        const rows = table.querySelectorAll("tr");
         rows.forEach((row, rowIndex) => {
-
-          const cols =
-            row.querySelectorAll("th, td");
-
-          const values =
-            Array.from(cols).map((cell) =>
-              cell.innerText
-                .replace(/\n/g, " ")
-                .trim()
-            );
-
-          markdown +=
-            `| ${values.join(" | ")} |\n`;
-
+          const cols = row.querySelectorAll("th, td");
+          const values = Array.from(cols).map((cell) => cell.innerText.replace(/\n/g, " ").trim());
+          markdown += `| ${values.join(" | ")} |\n`;
           if (rowIndex === 0) {
-
-            markdown +=
-              `| ${values
-                .map(() => "---")
-                .join(" | ")} |\n`;
+            markdown += `| ${values.map(() => "---").join(" | ")} |\n`;
           }
         });
-
         markdown += "\n";
-
         return;
       }
     }
-
-    // HEADINGS
-    if (node.nodeName === "H1") {
-      markdown += `# ${node.innerText}\n\n`;
-      return;
-    }
-
-    if (node.nodeName === "H2") {
-      markdown += `## ${node.innerText}\n\n`;
-      return;
-    }
-
-    if (node.nodeName === "H3") {
-      markdown += `### ${node.innerText}\n\n`;
-      return;
-    }
-
-    // PARAGRAPHS
-    if (node.nodeName === "P") {
-      markdown += `${node.innerText}\n\n`;
-      return;
-    }
-
-    // LISTS
+    if (node.nodeName === "H1") { markdown += `# ${node.innerText}\n\n`; return; }
+    if (node.nodeName === "H2") { markdown += `## ${node.innerText}\n\n`; return; }
+    if (node.nodeName === "H3") { markdown += `### ${node.innerText}\n\n`; return; }
+    if (node.nodeName === "P")  { markdown += `${node.innerText}\n\n`; return; }
     if (node.nodeName === "UL") {
-
-      const items =
-        node.querySelectorAll("li");
-
-      items.forEach((li) => {
-        markdown += `- ${li.innerText}\n`;
-      });
-
-      markdown += "\n";
-      return;
+      const items = node.querySelectorAll("li");
+      items.forEach((li) => { markdown += `- ${li.innerText}\n`; });
+      markdown += "\n"; return;
     }
-
     if (node.nodeName === "OL") {
-
-      const items =
-        node.querySelectorAll("li");
-
-      items.forEach((li, index) => {
-        markdown += `${index + 1}. ${li.innerText}\n`;
-      });
-
-      markdown += "\n";
-      return;
+      const items = node.querySelectorAll("li");
+      items.forEach((li, index) => { markdown += `${index + 1}. ${li.innerText}\n`; });
+      markdown += "\n"; return;
     }
   });
-
   return markdown.trim();
 }
 
@@ -605,8 +523,6 @@ const ScriptCanvas = ({ content, msgId }) => {
   const isUserEditing      = useRef(false);
   const lastPersistedHtml  = useRef(null);
   const aiHighlightTimer   = useRef(null);
-  // Always hold the latest raw markdown so voice generation sends pipe-delimited
-  // table text, not the stripped innerText from the rendered HTML canvas.
   const rawMarkdownRef     = useRef(content ?? "");
 
   const [menuPos,        setMenuPos]        = useState(null);
@@ -618,56 +534,33 @@ const ScriptCanvas = ({ content, msgId }) => {
   const [canRedo,        setCanRedo]        = useState(false);
   const [selectedVoice,  setSelectedVoice]  = useState("british_female");
   const [voiceGenerating,setVoiceGenerating]= useState(false);
-
-  // ── NEW: audio player state ──────────────────────────────────
-  const [audioSrc,       setAudioSrc]       = useState(null);   // URL of generated audio
-  const [showPlayer,     setShowPlayer]     = useState(false);  // whether player is visible
+  const [audioSrc,       setAudioSrc]       = useState(null);
+  const [showPlayer,     setShowPlayer]     = useState(false);
 
   const refreshBtns = () => {
     setCanUndo(undoStack.current.length > 0);
     setCanRedo(redoStack.current.length > 0);
   };
 
-  // ── Voice generation ─────────────────────────────────────────
-  // Send rawMarkdownRef (pipe-delimited markdown table) so the backend parser
-  // can find the | separators. innerText from the rendered HTML canvas loses
-  // all pipe characters, which caused "Parsed 0 scenes" on the backend.
   const generateVoiceOver = async () => {
     try {
       setVoiceGenerating(true);
       const currentScript = rawMarkdownRef.current?.trim() ?? "";
-
-      if (!currentScript) {
-        console.error("No script found");
-        setVoiceGenerating(false);
-        return;
-      }
-
+      if (!currentScript) { console.error("No script found"); setVoiceGenerating(false); return; }
       const response = await fetch(`${API_BASE_URL}/generate-voice`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ script: currentScript, voice_type: selectedVoice })
       });
-
       const data = await response.json();
-      console.log("VOICE RESPONSE:", data);
-
       if (data.success && data.audio_url) {
-        // Build the full URL and hand it to the audio player
-        const fullUrl = `${API_BASE_URL}${data.audio_url}`;
-        setAudioSrc(fullUrl);
-        setShowPlayer(true);     // show the manual player
-      } else {
-        console.error("No audio returned", data);
-      }
-    } catch (err) {
-      console.error("Voice generation failed:", err);
-    } finally {
-      setVoiceGenerating(false);
-    }
+        setAudioSrc(`${API_BASE_URL}${data.audio_url}`);
+        setShowPlayer(true);
+      } else { console.error("No audio returned", data); }
+    } catch (err) { console.error("Voice generation failed:", err); }
+    finally { setVoiceGenerating(false); }
   };
 
-  // ── Cleanup ──────────────────────────────────────────────────
   useEffect(() => {
     return () => {
       clearTimeout(snapshotTimer.current);
@@ -676,10 +569,7 @@ const ScriptCanvas = ({ content, msgId }) => {
     };
   }, []);
 
-  // Keep rawMarkdownRef in sync when a new script arrives from the stream
-  useEffect(() => {
-    if (content) rawMarkdownRef.current = content;
-  }, [content]);
+  useEffect(() => { if (content) rawMarkdownRef.current = content; }, [content]);
 
   const persistContent = useCallback(() => {
     if (!msgId || !canvasRef.current) return;
@@ -687,10 +577,7 @@ const ScriptCanvas = ({ content, msgId }) => {
     persistTimer.current = setTimeout(() => {
       const html = canvasRef.current.innerHTML;
       if (html === lastPersistedHtml.current) return;
-      try {
-        localStorage.setItem(scriptKey(msgId), html);
-        lastPersistedHtml.current = html;
-      } catch(e) {}
+      try { localStorage.setItem(scriptKey(msgId), html); lastPersistedHtml.current = html; } catch(e) {}
     }, 1500);
   }, [msgId]);
 
@@ -699,74 +586,55 @@ const ScriptCanvas = ({ content, msgId }) => {
     if (isUserEditing.current) return;
     let saved = null;
     try { saved = msgId ? localStorage.getItem(scriptKey(msgId)) : null; } catch {}
-    if (saved) {
-      canvasRef.current.innerHTML = saved;
-    } else if (content) {
-      canvasRef.current.innerHTML = markdownToHtml(content);
-    }
+    if (saved) { canvasRef.current.innerHTML = saved; }
+    else if (content) { canvasRef.current.innerHTML = markdownToHtml(content); }
     countWords();
   }, [content, msgId]);
 
   useEffect(() => {
-    const el = canvasRef.current;
-    if (!el) return;
+    const el = canvasRef.current; if (!el) return;
     const id = setTimeout(() => {
-      if (el.innerHTML.trim()) {
-        undoStack.current = [el.innerHTML];
-        redoStack.current = [];
-        refreshBtns();
-      }
+      if (el.innerHTML.trim()) { undoStack.current = [el.innerHTML]; redoStack.current = []; refreshBtns(); }
     }, 0);
     return () => clearTimeout(id);
   }, [msgId]);
 
   const countWords = () => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const t = el.innerText.trim().split(/\s+/).filter(Boolean).length;
-    setWordCount(t);
+    const el = canvasRef.current; if (!el) return;
+    setWordCount(el.innerText.trim().split(/\s+/).filter(Boolean).length);
   };
 
   const pushUndo = () => {
     const el = canvasRef.current; if (!el) return;
     undoStack.current.push(el.innerHTML);
     if (undoStack.current.length > 100) undoStack.current.shift();
-    redoStack.current = [];
-    refreshBtns();
+    redoStack.current = []; refreshBtns();
   };
 
   const applyHtml = (html) => {
     const el = canvasRef.current; if (!el) return;
     skipSnap.current = true;
     el.innerHTML = html;
-    countWords();
-    persistContent();
+    countWords(); persistContent();
   };
 
   const undo = useCallback(() => {
     if (!undoStack.current.length) return;
     const el = canvasRef.current; if (!el) return;
-    const current = el.innerHTML;
-    redoStack.current.push(current);
-    applyHtml(undoStack.current.pop());
-    refreshBtns();
+    redoStack.current.push(el.innerHTML);
+    applyHtml(undoStack.current.pop()); refreshBtns();
   }, []);
 
   const redo = useCallback(() => {
     if (!redoStack.current.length) return;
     const el = canvasRef.current; if (!el) return;
-    const current = el.innerHTML;
-    undoStack.current.push(current);
-    applyHtml(redoStack.current.pop());
-    refreshBtns();
+    undoStack.current.push(el.innerHTML);
+    applyHtml(redoStack.current.pop()); refreshBtns();
   }, []);
 
   const onInput = useCallback(() => {
     isUserEditing.current = true;
-    rawMarkdownRef.current =
-  htmlToMarkdown(
-    canvasRef.current
-  );
+    rawMarkdownRef.current = htmlToMarkdown(canvasRef.current);
     if (skipSnap.current) { skipSnap.current = false; return; }
     clearTimeout(snapshotTimer.current);
     snapshotTimer.current = setTimeout(() => { pushUndo(); countWords(); }, 600);
@@ -791,14 +659,8 @@ const ScriptCanvas = ({ content, msgId }) => {
     const rect        = range.getBoundingClientRect();
     const MENU_WIDTH  = 350;
     const SAFE_MARGIN = 8;
-    const clampedLeft = Math.min(
-      Math.max(rect.left, SAFE_MARGIN),
-      window.innerWidth - MENU_WIDTH - SAFE_MARGIN
-    );
-    const clampedTop  = Math.min(
-      rect.bottom + 8,
-      window.innerHeight - 160 - SAFE_MARGIN
-    );
+    const clampedLeft = Math.min(Math.max(rect.left, SAFE_MARGIN), window.innerWidth - MENU_WIDTH - SAFE_MARGIN);
+    const clampedTop  = Math.min(rect.bottom + 8, window.innerHeight - 160 - SAFE_MARGIN);
     setMenuPos({ top: clampedTop, left: clampedLeft });
   }, []);
 
@@ -810,7 +672,6 @@ const ScriptCanvas = ({ content, msgId }) => {
     sel.removeAllRanges(); sel.addRange(range);
     const r = sel.getRangeAt(0);
     r.deleteContents();
-
     const span = document.createElement("span");
     span.textContent = edited;
     span.style.background   = "rgba(111, 207, 151, 0.25)";
@@ -818,28 +679,15 @@ const ScriptCanvas = ({ content, msgId }) => {
     span.style.padding      = "2px 3px";
     span.dataset.aiEdit     = "true";
     r.insertNode(span);
-
     const after = document.createRange();
     after.setStartAfter(span); after.collapse(true);
     sel.removeAllRanges(); sel.addRange(after);
-
-    // Keep rawMarkdown in sync: replace the edited selection in the stored markdown
-    // if (selText && edited) {
-    //   rawMarkdownRef.current = rawMarkdownRef.current.replace(selText, edited);
-    // }
-
-    savedRange.current = null; setMenuPos(null); setSelText(""); countWords();
-    persistContent();
-
+    savedRange.current = null; setMenuPos(null); setSelText(""); countWords(); persistContent();
     clearTimeout(aiHighlightTimer.current);
     aiHighlightTimer.current = setTimeout(() => {
       span.classList.add("ai-highlight-fade");
       setTimeout(() => {
-        if (span.parentNode) {
-          const text = document.createTextNode(span.textContent);
-          span.parentNode.replaceChild(text, span);
-          persistContent();
-        }
+        if (span.parentNode) { const text = document.createTextNode(span.textContent); span.parentNode.replaceChild(text, span); persistContent(); }
       }, 700);
     }, 12000);
   }, [persistContent]);
@@ -873,37 +721,19 @@ const ScriptCanvas = ({ content, msgId }) => {
   });
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        border: "1px solid rgba(255,255,255,.08)",
-        borderRadius: "1rem",
-        overflow: "hidden",
-        background: "#0d0d0d",
-        marginTop: "4px",
-        width: "100%"
-      }}
-    >
-      {/* Loading bar during voice generation */}
+    <div style={{ display:"flex", flexDirection:"column", position:"relative", border:"1px solid rgba(255,255,255,.08)", borderRadius:"1rem", overflow:"hidden", background:"#0d0d0d", marginTop:"4px", width:"100%" }}>
       {voiceGenerating && (
         <div style={{ position:"absolute", top:0, left:0, width:"100%", height:"2px", overflow:"hidden", zIndex:20, background:"rgba(168,85,247,.08)" }}>
           <div style={{ position:"relative", top:0, left:"-35%", width:"35%", height:"100%", borderRadius:"999px", background:"linear-gradient(90deg, transparent, rgba(168,85,247,1), transparent)", boxShadow:"0 0 18px rgba(168,85,247,.95)", animation:"voiceLoading 1s linear infinite" }} />
         </div>
       )}
 
-      {/* Toolbar */}
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 12px", borderBottom:"1px solid rgba(255,255,255,.06)", background:"#111", gap:"6px" }}>
         <div style={{ display:"flex", gap:"6px", flexWrap:"wrap" }}>
           <button style={tbBtn(!canUndo)} disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)">↩ Undo</button>
           <button style={tbBtn(!canRedo)} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)">↪ Redo</button>
-
-          <select
-            value={selectedVoice}
-            onChange={(e) => setSelectedVoice(e.target.value)}
-            style={{ background:"#111", border:"1px solid rgba(255,255,255,.08)", borderRadius:"9999px", color:"rgba(255,255,255,.75)", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", cursor:"pointer", outline:"none" }}
-          >
+          <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)}
+            style={{ background:"#111", border:"1px solid rgba(255,255,255,.08)", borderRadius:"9999px", color:"rgba(255,255,255,.75)", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", cursor:"pointer", outline:"none" }}>
             <option value="british_female">🇬🇧 British Female</option>
             <option value="british_male">🇬🇧 British Male</option>
             <option value="american_female">🇺🇸 American Female</option>
@@ -911,59 +741,39 @@ const ScriptCanvas = ({ content, msgId }) => {
             <option value="indian_female">🇮🇳 Indian Female</option>
             <option value="indian_male">🇮🇳 Indian Male</option>
           </select>
-
-          {/* Generate Voice button */}
-          <button
-            onClick={generateVoiceOver}
-            disabled={voiceGenerating}
+          <button onClick={generateVoiceOver} disabled={voiceGenerating}
             onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
             onMouseUp={(e)   => (e.currentTarget.style.transform = "scale(1)")}
             onMouseLeave={(e)=> (e.currentTarget.style.transform = "scale(1)")}
-            style={{ background:"none", border:"1px solid rgba(255,255,255,.07)", borderRadius:"9999px", color:"rgb(255,255,255)", cursor: voiceGenerating ? "not-allowed" : "pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", opacity: voiceGenerating ? 0.5 : 1 }}
-          >
+            style={{ background:"none", border:"1px solid rgba(255,255,255,.07)", borderRadius:"9999px", color:"rgb(255,255,255)", cursor: voiceGenerating ? "not-allowed" : "pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px", opacity: voiceGenerating ? 0.5 : 1 }}>
             🎙 {voiceGenerating ? "Generating…" : "Generate Voice"}
           </button>
-
-          {/* Re-open player button if audio exists but player is hidden */}
           {audioSrc && !showPlayer && !voiceGenerating && (
-            <button
-              onClick={() => setShowPlayer(true)}
-              style={{ background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:"9999px", color:"rgba(200,160,255,.9)", cursor:"pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px" }}
-            >
+            <button onClick={() => setShowPlayer(true)}
+              style={{ background:"rgba(168,85,247,.12)", border:"1px solid rgba(168,85,247,.3)", borderRadius:"9999px", color:"rgba(200,160,255,.9)", cursor:"pointer", fontSize:"11px", fontFamily:"'Inter',sans-serif", padding:"4px 12px" }}>
               ▶ Show Player
             </button>
           )}
         </div>
-
         <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
           <span style={{ fontSize:"11px", fontFamily:"'Inter',sans-serif", color:"rgba(255,255,255,.2)" }}>{wordCount} words</span>
           <button style={{ ...tbBtn(false), color:copied?"#6fcf97":"rgba(255,255,255,.5)" }} onClick={copy}>{copied?"✓ Copied":"⧉ Copy"}</button>
         </div>
       </div>
 
-      {/* Editable area */}
-      <div
-        ref={canvasRef}
-        contentEditable suppressContentEditableWarning spellCheck={false}
+      <div ref={canvasRef} contentEditable suppressContentEditableWarning spellCheck={false}
         onMouseUp={onMouseUp} onKeyDown={onKeyDown} onInput={onInput}
         data-placeholder="Your script will appear here. Edit freely, or select text for AI options."
         style={{ minHeight:"300px", padding:"20px 24px", outline:"none", color:"rgba(255,255,255,.87)", fontFamily:"'Inter',sans-serif", fontSize:"14px", lineHeight:1.8, wordBreak:"break-word", caretColor:"rgba(255,255,255,.6)", overflowY:"auto" }}
       />
 
-      {/* ── Audio Player — rendered below the editable area ── */}
       {showPlayer && audioSrc && (
         <div style={{ padding:"0 16px 16px" }}>
           <AudioPlayer src={audioSrc} onClose={() => setShowPlayer(false)} />
         </div>
       )}
 
-      {/* Floating selection menu */}
-      <ScriptFloatingMenu
-        position={menuPos}
-        onAction={handleAction}
-        onClose={() => setMenuPos(null)}
-        isLoading={loading}
-      />
+      <ScriptFloatingMenu position={menuPos} onAction={handleAction} onClose={() => setMenuPos(null)} isLoading={loading} />
 
       <style>{`
         [contenteditable]:empty::before{content:attr(data-placeholder);color:rgba(255,255,255,.18);font-style:italic;pointer-events:none;}
@@ -973,10 +783,7 @@ const ScriptCanvas = ({ content, msgId }) => {
         .ai-highlight-fade{background:transparent!important;box-shadow:none!important;}
         @keyframes aiIn{from{background:rgba(139,92,246,.45)}to{background:rgba(139,92,246,.28)}}
         .ai-highlight{animation:aiIn .3s ease;}
-        @keyframes voiceLoading {
-          0%   { left: -35%; }
-          100% { left: 100%; }
-        }
+        @keyframes voiceLoading { 0%{left:-35%} 100%{left:100%} }
       `}</style>
     </div>
   );
@@ -1163,7 +970,23 @@ const FileChips = ({ fileList, onRemove, onPreview }) => (
 
 function reconstructMessage(m) {
   const researchId = m.metadata?.research_id ?? null;
-  return { id:m.id??crypto.randomUUID(), sender:m.role==="assistant"?"bot":"user", text:m.content, content:m.content, prompt:m.prompt??"", files:[], researchPending:false, researchData:null, transcriptCount:0, hideText:!!researchId, researchLoading:!!researchId, researchId };
+  // ── KEY CHANGE: store rawPrompt (user-facing) separately from content (full enriched) ──
+  return {
+    id: m.id ?? crypto.randomUUID(),
+    sender: m.role === "assistant" ? "bot" : "user",
+    text: m.content,
+    content: m.content,
+    // rawPrompt is what gets displayed in the chat bubble — just the user's typed text
+    rawPrompt: m.raw_prompt ?? m.content,
+    prompt: m.prompt ?? "",
+    files: [],
+    researchPending: false,
+    researchData: null,
+    transcriptCount: 0,
+    hideText: !!researchId,
+    researchLoading: !!researchId,
+    researchId
+  };
 }
 
 function dedupeById(msgs) {
@@ -1187,7 +1010,7 @@ function ChatWindow() {
   const [selectedVideoType,setSelectedVideoType]=useState("");
   const [selectedVideoTone,setSelectedVideoTone]=useState("");
   const [selectedDuration, setSelectedDuration]= useState("");
-  const [sliderValue, setSliderValue] = useState(50);
+  const [sliderValue,      setSliderValue]     = useState(50);
   const [isResearching,    setIsResearching]   = useState(false);
   const [editedResearch,   setEditedResearch]  = useState(null);
   const [researchId,       setResearchId]      = useState(null);
@@ -1207,8 +1030,14 @@ function ChatWindow() {
   const [hasMore,        setHasMore]       = useState(true);
   const [loadingMessages,setLoadingMessages]= useState(false);
 
-  const isEmpty    = messages.length === 0 && !loadingMessages;
-  const lastBotId  = [...messages].reverse().find(m => m.sender==="bot")?.id ?? null;
+  const isEmpty   = messages.length === 0 && !loadingMessages;
+  const lastBotId = [...messages].reverse().find(m => m.sender==="bot")?.id ?? null;
+
+  // ── KEY CHANGE: build enriched prompt for backend, keep raw for display ──
+  // Raw prompt = only what the user typed (possibly enhanced via the enhance button)
+  // Enriched prompt = raw + metadata, sent to backend for RAG/generation
+  // const buildEnrichedPrompt = (rawInput) =>
+  //   `create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"} ,which operates in ${formatList(selectedBU)} sectors, about ${rawInput}, creative freedom ${formatList(sliderValue)||"unspecified"}, and  maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.`.trim();
 
   const hydrateResearchMessages = useCallback(async (msgList, chatIdParam) => {
     const toH = msgList.filter(m => m.researchLoading && m.researchId);
@@ -1272,11 +1101,6 @@ function ChatWindow() {
   const openPreview  = (file) => { const url=file.url||URL.createObjectURL(file); setPreviewFile({name:file.name,url,type:file.type}); };
   const closePreview = () => setPreviewFile(null);
 
-  const safeAddMessage   = (msg) => { if (conversationId) return addMessage(conversationId, msg); };
-
-  const buildFinalPrompt = () =>
-  `create a ${selectedDuration||"unspecified duration"} ${formatList(selectedVideoType)||"video"} video script for ${formatList(selectedClient)||"the client"} ,which operates in ${formatList(selectedBU)} sectors, about ${input}, creative freedom ${formatList(sliderValue)||"unspecified"}, and  maintain a ${formatList(selectedVideoTone)||"professional"} tone consistently.`.trim();
-
   const sendFeedback = async (rating, prompt, output) => {
     const fd = new FormData();
     fd.append("prompt", prompt || lastPromptRef.current);
@@ -1288,32 +1112,86 @@ function ChatWindow() {
   const runResearch = async () => {
     if (!input.trim()) return;
     setIsResearching(true); setEditedResearch(null); setResearchId(null); setResearchError(null);
-    const ci=input, cf=[...files], fpd=cf.map(f=>({name:f.name,type:f.type,url:URL.createObjectURL(f)}));
+
+    // ── KEY CHANGE: capture both raw and enriched before clearing input ──
+    const rawInput  = input;
+    const cf        = [...files];
+    const fpd       = cf.map(f => ({name:f.name,type:f.type,url:URL.createObjectURL(f)}));
+    // const enriched  = buildEnrichedPrompt(rawInput);
+    fd.append("prompt", rawInput);
+
     setInput(""); setFiles([]);
+
     const bid = crypto.randomUUID();
-    setMessages(prev => dedupeById([...prev, {id:bid,sender:"user",text:ci,content:ci,prompt:"",files:fpd,researchPending:true,researchData:null,hideText:false,researchLoading:false,researchId:null,_researchId:bid}]));
+    setMessages(prev => dedupeById([...prev, {
+      id: bid,
+      sender: "user",
+      // ── Display only the raw typed prompt in the chat bubble ──
+      text: rawInput,
+      content: rawInput,
+      rawPrompt: rawInput,
+      prompt: "",
+      files: fpd,
+      researchPending: true,
+      researchData: null,
+      hideText: false,
+      researchLoading: false,
+      researchId: null,
+      _researchId: bid
+    }]));
+
     const fd = new FormData();
-    // fd.append("semantic_ratio", sliderValue / 100);
     fd.append("creativity_ratio", sliderValue / 100);
-    fd.append("client",formatList(selectedClient)); fd.append("business_unit",formatList(selectedBU));
-    fd.append("video_type",formatList(selectedVideoType)); fd.append("video_tone",formatList(selectedVideoTone));
-    fd.append("duration",selectedDuration); fd.append("prompt",ci);
+    fd.append("client",        formatList(selectedClient));
+    fd.append("business_unit", formatList(selectedBU));
+    fd.append("video_type",    formatList(selectedVideoType));
+    fd.append("video_tone",    formatList(selectedVideoTone));
+    fd.append("duration",      selectedDuration);
+    // ── Send enriched prompt to backend ──
+    // fd.append("prompt", enriched);
+    fd.append("prompt", rawInput);
     cf.forEach(f => fd.append("files", f));
+
     const patch = (p) => setMessages(prev => dedupeById(prev.map(m => m._researchId===bid ? {...m,...p} : m)));
     try {
       const res  = await fetch(`${API_BASE_URL}/research`, {method:"POST", body:fd});
       const data = await res.json();
-      if (data.success&&data.research) { setEditedResearch(data.research); setResearchId(data.research_id); patch({researchPending:false,researchData:data.research,transcriptCount:data.research.transcript_count??0,hideText:true}); }
-      else { setResearchError(data.error||"Research failed"); patch({researchPending:false}); }
+      if (data.success&&data.research) {
+        setEditedResearch(data.research);
+        setResearchId(data.research_id);
+        patch({researchPending:false,researchData:data.research,transcriptCount:data.research.transcript_count??0,hideText:true});
+      } else {
+        setResearchError(data.error||"Research failed");
+        patch({researchPending:false});
+      }
     } catch { setResearchError("Could not reach server"); patch({researchPending:false}); }
     finally { setIsResearching(false); }
   };
 
   const generateScript = async () => {
     if (!input.trim()&&!files.length&&!editedResearch) return;
-    const cf=[...files], ci=input, cr=editedResearch, cri=researchId;
-    const fpd = cf.map(f => ({name:f.name,type:f.type,url:URL.createObjectURL(f)}));
-    const fp  = buildFinalPrompt(); lastPromptRef.current = fp;
+
+    const cf       = [...files];
+    // ── KEY CHANGE: keep rawInput for display, build enrichedPrompt for backend ──
+    const rawInput = input;
+     const trainingPrompt =
+    `create a ${selectedDuration || "unspecified duration"} ` +
+    `${formatList(selectedVideoType) || "video"} video script for ` +
+    `${formatList(selectedClient) || "the client"} ` +
+    `,which operates in ${formatList(selectedBU)} sectors, ` +
+    `about ${rawInput}, ` +
+    `creative freedom ${sliderValue}, ` +
+    `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
+
+    const cr       = editedResearch;
+    const cri      = researchId;
+    const fpd      = cf.map(f => ({name:f.name,type:f.type,url:URL.createObjectURL(f)}));
+    // const enrichedPrompt = buildEnrichedPrompt(rawInput);
+    // lastPromptRef.current = enrichedPrompt;
+    // lastPromptRef.current =
+    // rawInput;
+     lastPromptRef.current = trainingPrompt;
+
     setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
 
     const botId = crypto.randomUUID();
@@ -1321,12 +1199,23 @@ function ChatWindow() {
     if (!cr) {
       const uid = crypto.randomUUID();
       setMessages(prev => dedupeById([...prev,
-        {id:uid,  sender:"user",text:ci,content:ci,prompt:"",files:fpd,hideText:false,researchLoading:false},
-        {id:botId,sender:"bot", text:"",content:"", prompt:"",files:[]}
+        {
+          id: uid,
+          sender: "user",
+          // ── Only the raw typed text shows in the chat bubble ──
+          text: rawInput,
+          content: rawInput,
+          rawPrompt: rawInput,
+          prompt: "",
+          files: fpd,
+          hideText: false,
+          researchLoading: false
+        },
+        { id:botId, sender:"bot", text:"", content:"", prompt:"", files:[] }
       ]));
     } else {
       setMessages(prev => dedupeById([...prev,
-        {id:botId,sender:"bot",text:"",content:"",prompt:"",files:[]}
+        { id:botId, sender:"bot", text:"", content:"", prompt:"", files:[] }
       ]));
     }
 
@@ -1335,14 +1224,18 @@ function ChatWindow() {
     const ctrl = new AbortController(); abortControllerRef.current = ctrl;
 
     const fd = new FormData();
-    fd.append("prompt",fp); fd.append("client",formatList(selectedClient));
-    fd.append("business_unit",formatList(selectedBU)); fd.append("video_type",formatList(selectedVideoType));
-    fd.append("video_tone",formatList(selectedVideoTone));
+    // ── Send enriched prompt to backend ──
+    // fd.append("prompt",         enrichedPrompt);
+    fd.append("prompt",           rawInput);
+    fd.append("client",         formatList(selectedClient));
+    fd.append("business_unit",  formatList(selectedBU));
+    fd.append("video_type",     formatList(selectedVideoType));
+    fd.append("video_tone",     formatList(selectedVideoTone));
     fd.append("creativity_ratio", sliderValue / 100);
-    if (selectedDuration)  fd.append("duration",selectedDuration);
-    if (cri)               fd.append("research_id",cri);
-    if (cr)                fd.append("research_brief",JSON.stringify(cr));
-    if (conversationId)    fd.append("conversation_id",conversationId);
+    if (selectedDuration)    fd.append("duration",      selectedDuration);
+    if (cri)                 fd.append("research_id",   cri);
+    if (cr)                  fd.append("research_brief",JSON.stringify(cr));
+    if (conversationId)      fd.append("conversation_id", conversationId);
     cf.forEach(f => fd.append("files", f));
 
     try {
@@ -1367,15 +1260,16 @@ function ChatWindow() {
 
       fullText = fullText.replace(/\\n/g,"\n"); lastOutputRef.current = fullText;
       setIsStreaming(false); setActiveStreamText(""); setPipelineStatus(null);
-      updateLastMessage(rcid, fullText, fp);
-      setMessages(prev => dedupeById(prev.map(m => m.id===botId ? {...m,content:fullText,text:fullText,prompt:fp} : m)));
+      // updateLastMessage(rcid, fullText, enrichedPrompt);
+      updateLastMessage(rcid,fullText,rawInput);
+      setMessages(prev => dedupeById(prev.map(m => m.id===botId ? {...m,content:fullText,text:fullText,prompt:rawInput} : m)));
       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
 
     } catch(err) {
       if (err.name === "AbortError") return;
       console.error("generateScript error:", err);
       setIsStreaming(false); setActiveStreamText("");
-      setInput(ci); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
+      setInput(rawInput); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
       setMessages(prev => dedupeById(prev.map(m => m.id===botId ? {...m,content:"⚠️ Server error",text:"⚠️ Server error"} : m)));
     }
   };
@@ -1431,7 +1325,10 @@ function ChatWindow() {
                   <BotMessage msg={msg} onFeedback={sendFeedback} isLatestBot={msg.id===lastBotId}/>
                 ) : (
                   <div>
-                    {!msg.hideText && msg.text && <p style={{margin:0}}>{msg.text}</p>}
+                    {/* ── KEY CHANGE: display rawPrompt, not the full enriched prompt ── */}
+                    {!msg.hideText && (msg.rawPrompt || msg.text) && (
+                      <p style={{margin:0}}>{msg.rawPrompt || msg.text}</p>
+                    )}
                     {msg.files?.length>0 && <FileChips fileList={msg.files} onPreview={openPreview}/>}
                     {msg.researchPending && <ResearchingIndicator/>}
                     {msg.researchLoading && !msg.researchPending && <div style={{ fontSize:"12px", color:"rgba(255,255,255,.3)", fontFamily:"'Inter',sans-serif", marginTop:"6px" }}>Loading research…</div>}
