@@ -1293,7 +1293,8 @@ function ChatWindow() {
     const bid = crypto.randomUUID();
     setMessages(prev => dedupeById([...prev, {id:bid,sender:"user",text:ci,content:ci,prompt:"",files:fpd,researchPending:true,researchData:null,hideText:false,researchLoading:false,researchId:null,_researchId:bid}]));
     const fd = new FormData();
-    fd.append("semantic_ratio", sliderValue);
+    // fd.append("semantic_ratio", sliderValue / 100);
+    fd.append("creativity_ratio", sliderValue / 100);
     fd.append("client",formatList(selectedClient)); fd.append("business_unit",formatList(selectedBU));
     fd.append("video_type",formatList(selectedVideoType)); fd.append("video_tone",formatList(selectedVideoTone));
     fd.append("duration",selectedDuration); fd.append("prompt",ci);
@@ -1337,6 +1338,7 @@ function ChatWindow() {
     fd.append("prompt",fp); fd.append("client",formatList(selectedClient));
     fd.append("business_unit",formatList(selectedBU)); fd.append("video_type",formatList(selectedVideoType));
     fd.append("video_tone",formatList(selectedVideoTone));
+    fd.append("creativity_ratio", sliderValue / 100);
     if (selectedDuration)  fd.append("duration",selectedDuration);
     if (cri)               fd.append("research_id",cri);
     if (cr)                fd.append("research_brief",JSON.stringify(cr));
