@@ -50,8 +50,10 @@ function Ssidebar() {
 
       {!collapsed && (
         <div className="sidebar-brand">
-          <h1>AllinMotion</h1>
-          <p>AI Creative Studio</p>
+          {/* <h1>AllinMotion</h1> */}
+          <h1>ALL IN MOTION</h1>
+          {/* <p>AI Creative Studio</p> */}
+          <p>B2B Creative Solitions</p>
         </div>
       )}
 
