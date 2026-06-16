@@ -252,7 +252,7 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // AudioPlayer
 // ─────────────────────────────────────────────────────────────────────────────
-const AudioPlayer = ({ src, onClose }) => {
+const AudioPlayer = ({ src, onClose, onAudioStarted }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -263,25 +263,97 @@ const AudioPlayer = ({ src, onClose }) => {
   const animFrameRef = useRef(null);
 
   useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const onCanPlay = () => { setLoading(false); audio.play().then(() => setPlaying(true)).catch(() => {}); };
-    const onLoaded = () => setDuration(audio.duration);
-    const onEnded = () => { setPlaying(false); setCurrentTime(0); cancelAnimationFrame(animFrameRef.current); };
-    const onError = () => setLoading(false);
-    audio.addEventListener("canplaythrough", onCanPlay);
-    audio.addEventListener("loadedmetadata", onLoaded);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("error", onError);
-    return () => {
-      audio.removeEventListener("canplaythrough", onCanPlay);
-      audio.removeEventListener("loadedmetadata", onLoaded);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("error", onError);
-      cancelAnimationFrame(animFrameRef.current);
-      audio.pause();
-    };
-  }, [src]);
+  const audio = audioRef.current;
+  if (!audio) return;
+
+  audio.load();
+
+  const startPlayback = async () => {
+    try {
+      await audio.play();
+      setPlaying(true);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const onLoadedMetadata = () => {
+    setDuration(audio.duration || 0);
+  };
+
+const onCanPlay = async () => {
+  try {
+    await startPlayback();
+
+    if (onAudioStarted) {
+      onAudioStarted();
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+  const onEnded = () => {
+    setPlaying(false);
+    setCurrentTime(0);
+    cancelAnimationFrame(animFrameRef.current);
+  };
+
+const onError = (e) => {
+  console.error("Audio error", e);
+
+  setLoading(false);
+
+  if (onAudioStarted) {
+    onAudioStarted();
+  }
+};
+
+  audio.addEventListener(
+    "loadedmetadata",
+    onLoadedMetadata
+  );
+
+  audio.addEventListener(
+    "canplay",
+    onCanPlay
+  );
+
+  audio.addEventListener(
+    "ended",
+    onEnded
+  );
+
+  audio.addEventListener(
+    "error",
+    onError
+  );
+
+  return () => {
+    audio.pause();
+
+    audio.removeEventListener(
+      "loadedmetadata",
+      onLoadedMetadata
+    );
+
+    audio.removeEventListener(
+      "canplay",
+      onCanPlay
+    );
+
+    audio.removeEventListener(
+      "ended",
+      onEnded
+    );
+
+    audio.removeEventListener(
+      "error",
+      onError
+    );
+  };
+}, [src]);
 
   useEffect(() => {
     const tick = () => {
@@ -345,7 +417,13 @@ const AudioPlayer = ({ src, onClose }) => {
         .ap-ctrl-btn:active { transform:scale(.9); }
         .ap-close-btn:hover { background:rgba(255,80,80,.12) !important; color:rgba(255,100,100,.8) !important; }
       `}</style>
-      <audio ref={audioRef} src={src} preload="auto" style={{ display: "none" }} />
+      {/* <audio ref={audioRef} src={src} preload="auto" style={{ display: "none" }} /> */}
+      <audio
+  ref={audioRef}
+  src={src}
+  preload="metadata"
+  controls={false}
+/>
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(168,85,247,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(168,85,247,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "apIn .2s ease" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -427,28 +505,32 @@ function htmlToMarkdown(container) {
 // VOICES config
 // ─────────────────────────────────────────────────────────────────────────────
 const VOICES = [
-  { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"] },
-  { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"] },
-  { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"] },
-  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"] },
-  { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"] },
-  { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"] },
-  { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"] },
-  { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"] },
-  { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"] },
-  { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"] },
-  { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"] },
-  { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"] },
-  { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"] },
-  { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"] },
-  { value: "BECCA_AUSSIE_ADVERTISEMENT",  label: "🇦🇺 Becca",         accent: "australian", tone: ["advertising"] },
-  { value: "LILY_AUSSIE_CONVERSATIONAL",  label: "🇦🇺 Lily",          accent: "australian", tone: ["conversational"] },
-  { value: "SERENA_AMERICAN_SOCIALMEDIA", label: "🇺🇸 Serena",        accent: "american",   tone: ["social_media"] },
+  { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
+  { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
+  { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
+  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
+  { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
+  { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
+  { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
+  { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"], age: "young", gender: "female" },
+  { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"], age: "young", gender: "male" },
+  { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
+  { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"], age: "mid", gender: "female" },
+  { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
+  { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
+  { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
+  { value: "BECCA_AUSSIE_ADVERTISEMENT",  label: "🇦🇺 Becca",         accent: "australian", tone: ["advertising"], age: "mid", gender: "female" },
+  { value: "LILY_AUSSIE_CONVERSATIONAL",  label: "🇦🇺 Lily",          accent: "australian", tone: ["conversational"], age: "young", gender: "female"},
+  { value: "SERENA_AMERICAN_SOCIALMEDIA", label: "🇺🇸 Serena",        accent: "american",   tone: ["social_media"], age: "young" ,gender: "female"},
+  { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
+  {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
 ];
 
-const DEFAULT_ACCENT = "british";
+const DEFAULT_accent = "british";
 const DEFAULT_TONE   = "conversational";
-const DEFAULT_VOICE  = VOICES.find(v => v.accent === DEFAULT_ACCENT && v.tone.includes(DEFAULT_TONE))?.value ?? VOICES[0].value;
+const DEFAULT_AGE    = "young";
+const DEFAULT_GENDER = "female";
+const DEFAULT_VOICE  = VOICES.find(v => v.accent === DEFAULT_accent && v.tone.includes(DEFAULT_TONE) && v.age === DEFAULT_AGE && v.gender === DEFAULT_GENDER)?.value ?? VOICES[0].value;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ScriptCanvas
@@ -474,7 +556,9 @@ const ScriptCanvas = ({ content, msgId }) => {
   const [canUndo,         setCanUndo]         = useState(false);
   const [canRedo,         setCanRedo]         = useState(false);
   const [selectedVoice,   setSelectedVoice]   = useState(DEFAULT_VOICE);
-  const [accent,          setAccent]          = useState(DEFAULT_ACCENT);
+  const[gender,          setGender]          = useState(DEFAULT_GENDER);
+  const [age,             setAge]             = useState(DEFAULT_AGE);
+  const [accent,          setaccent]          = useState(DEFAULT_accent);
   const [tone,            setTone]            = useState(DEFAULT_TONE);
   const [voiceGenerating, setVoiceGenerating] = useState(false);
   const [audioSrc,        setAudioSrc]        = useState(null);
@@ -484,25 +568,56 @@ const ScriptCanvas = ({ content, msgId }) => {
     setCanUndo(undoStack.current.length > 0);
     setCanRedo(redoStack.current.length > 0);
   };
+const generateVoiceOver = async () => {
+  try {
+    setVoiceGenerating(true);
 
-  const generateVoiceOver = async () => {
-    try {
-      setVoiceGenerating(true);
-      const currentScript = rawMarkdownRef.current?.trim() ?? "";
-      if (!currentScript) { console.error("No script found"); setVoiceGenerating(false); return; }
-      const response = await fetch(`${API_BASE_URL}/generate-voice`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ script: currentScript, voice_type: selectedVoice }),
-      });
-      const data = await response.json();
-      if (data.success && data.audio_url) {
-        setAudioSrc(`${API_BASE_URL}${data.audio_url}`);
-        setShowPlayer(true);
-      } else { console.error("No audio returned", data); }
-    } catch (err) { console.error("Voice generation failed:", err); }
-    finally { setVoiceGenerating(false); }
-  };
+    const currentScript =
+      rawMarkdownRef.current?.trim() ?? "";
+
+    if (!currentScript) {
+      setVoiceGenerating(false);
+      return;
+    }
+
+    const params = new URLSearchParams({
+      script: currentScript,
+      voice_type: selectedVoice,
+    });
+
+    // const streamUrl =
+    //   `${API_BASE_URL}/audio-stream?${params.toString()}`;
+    const response = await fetch(
+  `${API_BASE_URL}/generate-voice`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      script: currentScript,
+      voice_type: selectedVoice
+    })
+  }
+);
+
+const data = await response.json();
+
+setAudioSrc(
+  `${API_BASE_URL}${data.audio_url}`
+);
+
+setShowPlayer(true);
+setVoiceGenerating(false);
+
+    setAudioSrc(streamUrl);
+    setShowPlayer(true);
+
+  } catch (err) {
+    console.error(err);
+    setVoiceGenerating(false);
+  }
+};
 
   useEffect(() => {
     return () => {
@@ -543,10 +658,10 @@ const ScriptCanvas = ({ content, msgId }) => {
   }, [msgId]);
 
   useEffect(() => {
-    const filtered = VOICES.filter(v => v.accent === accent && v.tone.includes(tone));
+    const filtered = VOICES.filter(v => v.accent === accent && v.tone.includes(tone) && v.age === age && v.gender === gender);
     const stillValid = filtered.find(v => v.value === selectedVoice);
     if (!stillValid && filtered.length > 0) setSelectedVoice(filtered[0].value);
-  }, [accent, tone]); // eslint-disable-line
+  }, [accent, tone, age, gender]); // eslint-disable-line
 
   const countWords = () => {
     const el = canvasRef.current; if (!el) return;
@@ -681,28 +796,59 @@ const ScriptCanvas = ({ content, msgId }) => {
         <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", alignItems: "center" }}>
           <button style={tbBtn(!canUndo)} disabled={!canUndo} onClick={undo} title="Undo (Ctrl+Z)">↩ Undo</button>
           <button style={tbBtn(!canRedo)} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)">↪ Redo</button>
+
+
+
           <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
-          <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>Accent</span>
-          {[["british", "🇬🇧 British"], ["american", "🇺🇸 American"], ["australian", "🇦🇺 Australian"], ["indian", "🇮🇳 Indian"]].map(([val, label]) => (
-            <button key={val} onClick={() => setAccent(val)} style={{ background: accent === val ? "rgba(168,85,247,.1)" : "none", border: `1px solid ${accent === val ? "rgba(168,85,247,.5)" : "rgba(255,255,255,.07)"}`, borderRadius: "9999px", color: accent === val ? "rgba(200,160,255,.9)" : "rgba(255,255,255,.5)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px" }}>{label}</button>
-          ))}
-          <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
-          <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>Tone</span>
-          {[["conversational", "Conversational"], ["advertising", "Advertising"], ["social_media", "Social Media"]].map(([val, label]) => (
-            <button key={val} onClick={() => setTone(val)} style={{ background: tone === val ? "rgba(168,85,247,.1)" : "none", border: `1px solid ${tone === val ? "rgba(168,85,247,.5)" : "rgba(255,255,255,.07)"}`, borderRadius: "9999px", color: tone === val ? "rgba(200,160,255,.9)" : "rgba(255,255,255,.5)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px" }}>{label}</button>
-          ))}
-          <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
-          <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
-            {VOICES.filter(v => v.accent === accent && v.tone.includes(tone)).map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-          </select>
-          <button onClick={() => { setAccent(DEFAULT_ACCENT); setTone(DEFAULT_TONE); setSelectedVoice(DEFAULT_VOICE); }} style={{ background: "none", border: "none", color: "rgba(255,255,255,.25)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 6px", borderRadius: "9999px" }} title="Reset filters">↺ Reset</button>
-          <button onClick={generateVoiceOver} disabled={voiceGenerating}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgb(255,255,255)", cursor: voiceGenerating ? "not-allowed" : "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", opacity: voiceGenerating ? 0.5 : 1 }}>
-            🎙 {voiceGenerating ? "Generating…" : "Generate Voice"}
-          </button>
+<span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>accent</span>
+<select value={accent} onChange={(e) => setaccent(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
+  {[["british", "🇬🇧 British"], ["american", "🇺🇸 American"], ["australian", "🇦🇺 Australian"], ["indian", "🇮🇳 Indian"], ["canadian", "🇨🇦 Canadian"]].map(([val, label]) => (
+    <option key={val} value={val}>{label}</option>
+  ))}
+</select>
+
+<div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
+<span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>age</span>
+<select value={age} onChange={(e) => setAge(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
+  {[ ["young", "Young"], ["mid", "Middle-aged"], ["senior", "Senior"]].map(([val, label]) => (
+    <option key={val} value={val}>{label}</option>
+  ))}
+</select>
+
+<div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
+<span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>gender</span>
+<select value={gender} onChange={(e) => setGender(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
+  {[ ["male", "Male"], ["female", "Female"], ["neutral", "Neutral"]].map(([val, label]) => (
+    <option key={val} value={val}>{label}</option>
+  ))}
+</select>
+
+<div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
+<span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.3)", textTransform: "uppercase", letterSpacing: ".04em" }}>Tone</span>
+<select value={tone} onChange={(e) => setTone(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
+  {[["conversational", "Conversational"], ["advertising", "Advertising"], ["social_media", "Social Media"]].map(([val, label]) => (
+    <option key={val} value={val}>{label}</option>
+  ))}
+</select>
+
+<div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
+<select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ background: "#111", border: "1px solid rgba(255,255,255,.08)", borderRadius: "9999px", color: "rgba(255,255,255,.75)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", cursor: "pointer", outline: "none" }}>
+  {VOICES.filter(v => v.accent === accent && v.tone.includes(tone) && v.age === age && v.gender === gender).map(v => (
+    <option key={v.value} value={v.value}>{v.label}</option>
+  ))}
+</select>
+
+<button onClick={() => { setaccent(DEFAULT_accent); setTone(DEFAULT_TONE); setSelectedVoice(DEFAULT_VOICE); }} style={{ background: "none", border: "none", color: "rgba(255,255,255,.25)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 6px", borderRadius: "9999px" }} title="Reset filters">↺ Reset</button>
+
+<button onClick={generateVoiceOver} disabled={voiceGenerating}
+  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
+  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+  style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgb(255,255,255)", cursor: voiceGenerating ? "not-allowed" : "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", opacity: voiceGenerating ? 0.5 : 1 }}>
+  🎙 {voiceGenerating ? "Generating…" : "Generate Voice"}
+</button>
+
+
           {audioSrc && !showPlayer && !voiceGenerating && (
             <button onClick={() => setShowPlayer(true)} style={{ background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)", borderRadius: "9999px", color: "rgba(200,160,255,.9)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px" }}>▶ Show Player</button>
           )}
@@ -722,7 +868,9 @@ const ScriptCanvas = ({ content, msgId }) => {
 
       {showPlayer && audioSrc && (
         <div style={{ padding: "0 16px 16px" }}>
-          <AudioPlayer src={audioSrc} onClose={() => setShowPlayer(false)} />
+          <AudioPlayer src={audioSrc} onClose={() => setShowPlayer(false)} onAudioStarted={() => {
+    setVoiceGenerating(false);
+  }}   />
         </div>
       )}
 
@@ -1047,7 +1195,8 @@ const ErrorBanner = ({ message }) => (
 
 // ── Main ChatWindow ────────────────────────────────────────────
 function ChatWindow() {
-  const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations } = useChat();
+  // const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations } = useChat();
+  const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations, getAuthHeaders } = useChat();
 
   const [input,             setInput]            = useState("");
   const [files,             setFiles]            = useState([]);
@@ -1152,21 +1301,7 @@ function ChatWindow() {
       const data = await res.json();
       console.log("CREATIVE REVIEW RESPONSE", data);
 
-      // if (data.review_id) {
-      //   setNarrativeReview({
-      //     ...data,
-      //     _promptContext: {
-      //       rawInput,
-      //       cf,
-      //       client:        formatList(selectedClient),
-      //       business_unit: formatList(selectedBU),
-      //       video_type:    formatList(selectedVideoType),
-      //       video_tone:    formatList(selectedVideoTone),
-      //       duration:      selectedDuration,
-      //       sliderValue,
-      //     },
-      //   });
-      //   patch({ researchPending: false, hideText: true });
+
       if (data.review_id) {
         patch({
           reviewPending: false,
@@ -1242,7 +1377,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 
     try {
       // const res    = await fetch(`${API_BASE_URL}/generate-script`, { method: "POST", body: fd, signal: ctrl.signal });
-       const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+      //  const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+      const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       const reader  = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let done = false, fullText = "", rcid = conversationId;
@@ -1477,7 +1613,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     cf.forEach(f => fd.append("files", f));
 
     try {
-      const res     = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+      // const res     = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+      const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       const reader  = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
       let done = false, fullText = "", rcid = conversationId;
@@ -1648,27 +1785,6 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
           </div>
 
           {/* FIX: NarrativeReviewPanel has constrained max-height to prevent pushing input off-screen */}
-          {/* {narrativeReview && (
-            <div style={{
-              padding: "12px 16px",
-              borderTop: "1px solid rgba(255,255,255,.04)",
-              maxHeight: "65vh",
-              overflowY: "auto",
-            }}>
-              <NarrativeReviewPanel
-                reviewData={narrativeReview}
-                onGenerate={generateApprovedScript}
-                isGenerating={isStreaming}
-                metadata={{
-                  client:        narrativeReview._promptContext?.client,
-                  business_unit: narrativeReview._promptContext?.business_unit,
-                  video_type:    narrativeReview._promptContext?.video_type,
-                  video_tone:    narrativeReview._promptContext?.video_tone,
-                  duration:      narrativeReview._promptContext?.duration,
-                }}
-              />
-            </div>
-          )} */}
 
           {/* FIX: in-flow error banners, not fixed-position */}
           {(researchError || narrativeError) && (

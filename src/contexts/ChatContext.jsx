@@ -1,27 +1,65 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
+import { useAuth } from "./AuthContext";
 
 const ChatContext = createContext();
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export const ChatProvider = ({ children }) => {
+  const { session } = useAuth();
+
   const [messages, setMessages] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // FIX 2 — Zombie session: isGenerating is lifted into context so that
-  // ChatWindow can lock both send buttons and the textarea during streaming.
-  // Set true before the fetch, false after the post-stream /messages sync.
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const [conversationId, setConversationId] = useState(() => {
-    try { return localStorage.getItem("conversation_id") || null; }
-    catch { return null; }
-  });
 
+const [conversationId, setConversationId] = useState(null);
+  // ---------------------------------------------------------------------------
+  // Auth header helper — reads the live Supabase session token
+  // Returns an Authorization header if logged in, empty object otherwise.
+  // ---------------------------------------------------------------------------
+  const getAuthHeaders = () => {
+    const token = session?.access_token;
+    if (!token) return {};
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  useEffect(() => {
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    setConversationId(null);
+    return;
+  }
+
+  try {
+    const savedConversation = localStorage.getItem(
+      `conversation_id_${userId}`
+    );
+
+    setConversationId(savedConversation || null);
+  } catch {
+    setConversationId(null);
+  }
+}, [session]);
+
+  // ---------------------------------------------------------------------------
+  // Load conversation list — filtered server-side by user_id from JWT
+  // ---------------------------------------------------------------------------
   const loadConversations = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/conversations`);
+      const res = await fetch(`${API_BASE_URL}/conversations`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (res.status === 401) {
+        // Session expired or not logged in — clear list silently
+        setConversations([]);
+        return;
+      }
+
       const data = await res.json();
       if (Array.isArray(data)) {
         setConversations(data);
@@ -33,35 +71,59 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
+
+useEffect(() => {
+  if (session) {
     loadConversations();
-  }, []);
+  } else {
+    setConversationId(null);
+    setMessages([]);
+    setConversations([]);
+  }
+}, [session]);
 
-  useEffect(() => {
-    try {
-      if (conversationId) localStorage.setItem("conversation_id", conversationId);
-      else localStorage.removeItem("conversation_id");
-    } catch { /* private browsing — silently ignore */ }
-  }, [conversationId]);
 
-  /* -------- ADD MESSAGE (LOCAL ONLY) --------*/
+useEffect(() => {
+  const userId = session?.user?.id;
+
+  if (!userId) return;
+
+  try {
+    const key = `conversation_id_${userId}`;
+
+    if (conversationId) {
+      localStorage.setItem(key, conversationId);
+    } else {
+      localStorage.removeItem(key);
+    }
+  } catch {}
+}, [conversationId, session]);
+
+
+useEffect(() => {
+  setMessages([]);
+}, [session?.user?.id]);
+
+
+  // ---------------------------------------------------------------------------
+  // Add message (local only)
+  // ---------------------------------------------------------------------------
   const addMessage = (id, message) => {
     setMessages((prev) => [
       ...prev,
       {
-        sender: message.role === "assistant" ? "bot" : "user",
-        text: message.content ?? message,
+        sender:  message.role === "assistant" ? "bot" : "user",
+        text:    message.content ?? message,
         content: message.content ?? message,
-        prompt: message.prompt ?? "",
-        files: message.files ?? [],
+        prompt:  message.prompt ?? "",
+        files:   message.files ?? [],
       },
     ]);
   };
 
-  /* -------- STREAMING UPDATE --------
-   * Patches the last message in the array with updated streaming content.
-   * When `prompt` is defined (final call only), refreshes the sidebar.
-   */
+  // ---------------------------------------------------------------------------
+  // Streaming update — patches the last message in place
+  // ---------------------------------------------------------------------------
   const updateLastMessage = (id, content, prompt) => {
     setMessages((prev) =>
       prev.map((m, i) =>
@@ -71,23 +133,30 @@ export const ChatProvider = ({ children }) => {
       )
     );
 
-    // Only reload sidebar when streaming has fully finished (prompt is passed).
+    // Only reload sidebar once streaming finishes (prompt is passed as signal)
     if (prompt !== undefined) {
       loadConversations();
     }
   };
 
-  /* -------- CREATE NEW CHAT (RESET) -------- */
+  // ---------------------------------------------------------------------------
+  // Create new chat (reset local state)
+  // ---------------------------------------------------------------------------
   const createNewChat = () => {
     setConversationId(null);
     setMessages([]);
     try { localStorage.removeItem("conversation_id"); } catch { /* ignore */ }
   };
 
-  /* -------- DELETE CONVERSATION -------- */
+  // ---------------------------------------------------------------------------
+  // Delete conversation — sends auth header so backend verifies ownership
+  // ---------------------------------------------------------------------------
   const deleteConversation = async (id) => {
     try {
-      await fetch(`${API_BASE_URL}/conversations/${id}`, { method: "DELETE" });
+      await fetch(`${API_BASE_URL}/conversations/${id}`, {
+        method:  "DELETE",
+        headers: getAuthHeaders(),
+      });
     } catch (err) {
       console.error("Failed to delete conversation:", err);
     }
@@ -101,6 +170,10 @@ export const ChatProvider = ({ children }) => {
     setConversations((prev) => prev.filter((c) => c.id !== id));
   };
 
+  // ---------------------------------------------------------------------------
+  // Expose getAuthHeaders so ChatWindow / other components can use it
+  // when calling /chat, /generate-script, etc.
+  // ---------------------------------------------------------------------------
   return (
     <ChatContext.Provider
       value={{
@@ -117,9 +190,9 @@ export const ChatProvider = ({ children }) => {
         deleteConversation,
         loading,
         setLoading,
-        // FIX 2: exposed so ChatWindow locks input during generation
         isGenerating,
         setIsGenerating,
+        getAuthHeaders, // <-- expose so chat/send calls can attach the token
       }}
     >
       {children}
@@ -128,3 +201,11 @@ export const ChatProvider = ({ children }) => {
 };
 
 export const useChat = () => useContext(ChatContext);
+
+
+
+
+
+
+
+

@@ -71,12 +71,40 @@ const FactChecker = ({ getScript }) => {
       <style>{`
         @keyframes fcSlide { from { opacity:0; transform:translateY(8px) scale(.98) } to { opacity:1; transform:translateY(0) scale(1) } }
         @keyframes fcFade  { from { opacity:0 } to { opacity:1 } }
-        .fc-claim-row { cursor:pointer; border-radius:.65rem; padding:9px 12px; transition:background .12s; border:1px solid transparent; }
-        .fc-claim-row:hover { background:rgba(255,255,255,.04) !important; }
-        .fc-tag { font-size:10px; font-family:'Inter',sans-serif; font-weight:600; letter-spacing:.5px; padding:2px 8px; border-radius:9999px; }
-        .fc-btn-run { transition: opacity .15s, transform .12s; }
-        .fc-btn-run:hover { opacity:.85 !important; }
-        .fc-btn-run:active { transform:scale(.94) !important; }
+        // .fc-claim-row { cursor:pointer; border-radius:.65rem; padding:9px 12px; transition:background .12s; border:1px solid transparent; }
+        // .fc-claim-row:hover { background:rgba(255,255,255,.04) !important; }
+        // .fc-tag { font-size:10px; font-family:'Inter',sans-serif; font-weight:600; letter-spacing:.5px; padding:2px 8px; border-radius:9999px; }
+        // .fc-btn-run { transition: opacity .15s, transform .12s; }
+        // .fc-btn-run:hover { opacity:.85 !important; }
+        // .fc-btn-run:active { transform:scale(.94) !important; }
+        .fc-claim-row {
+  border-radius:.65rem;
+  padding:9px 12px;
+  transition:background .12s;
+  border:1px solid transparent;
+
+  user-select:text;
+  -webkit-user-select:text;
+}
+
+.fc-claim-row * {
+  user-select:text;
+  -webkit-user-select:text;
+}
+
+.fc-claim-row:hover {
+  background:rgba(255,255,255,.04) !important;
+}
+
+.fc-toggle-btn {
+  cursor:pointer;
+  background:none;
+  border:none;
+  padding:0;
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
       `}</style>
 
       {/* ── Trigger button ── */}
@@ -86,6 +114,7 @@ const FactChecker = ({ getScript }) => {
         disabled={loading}
         title="Fact-check this script"
         style={{
+
           background: "none",
           border: "1px solid rgba(255,255,255,.07)",
           borderRadius: "9999px",
@@ -210,9 +239,23 @@ const FactChecker = ({ getScript }) => {
                     <div
                       key={i}
                       className="fc-claim-row"
-                      onClick={() => toggle(i)}
+
+                      onClick={() => {
+                        const selectedText = window.getSelection()?.toString();
+
+                        if (selectedText.length > 0) {
+                          return; // user is selecting text, don't toggle
+                        }
+
+                        toggle(i);
+                      }}
                       style={{ marginBottom: "4px", borderColor: isExp ? "rgba(255,255,255,.07)" : "transparent", background: isExp ? "rgba(255,255,255,.03)" : "none" }}
                     >
+                      <button
+                        type="button"
+                        className="fc-toggle-btn"
+                        onClick={() => toggle(i)}
+                      ></button>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "9px" }}>
                         <span style={{ fontSize: "10px", marginTop: "2px", flexShrink: 0, width: "17px", height: "17px", borderRadius: "50%", background: cfg.bg, border: `1px solid ${cfg.border}`, display: "flex", alignItems: "center", justifyContent: "center", color: cfg.color, fontWeight: 700 }}>
                           {cfg.icon}
