@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useChat } from "../contexts/ChatContext";
 import "./side-bar.css";
 
+
+const HELP_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSew4lijG-WKDv-WNpASi30R2UJD2y6Urzk9vrJLeaS2b8IIhg/viewform?usp=publish-editor";
+
+
 function Ssidebar() {
   const {
     conversationId,
@@ -144,7 +148,11 @@ function Ssidebar() {
       <div className="sidebar-footer">
         {!collapsed && (
           <>
-            <a className="nav-item" href="#">
+            <a className="nav-item" 
+             href={HELP_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer">
+                
               <span className="nav-icon">❓</span>
               Help
             </a>
@@ -161,3 +169,6 @@ function Ssidebar() {
 }
 
 export default Ssidebar;
+
+
+

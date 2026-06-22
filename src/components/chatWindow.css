@@ -114,7 +114,7 @@
 
 /* ── Bottom Control Bar — Glass Panel ───────────────────────── */
 .bottom-control-bar {
-  position: fixed;
+  position: absolute;
   bottom: 0;
   right: 0;
   /* sidebar is 18rem; if sidebar not present, use 0 */
