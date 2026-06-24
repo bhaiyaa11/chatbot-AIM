@@ -32,6 +32,7 @@
 .dropdown-trigger.has-value {
   color: #e5e5e5;
   border: 1px solid rgba(255,255,255,0.12);
+  width: 200px;
 }
 
 .dropdown-trigger-label {

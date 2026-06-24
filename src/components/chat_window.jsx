@@ -714,22 +714,134 @@ setVoiceGenerating(false);
     if (e.key === "Escape") setMenuPos(null);
   }, [undo, redo]);
 
+  // const onMouseUp = useCallback((e) => {
+  //   if (e.target.closest?.("[data-sfm]")) return;
+  //   const sel = window.getSelection();
+  //   const text = sel?.toString().trim();
+  //   if (!text) { setMenuPos(null); return; }
+  //   const range = sel.getRangeAt(0);
+  //   if (!canvasRef.current?.contains(range.commonAncestorContainer)) { setMenuPos(null); return; }
+  //   savedRange.current = range.cloneRange();
+  //   setSelText(text);
+  //   const rect = range.getBoundingClientRect();
+  //   const MENU_WIDTH = 350;
+  //   const SAFE_MARGIN = 8;
+  //   const clampedLeft = Math.min(Math.max(rect.left, SAFE_MARGIN), window.innerWidth - MENU_WIDTH - SAFE_MARGIN);
+  //   const clampedTop = Math.min(rect.bottom + 8, window.innerHeight - 160 - SAFE_MARGIN);
+  //   setMenuPos({ top: clampedTop, left: clampedLeft });
+  // }, []);
+
+
   const onMouseUp = useCallback((e) => {
-    if (e.target.closest?.("[data-sfm]")) return;
-    const sel = window.getSelection();
-    const text = sel?.toString().trim();
-    if (!text) { setMenuPos(null); return; }
-    const range = sel.getRangeAt(0);
-    if (!canvasRef.current?.contains(range.commonAncestorContainer)) { setMenuPos(null); return; }
+  if (e.target.closest?.("[data-sfm]")) return;
+
+  // Wait one frame so the browser completes the text selection first
+  requestAnimationFrame(() => {
+    const canvas = canvasRef.current;
+    const selection = window.getSelection();
+
+    if (!canvas || !selection || selection.rangeCount === 0) {
+      setMenuPos(null);
+      return;
+    }
+
+    const selectedText = selection.toString().trim();
+
+    if (!selectedText) {
+      setMenuPos(null);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+
+    // More reliable than checking only commonAncestorContainer.
+    // Works properly inside table cells, paragraphs, spans, etc.
+    const selectionInsideCanvas =
+      canvas.contains(range.startContainer) &&
+      canvas.contains(range.endContainer);
+
+    if (!selectionInsideCanvas) {
+      setMenuPos(null);
+      return;
+    }
+
+    // Save a copy of the exact selected range for AI editing later
+    // savedRange.current = range.cloneRange();
+    // setSelText(selectedText);
+
+    // const rect = range.getBoundingClientRect();
+
+    // // If the selection has no visible rect, do not show the menu
+    // if (!rect || (rect.width === 0 && rect.height === 0)) {
+    //   setMenuPos(null);
+    //   return;
+    // }
+
+    // const MENU_WIDTH = 350;
+    // const MENU_HEIGHT = 160;
+    // const SAFE_MARGIN = 12;
+
+    // let left = rect.left;
+    // let top = rect.bottom + 8;
+
+    // // Keep floating menu inside the screen
+    // if (left + MENU_WIDTH > window.innerWidth - SAFE_MARGIN) {
+    //   left = window.innerWidth - MENU_WIDTH - SAFE_MARGIN;
+    // }
+
+    // if (left < SAFE_MARGIN) {
+    //   left = SAFE_MARGIN;
+    // }
+
+    // // If not enough room below selected text, show menu above it
+    // if (top + MENU_HEIGHT > window.innerHeight - SAFE_MARGIN) {
+    //   top = rect.top - MENU_HEIGHT - 8;
+    // }
+
+    // if (top < SAFE_MARGIN) {
+    //   top = SAFE_MARGIN;
+    // }
+
+    // setMenuPos({ top, left });
+
+
     savedRange.current = range.cloneRange();
-    setSelText(text);
-    const rect = range.getBoundingClientRect();
-    const MENU_WIDTH = 350;
-    const SAFE_MARGIN = 8;
-    const clampedLeft = Math.min(Math.max(rect.left, SAFE_MARGIN), window.innerWidth - MENU_WIDTH - SAFE_MARGIN);
-    const clampedTop = Math.min(rect.bottom + 8, window.innerHeight - 160 - SAFE_MARGIN);
-    setMenuPos({ top: clampedTop, left: clampedLeft });
-  }, []);
+setSelText(selectedText);
+
+const rects = [...range.getClientRects()];
+const rect = rects[rects.length - 1] || range.getBoundingClientRect();
+
+if (!rect || (rect.width === 0 && rect.height === 0)) {
+  setMenuPos(null);
+  return;
+}
+
+const MENU_WIDTH = 350;
+const MENU_HEIGHT = 160;
+const SAFE_MARGIN = 12;
+
+let left = rect.left;
+let top = rect.bottom + 8;
+
+if (left + MENU_WIDTH > window.innerWidth - SAFE_MARGIN) {
+  left = window.innerWidth - MENU_WIDTH - SAFE_MARGIN;
+}
+
+if (left < SAFE_MARGIN) {
+  left = SAFE_MARGIN;
+}
+
+if (top + MENU_HEIGHT > window.innerHeight - SAFE_MARGIN) {
+  top = rect.top - MENU_HEIGHT - 8;
+}
+
+if (top < SAFE_MARGIN) {
+  top = SAFE_MARGIN;
+}
+
+setMenuPos({ top, left });
+  });
+}, []);
 
   const applyEdit = useCallback((edited) => {
     const range = savedRange.current; const el = canvasRef.current;
@@ -773,13 +885,50 @@ setVoiceGenerating(false);
     finally { setLoading(false); }
   }, [selText, applyEdit]);
 
+  // const copy = useCallback(async () => {
+  //   try {
+  //     await safeWriteClipboard(canvasRef.current?.innerText ?? "");
+  //     setCopied(true);
+  //     setTimeout(() => setCopied(false), 2000);
+  //   } catch (err) { console.warn("Clipboard write failed:", err); }
+  // }, []);
+
+
   const copy = useCallback(async () => {
-    try {
-      await safeWriteClipboard(canvasRef.current?.innerText ?? "");
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) { console.warn("Clipboard write failed:", err); }
-  }, []);
+  try {
+    const canvas = canvasRef.current;
+
+    if (!canvas) return;
+
+    // Copy the entire latest generated script canvas,
+    // including all tables, headings, lists, and text.
+    const html = canvas.innerHTML;
+    const plainText = htmlToMarkdown(canvas);
+
+    if (navigator.clipboard?.write && window.ClipboardItem) {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          // Keeps the generated script layout when pasted into Docs, Word, Notion, etc.
+          "text/html": new Blob([html], { type: "text/html" }),
+
+          // Gives CSV/Markdown-style readable content for Sheets, Excel, VS Code, etc.
+          "text/plain": new Blob([plainText], { type: "text/plain" }),
+        }),
+      ]);
+    } else {
+      // Browser fallback
+      await safeWriteClipboard(plainText);
+    }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  } catch (err) {
+    console.warn("Clipboard write failed:", err);
+
+    // Final fallback
+    await safeWriteClipboard(canvasRef.current?.innerText ?? "");
+  }
+}, []);
 
   const tbBtn = (dis) => ({
     background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px",
