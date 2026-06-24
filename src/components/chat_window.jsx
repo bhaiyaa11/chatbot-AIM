@@ -4,8 +4,11 @@ import { useChat } from "../contexts/ChatContext";
 import ChatResponse from "./chat_message.jsx";
 import Clients from "./dropdown/clients.jsx";
 import Business_Unit from "./dropdown/BU.jsx";
+import Industrys from "./dropdown/industry.jsx"; 
+import ServiceLine from "./dropdown/serviceLine.jsx";
 import Videotype from "./dropdown/videoType.jsx";
 import VideoTone from "./dropdown/video_tone.jsx";
+import Styles from "./dropdown/styles.jsx";
 import DURATION_OPTIONS from "./dropdown/duration.jsx";
 import ContextDebugBar from "./ContextDebugBar";
 import SliderSizes from "./dropdown/slider.jsx";
@@ -1205,6 +1208,9 @@ function ChatWindow() {
   const [pipelineStatus,    setPipelineStatus]   = useState(null);
   const [previewFile,       setPreviewFile]      = useState(null);
   const [selectedClient,    setSelectedClient]   = useState("");
+  const [selectedIndustries, setSelectedIndustries] = useState("");
+  const [selectedServiceLines, setSelectedServiceLines] = useState("")
+  const [selectedStyles, setSelectedStyles] = useState("")
   const [selectedBU,        setSelectedBU]       = useState("");
   const [selectedVideoType, setSelectedVideoType] = useState("");
   const [selectedVideoTone, setSelectedVideoTone] = useState("");
@@ -1282,7 +1288,11 @@ function ChatWindow() {
 
     const fd = new FormData();
     fd.append("prompt", rawInput);
+    
     fd.append("client", formatList(selectedClient));
+    fd.append("industries", formatList(selectedIndustries));
+    fd.append("serviceLines", formatList(selectedServiceLines));
+    fd.append("styles", formatList(selectedStyles));
     fd.append("business_unit", formatList(selectedBU));
     fd.append("video_type", formatList(selectedVideoType));
     fd.append("video_tone", formatList(selectedVideoTone));
@@ -1312,8 +1322,12 @@ function ChatWindow() {
             _promptContext: {
               rawInput,
               cf,
+              
               client:        formatList(selectedClient),
+              industries: formatList(selectedIndustries),
+              serviceLines: formatList(selectedServiceLines),
               business_unit: formatList(selectedBU),
+              styles:        formatList(selectedStyles),
               video_type:    formatList(selectedVideoType),
               video_tone:    formatList(selectedVideoTone),
               duration:      selectedDuration,
@@ -1341,7 +1355,7 @@ function ChatWindow() {
   //   if (!ctx) return;
 const generateApprovedScript = async (approvedPayload, ctx) => {
   if (!ctx) return;
-    const { rawInput, cf, client, business_unit, video_type, video_tone, duration, sliderValue: sv } = ctx;
+    const { rawInput, cf, styles, serviceLines, industries, client, business_unit, video_type, video_tone, duration, sliderValue: sv } = ctx;
 
     setNarrativeReview(null);
 
@@ -1366,9 +1380,12 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     fd.append("approved_essences",         JSON.stringify(approvedPayload.approved_essences || []));
     fd.append("approved_interpretations",  JSON.stringify(approvedPayload.approved_interpretations || []));
     fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
+    fd.append("industries",                industries);
+    fd.append("serviceLines",            serviceLines);
     fd.append("client",          client);
     fd.append("business_unit",   business_unit);
     fd.append("video_type",      video_type);
+    fd.append("styles",          styles);
     fd.append("video_tone",      video_tone);
     fd.append("duration",        duration);
     fd.append("creativity_ratio", sv / 100);
@@ -1529,9 +1546,13 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 
     const fd = new FormData();
     fd.append("creativity_ratio", sliderValue / 100);
+    
     fd.append("client",           formatList(selectedClient));
+    fd.append("serviceLines",    formatList(selectedServiceLines));
+    fd.append("industries",       formatList(selectedIndustries));
     fd.append("business_unit",    formatList(selectedBU));
     fd.append("video_type",       formatList(selectedVideoType));
+    fd.append("styles",           formatList(selectedStyles));
     fd.append("video_tone",       formatList(selectedVideoTone));
     fd.append("duration",         selectedDuration);
     fd.append("prompt",           rawInput);
@@ -1565,13 +1586,22 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     const cf       = [...files];
     const rawInput = input;
     const trainingPrompt =
-      `create a ${selectedDuration || "unspecified duration"} ` +
+      // `create a ${selectedDuration || "unspecified duration"} ` +
+      // `${formatList(selectedVideoType) || "video"} video script for ` +
+      // `${formatList(selectedClient) || "the client"} ` +
+      // `,which operates in ${formatList(selectedIndustries)} sectors, ` +
+      // `about ${rawInput}, ` +
+      // `creative freedom ${sliderValue}, ` +
+      // `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
+      `Create a ${selectedDuration || "unspecified duration"} ` +
       `${formatList(selectedVideoType) || "video"} video script for ` +
-      `${formatList(selectedClient) || "the client"} ` +
-      `,which operates in ${formatList(selectedBU)} sectors, ` +
-      `about ${rawInput}, ` +
-      `creative freedom ${sliderValue}, ` +
-      `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
+      `${formatList(selectedClient) || "the client"}, operating in ` +
+      `${formatList(selectedIndustries) || "the specified"} industry, ` +
+      `focused on ${formatList(selectedServiceLines) || "its services"}, ` +
+      `about ${rawInput}. ` +
+      `Use a ${formatList(selectedStyles) || "professional"} style and ` +
+      `${formatList(selectedVideoTone) || "professional"} tone. ` +
+        `creative freedom ${sliderValue}, `;
 
     const cr  = editedResearch;
     const cri = researchId;
@@ -1601,7 +1631,11 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 
     const fd = new FormData();
     fd.append("prompt",           rawInput);
+    
     fd.append("client",           formatList(selectedClient));
+    fd.append("serviceLines",    formatList(selectedServiceLines));
+    fd.append("styles",           formatList(selectedStyles));
+    fd.append("industries",       formatList(selectedIndustries));
     fd.append("business_unit",    formatList(selectedBU));
     fd.append("video_type",       formatList(selectedVideoType));
     fd.append("video_tone",       formatList(selectedVideoTone));
@@ -1678,9 +1712,13 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
           </div>
           <div className="bottom-control-bar"><div className="glass-panel">
             <div className="dropdown-row">
+              
               <Clients onChange={setSelectedClient} />
-              <Business_Unit onChange={setSelectedBU} />
+              <Industrys onChange={setSelectedIndustries} />
+              <ServiceLine onchange={setSelectedServiceLines} />
+              {/* <Business_Unit onChange={setSelectedBU} /> */}
               <Videotype onChange={setSelectedVideoType} />
+              <Styles onChange={setSelectedStyles} />
               <VideoTone onChange={setSelectedVideoTone} />
               <DURATION_OPTIONS onChange={setSelectedDuration} />
               <SliderSizes value={sliderValue} onChange={setSliderValue} />

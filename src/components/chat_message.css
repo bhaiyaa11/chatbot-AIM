@@ -1,24 +1,3 @@
-/* .markdown-container table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.markdown-container th,
-.markdown-container td {
-  border: 1px solid #ddd;
-  padding: 8px;
-  vertical-align: top;
-}
-
-.markdown-container th {
-  background-color: #f4f4f4;
-  font-weight: 600;
-}
-
-.markdown-container td {
-  word-break: break-word;
-} */
-
 
 .table-editor table {
   width: 100%;

@@ -56,7 +56,7 @@
 /* ── Dropdown Panel ─────────────────────────────────────────── */
 .dropdown-panel {
   position: absolute;
-  top: calc(100% + 8px);
+  /* top: calc(100% + 8px); */
   left: 0;
   right: 0;
   background-color: #141414;
@@ -227,11 +227,11 @@
 
 /* wrapper for native select with custom chevron */
 .dropdown-select-wrap {
-  position: relative;
+  /* position: relative; */
   width: 100%;
 }
 
-.dropdown-select-wrap::after {
+/* .dropdown-select-wrap::after {
   content: '▼';
   position: absolute;
   right: 14px;
@@ -240,4 +240,4 @@
   font-size: 9px;
   color: #555;
   pointer-events: none;
-}
+} */
