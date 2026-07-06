@@ -15,6 +15,9 @@ import SliderSizes from "./dropdown/slider.jsx";
 import EnhancePromptButton from "./dropdown/enhancePrompt.jsx";
 import NarrativeReviewPanel from "./NarrativeReviewPanel.jsx";
 import FactChecker from "./FactChecker.jsx";
+import VoiceInputButton from "./VoiceInputButton.jsx";
+
+
 
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -255,7 +258,7 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // AudioPlayer
 // ─────────────────────────────────────────────────────────────────────────────
-const AudioPlayer = ({ src, onClose, onAudioStarted }) => {
+const AudioPlayer = ({ src, onClose, onAudioStarted, filename }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -264,6 +267,7 @@ const AudioPlayer = ({ src, onClose, onAudioStarted }) => {
   const [muted, setMuted] = useState(false);
   const [loading, setLoading] = useState(true);
   const animFrameRef = useRef(null);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
   const audio = audioRef.current;
@@ -376,6 +380,29 @@ const onError = (e) => {
     else { audio.play().then(() => setPlaying(true)).catch(() => {}); }
   };
 
+const downloadVoiceOver = async () => {
+  setDownloading(true);
+  try {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = filename || `voiceover_${Date.now()}.mp3`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    URL.revokeObjectURL(blobUrl);
+  } catch (err) {
+    console.error("Voice-over download failed:", err);
+  } finally {
+    setDownloading(false);
+  }
+};
+
   const handleSeek = (e) => {
     const audio = audioRef.current; if (!audio || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -434,7 +461,37 @@ const onError = (e) => {
             <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(168,85,247,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>Voice Over</span>
             {loading && <span style={{ display: "inline-block", width: "10px", height: "10px", border: "1.5px solid rgba(168,85,247,.2)", borderTopColor: "rgba(168,85,247,.9)", borderRadius: "50%", animation: "spin .7s linear infinite" }} />}
           </div>
-          <button className="ap-ctrl-btn ap-close-btn" onClick={onClose} style={{ color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px" }}>✕ Close</button>
+          {/* <button className="ap-ctrl-btn ap-close-btn" onClick={onClose} style={{ color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px" }}>✕ Close</button> */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+  <button
+    onClick={downloadVoiceOver}
+    disabled={downloading}
+    title="Download voice over"
+    style={{
+      background: "none",
+      border: "1px solid rgba(168,85,247,.3)",
+      borderRadius: "9999px",
+      color: "rgba(200,160,255,.9)",
+      cursor: downloading ? "not-allowed" : "pointer",
+      fontSize: "11px",
+      fontFamily: "'Inter',sans-serif",
+      padding: "4px 10px",
+      opacity: downloading ? 0.5 : 1,
+      display: "flex",
+      alignItems: "center",
+      gap: "5px",
+    }}
+  >
+    {downloading ? (
+      <span style={{ width: "10px", height: "10px", border: "1.5px solid rgba(200,160,255,.2)", borderTopColor: "rgba(200,160,255,.9)", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+    ) : (
+      "⬇"
+    )}
+    {downloading ? "Saving…" : "Download"}
+  </button>
+  <button className="ap-ctrl-btn ap-close-btn" onClick={onClose} style={{ color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px" }}>✕ Close</button>
+</div>
+
         </div>
         <div className="ap-seek" onClick={handleSeek} style={{ position: "relative", height: "20px", display: "flex", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
           <div style={{ position: "absolute", width: "100%", height: "3px", background: "rgba(255,255,255,.08)", borderRadius: "9999px" }} />
@@ -571,6 +628,23 @@ const ScriptCanvas = ({ content, msgId }) => {
     setCanUndo(undoStack.current.length > 0);
     setCanRedo(redoStack.current.length > 0);
   };
+
+
+  const buildVoiceoverFilename = () => {
+  const voiceMeta = VOICES.find(v => v.value === selectedVoice);
+  const voiceLabel = voiceMeta
+    ? voiceMeta.label.replace(/[^\w\s]/g, "").trim().replace(/\s+/g, "_")
+    : "voiceover";
+
+  const date = new Date();
+  const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
+  const shortId = msgId ? String(msgId).slice(0, 8) : "script";
+
+  return `${voiceLabel}_${dateStr}_${shortId}.mp3`;
+};
+
+
+
 const generateVoiceOver = async () => {
   try {
     setVoiceGenerating(true);
@@ -1019,12 +1093,17 @@ setMenuPos({ top, left });
       />
 
       {showPlayer && audioSrc && (
-        <div style={{ padding: "0 16px 16px" }}>
-          <AudioPlayer src={audioSrc} onClose={() => setShowPlayer(false)} onAudioStarted={() => {
-    setVoiceGenerating(false);
-  }}   />
-        </div>
-      )}
+  <div style={{ padding: "0 16px 16px" }}>
+    <AudioPlayer
+      src={audioSrc}
+      filename={buildVoiceoverFilename()}
+      onClose={() => setShowPlayer(false)}
+      onAudioStarted={() => {
+        setVoiceGenerating(false);
+      }}
+    />
+  </div>
+)}
 
       <ScriptFloatingMenu position={menuPos} onAction={handleAction} onClose={() => setMenuPos(null)} isLoading={loading} />
 
@@ -1528,7 +1607,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     fd.append("approved_retrievals",       JSON.stringify(approvedPayload.approved_retrievals || []));
     fd.append("approved_essences",         JSON.stringify(approvedPayload.approved_essences || []));
     fd.append("approved_interpretations",  JSON.stringify(approvedPayload.approved_interpretations || []));
-    fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
+    // fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
+    fd.append("creative_summary", approvedPayload.approved_creative_summary || "");
     fd.append("industries",                industries);
     fd.append("serviceLines",            serviceLines);
     fd.append("client",          client);
@@ -1542,7 +1622,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     (cf || []).forEach((f) => fd.append("files", f));
 
     try {
-      // const res    = await fetch(`${API_BASE_URL}/generate-script`, { method: "POST", body: fd, signal: ctrl.signal });
+      // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal });
+      // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       //  const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       const reader  = res.body.getReader();
@@ -1832,6 +1913,10 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 
   const removeFile = (idx) => setFiles(files.filter((_, i) => i !== idx));
 
+  const handleTranscript = useCallback((text) => {
+  setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+}, []);
+
   // ── Derived disabled states ────────────────────────────────────
   const researchDisabled = isResearching || !input.trim();
   // FIX: also disable creative review when a review is already pending approval
@@ -1879,6 +1964,7 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
               <div className="og-bottom-row">
                 <div className="og-bottom-left">
                   <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+                    <VoiceInputButton onTranscript={handleTranscript} />
                 </div>
                 <div className="og-bottom-right">
                   <EnhancePromptButton input={input} setInput={setInput} />
@@ -1985,6 +2071,7 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
             <div className="chat-input-inner">
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
               <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+              <VoiceInputButton onTranscript={handleTranscript} />
               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
               <button onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
