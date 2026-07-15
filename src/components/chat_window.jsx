@@ -3,7 +3,7 @@ import "./chatWindow.css";
 import { useChat } from "../contexts/ChatContext";
 import ChatResponse from "./chat_message.jsx";
 import Clients from "./dropdown/clients.jsx";
-import Business_Unit from "./dropdown/BU.jsx";
+// import Business_Unit from "./dropdown/BU.jsx";
 import Industrys from "./dropdown/industry.jsx"; 
 import ServiceLine from "./dropdown/serviceLine.jsx";
 import Videotype from "./dropdown/videoType.jsx";
@@ -584,6 +584,18 @@ const VOICES = [
   { value: "SERENA_AMERICAN_SOCIALMEDIA", label: "🇺🇸 Serena",        accent: "american",   tone: ["social_media"], age: "young" ,gender: "female"},
   { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
   {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
+  {value:"ELLIS_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Ellis", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+  {value:"JAMES_BRIT_YOUNG_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+  {value:"JACK_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Jack", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+  {value:"LLOYD_BRIT_YOUNG_M_SM", label:"🇬🇧 Lloyd", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"JOSH_BRIT_YOUNG_M_SM", label:"🇬🇧 Josh", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"HARRY_BRIT_YOUNG_M_SM", label:"🇬🇧 Harry", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"ALFIE_BRIT_YOUNG_M_AD", label:"🇬🇧 Alfie", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"ROCK_BRIT_YOUNG_M_AD", label:"🇬🇧 Rock", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"JAMES_BRIT_YOUNG_M_AD", label:"🇬🇧 James", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"JAMES_BRIT_MID_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
+  {value:"FINN_BRIT_MID_M_CONVO", label:"🇬🇧 Finn", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
+  {value:"MARTIN_BRIT_MID_M_CONVO", label:"🇬🇧 Martin", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
 ];
 
 const DEFAULT_accent = "british";
@@ -1163,11 +1175,13 @@ const BotMessage = ({ msg, onFeedback, isLatestBot }) => {
           onFeedback(1, msg.prompt, editedText);
         }}
       >🛢️</button>
-      {!isLatestBot && <CopyButton editableRef={editableRef} />}
+          {/* Every bot message — old or new — gets the full ScriptCanvas UI */}
+      <ScriptCanvas content={msg.content} msgId={msg.id} />
+      {/* {!isLatestBot && <CopyButton editableRef={editableRef} />}
       {isLatestBot
         ? <ScriptCanvas content={msg.content} msgId={msg.id} />
         : <ChatResponse ref={editableRef} reply={msg.content} />
-      }
+      } */}
     </div>
   );
 };

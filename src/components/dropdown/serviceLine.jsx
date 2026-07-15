@@ -94,43 +94,43 @@ function ServiceLine({ onChange }) {
     notifyParent(updated);
   };
 
-  const handleCreate = async () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) return;
+  // const handleCreate = async () => {
+  //   const trimmed = inputValue.trim();
+  //   if (!trimmed) return;
 
-    const alreadyExists = serviceLines.some(
-      (item) => item.label.toLowerCase() === trimmed.toLowerCase()
-    );
+  //   const alreadyExists = serviceLines.some(
+  //     (item) => item.label.toLowerCase() === trimmed.toLowerCase()
+  //   );
 
-    if (alreadyExists) return;
+  //   if (alreadyExists) return;
 
-    const { data, error } = await supabase
-      .from("service_line")
-      .insert([{ name: trimmed }])
-      .select()
-      .single();
+  //   const { data, error } = await supabase
+  //     .from("service_line")
+  //     .insert([{ name: trimmed }])
+  //     .select()
+  //     .single();
 
-    if (error) {
-      console.error("Service line insert error:", error);
-      return;
-    }
+  //   if (error) {
+  //     console.error("Service line insert error:", error);
+  //     return;
+  //   }
 
-    const newOption = { value: data.id, label: data.name };
-    const updated = [...selectedServiceLines, newOption];
+  //   const newOption = { value: data.id, label: data.name };
+  //   const updated = [...selectedServiceLines, newOption];
 
-    setServiceLines((prev) => [newOption, ...prev]);
-    setSelectedServiceLines(updated);
-    notifyParent(updated);
+  //   setServiceLines((prev) => [newOption, ...prev]);
+  //   setSelectedServiceLines(updated);
+  //   notifyParent(updated);
 
-    setInputValue("");
-    setSearchText("");
-  };
+  //   setInputValue("");
+  //   setSearchText("");
+  // };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleCreate();
-    }
+    // if (e.key === "Enter") {
+    //   e.preventDefault();
+    //   handleCreate();
+    // }
   };
 
   const filteredServiceLines = getFilteredServiceLines();
@@ -184,9 +184,14 @@ function ServiceLine({ onChange }) {
             <span>Select All</span>
           </div>
 
-          {filteredServiceLines.length === 0 && (
+          {/* {filteredServiceLines.length === 0 && (
             <div className="dropdown-empty">
               No service lines found. Press Enter to create "{inputValue}"
+            </div>
+          )} */}
+          {filteredServiceLines.length === 0 && (
+            <div className="dropdown-empty">
+              No service lines found.
             </div>
           )}
 
@@ -207,7 +212,7 @@ function ServiceLine({ onChange }) {
             );
           })}
 
-          {inputValue.trim() &&
+          {/* {inputValue.trim() &&
             !serviceLines.some(
               (item) =>
                 item.label.toLowerCase() === inputValue.trim().toLowerCase()
@@ -216,7 +221,7 @@ function ServiceLine({ onChange }) {
                 <span className="dropdown-create-icon">＋</span>
                 <span>Create "{inputValue.trim()}"</span>
               </div>
-            )}
+            )} */}
         </div>
       )}
     </div>

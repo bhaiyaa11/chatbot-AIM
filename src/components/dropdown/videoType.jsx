@@ -65,27 +65,27 @@ function Videotype({ onChange }) {
     notifyParent(updated);
   };
 
-  const handleCreate = async () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) return;
-    const { data, error } = await supabase.from("video_type").insert([{ name: trimmed }]).select().single();
-    if (!error && data) {
-      const newOption = { value: data.id, label: data.name };
-      setVideoTypes((prev) => [newOption, ...prev]);
-      const updated = [...selectedVideoTypes, newOption];
-      setSelectedVideoTypes(updated);
-      notifyParent(updated);
-      setInputValue("");
-      setSearchText("");
-    }
-  };
+  // const handleCreate = async () => {
+  //   const trimmed = inputValue.trim();
+  //   if (!trimmed) return;
+  //   const { data, error } = await supabase.from("video_type").insert([{ name: trimmed }]).select().single();
+  //   if (!error && data) {
+  //     const newOption = { value: data.id, label: data.name };
+  //     setVideoTypes((prev) => [newOption, ...prev]);
+  //     const updated = [...selectedVideoTypes, newOption];
+  //     setSelectedVideoTypes(updated);
+  //     notifyParent(updated);
+  //     setInputValue("");
+  //     setSearchText("");
+  //   }
+  // };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const match = videoTypes.find((c) => c.label.toLowerCase() === inputValue.trim().toLowerCase());
-      if (!match && inputValue.trim()) handleCreate();
-    }
+    // if (e.key === "Enter") {
+    //   e.preventDefault();
+    //   const match = videoTypes.find((c) => c.label.toLowerCase() === inputValue.trim().toLowerCase());
+    //   if (!match && inputValue.trim()) handleCreate();
+    // }
   };
 
   const getFilteredTypes = () => {
@@ -140,7 +140,7 @@ function Videotype({ onChange }) {
 
           {filteredTypes.length === 0 && (
             <div className="dropdown-empty">
-              No results. Press Enter to create "{inputValue}"
+            No results found.
             </div>
           )}
 
@@ -158,12 +158,12 @@ function Videotype({ onChange }) {
             );
           })}
 
-          {inputValue.trim() && !videoTypes.find((c) => c.label.toLowerCase() === inputValue.trim().toLowerCase()) && (
+          {/* {inputValue.trim() && !videoTypes.find((c) => c.label.toLowerCase() === inputValue.trim().toLowerCase()) && (
             <div className="dropdown-create" onClick={handleCreate}>
               <span className="dropdown-create-icon">＋</span>
               <span>Create "{inputValue.trim()}"</span>
             </div>
-          )}
+          )} */}
         </div>
       )}
     </div>

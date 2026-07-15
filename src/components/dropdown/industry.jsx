@@ -102,49 +102,49 @@ function Industrys({ onChange }) {
     notifyParent(updated);
   };
 
-  const handleCreate = async () => {
-    const trimmed = inputValue.trim();
+  // const handleCreate = async () => {
+  //   const trimmed = inputValue.trim();
 
-    if (!trimmed) return;
+  //   if (!trimmed) return;
 
-    const alreadyExists = industries.some(
-      (item) => item.label.toLowerCase() === trimmed.toLowerCase()
-    );
+  //   const alreadyExists = industries.some(
+  //     (item) => item.label.toLowerCase() === trimmed.toLowerCase()
+  //   );
 
-    if (alreadyExists) return;
+  //   if (alreadyExists) return;
 
-    const { data, error } = await supabase
-      .from("industry")
-      .insert([{ name: trimmed }])
-      .select()
-      .single();
+  //   const { data, error } = await supabase
+  //     .from("industry")
+  //     .insert([{ name: trimmed }])
+  //     .select()
+  //     .single();
 
-    if (error) {
-      console.error("Industry insert error:", error);
-      return;
-    }
+  //   if (error) {
+  //     console.error("Industry insert error:", error);
+  //     return;
+  //   }
 
-    const newOption = {
-      value: data.id,
-      label: data.name,
-    };
+  //   const newOption = {
+  //     value: data.id,
+  //     label: data.name,
+  //   };
 
-    setIndustries((prev) => [newOption, ...prev]);
+  //   setIndustries((prev) => [newOption, ...prev]);
 
-    const updated = [...selectedIndustries, newOption];
+  //   const updated = [...selectedIndustries, newOption];
 
-    setSelectedIndustries(updated);
-    notifyParent(updated);
+  //   setSelectedIndustries(updated);
+  //   notifyParent(updated);
 
-    setInputValue("");
-    setSearchText("");
-  };
+  //   setInputValue("");
+  //   setSearchText("");
+  // };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleCreate();
-    }
+    // if (e.key === "Enter") {
+    //   e.preventDefault();
+    //   handleCreate();
+    // }
   };
 
   const filteredIndustries = getFilteredIndustries();
@@ -198,9 +198,14 @@ function Industrys({ onChange }) {
             <span>Select All</span>
           </div>
 
-          {filteredIndustries.length === 0 && (
+          {/* {filteredIndustries.length === 0 && (
             <div className="dropdown-empty">
               No industries found. Press Enter to create "{inputValue}"
+            </div>
+          )} */}
+          {filteredIndustries.length === 0 && (
+            <div className="dropdown-empty">
+              No industries found.
             </div>
           )}
 
@@ -221,7 +226,7 @@ function Industrys({ onChange }) {
             );
           })}
 
-          {inputValue.trim() &&
+          {/* {inputValue.trim() &&
             !industries.some(
               (item) =>
                 item.label.toLowerCase() ===
@@ -231,7 +236,7 @@ function Industrys({ onChange }) {
                 <span className="dropdown-create-icon">＋</span>
                 <span>Create "{inputValue.trim()}"</span>
               </div>
-            )}
+            )} */}
         </div>
       )}
     </div>

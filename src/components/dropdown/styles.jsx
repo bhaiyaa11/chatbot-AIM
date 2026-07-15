@@ -94,43 +94,43 @@ function Styles({ onChange }) {
     notifyParent(updated);
   };
 
-  const handleCreate = async () => {
-    const trimmed = inputValue.trim();
-    if (!trimmed) return;
+  // const handleCreate = async () => {
+  //   const trimmed = inputValue.trim();
+  //   if (!trimmed) return;
 
-    const alreadyExists = styles.some(
-      (item) => item.label.toLowerCase() === trimmed.toLowerCase()
-    );
+  //   const alreadyExists = styles.some(
+  //     (item) => item.label.toLowerCase() === trimmed.toLowerCase()
+  //   );
 
-    if (alreadyExists) return;
+  //   if (alreadyExists) return;
 
-    const { data, error } = await supabase
-      .from("styles")
-      .insert([{ name: trimmed }])
-      .select()
-      .single();
+  //   const { data, error } = await supabase
+  //     .from("styles")
+  //     .insert([{ name: trimmed }])
+  //     .select()
+  //     .single();
 
-    if (error) {
-      console.error("Styles insert error:", error);
-      return;
-    }
+  //   if (error) {
+  //     console.error("Styles insert error:", error);
+  //     return;
+  //   }
 
-    const newOption = { value: data.id, label: data.name };
-    const updated = [...selectedStyles, newOption];
+  //   const newOption = { value: data.id, label: data.name };
+  //   const updated = [...selectedStyles, newOption];
 
-    setStyles((prev) => [newOption, ...prev]);
-    setSelectedStyles(updated);
-    notifyParent(updated);
+  //   setStyles((prev) => [newOption, ...prev]);
+  //   setSelectedStyles(updated);
+  //   notifyParent(updated);
 
-    setInputValue("");
-    setSearchText("");
-  };
+  //   setInputValue("");
+  //   setSearchText("");
+  // };
 
   const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleCreate();
-    }
+    // if (e.key === "Enter") {
+    //   e.preventDefault();
+    //   handleCreate();
+    // }
   };
 
   const filteredStyles = getFilteredStyles();
@@ -182,9 +182,14 @@ function Styles({ onChange }) {
             <span>Select All</span>
           </div>
 
-          {filteredStyles.length === 0 && (
+          {/* {filteredStyles.length === 0 && (
             <div className="dropdown-empty">
               No styles found. Press Enter to create "{inputValue}"
+            </div>
+          )} */}
+          {filteredStyles.length === 0 && (
+            <div className="dropdown-empty">
+              No styles found.
             </div>
           )}
 
@@ -205,7 +210,7 @@ function Styles({ onChange }) {
             );
           })}
 
-          {inputValue.trim() &&
+          {/* {inputValue.trim() &&
             !styles.some(
               (item) =>
                 item.label.toLowerCase() === inputValue.trim().toLowerCase()
@@ -214,7 +219,7 @@ function Styles({ onChange }) {
                 <span className="dropdown-create-icon">＋</span>
                 <span>Create "{inputValue.trim()}"</span>
               </div>
-            )}
+            )} */}
         </div>
       )}
     </div>
