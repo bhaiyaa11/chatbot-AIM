@@ -237,12 +237,38 @@ export default function ScriptCanvas({ content = "", onChange }) {
     }, 600); // snapshot 600ms after user stops typing
   }, [onChange]);
 
+
   function updateWordCount() {
-    const el = canvasRef.current;
-    if (!el) return;
-    const words = el.innerText.trim().split(/\s+/).filter(Boolean).length;
-    setWordCount(words);
+  const el = canvasRef.current;
+  if (!el) return;
+
+  // Find the index of the "VOICE OVER" column
+  const headers = [...el.querySelectorAll("thead th")];
+  const voiceColumnIndex = headers.findIndex(
+    (th) => th.innerText.trim().toUpperCase() === "VOICE OVER"
+  );
+
+  if (voiceColumnIndex === -1) {
+    setWordCount(0);
+    return;
   }
+
+  let count = 0;
+
+  // Count only words from the Voice Over cells
+  el.querySelectorAll("tbody tr").forEach((row) => {
+    const cell = row.cells[voiceColumnIndex];
+    if (!cell) return;
+
+    count += cell.innerText
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length;
+  });
+
+  setWordCount(count);
+}
+  
 
   // ─────────────────────────────────────────────────────────────
   // Selection → floating menu

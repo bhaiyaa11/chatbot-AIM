@@ -1,4 +1,5 @@
-import { useState } from "react";
+// import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChat } from "../contexts/ChatContext";
 import "./side-bar.css";
 
@@ -13,11 +14,49 @@ function Ssidebar() {
     conversations,
     createNewChat,
     deleteConversation,
+    loadMoreConversations,
+    hasMoreConversations,
+    loadingMoreConversations,
   } = useChat();
+
 
   const [collapsed, setCollapsed] = useState(true);
   const [hoveredConvId, setHoveredConvId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const historyContainerRef = useRef(null);
+  const loadMoreRef = useRef(null);
+
+  useEffect(() => {
+  const sentinel = loadMoreRef.current;
+  const container = historyContainerRef.current;
+
+  if (!sentinel || !container) return;
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (
+        entry.isIntersecting &&
+        hasMoreConversations &&
+        !loadingMoreConversations
+      ) {
+        loadMoreConversations();
+      }
+    },
+    {
+      root: container,
+      threshold: 0.1,
+    }
+  );
+
+  observer.observe(sentinel);
+
+  return () => observer.disconnect();
+}, [
+  loadMoreConversations,
+  hasMoreConversations,
+  loadingMoreConversations,
+]);
+
 
   const handleSelectConversation = (id) => {
     setConversationId(id);
@@ -61,7 +100,11 @@ function Ssidebar() {
         </div>
       )}
 
-      <nav className="sidebar-nav">
+      {/* <nav className="sidebar-nav"> */}
+      <nav
+        className="sidebar-nav"
+        ref={historyContainerRef}
+      >
 
         {/* New Chat */}
         <button
@@ -91,6 +134,12 @@ function Ssidebar() {
                     if (confirmDeleteId === conv.id) setConfirmDeleteId(null);
                   }}
                 >
+                  <div
+    ref={loadMoreRef}
+    style={{
+        height: "1px",
+    }}
+/>
                   {confirmDeleteId === conv.id ? (
                     /* Confirm delete bar */
                     <div className="confirm-delete-bar">

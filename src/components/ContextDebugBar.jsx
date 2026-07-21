@@ -15,11 +15,36 @@ export default function ContextDebugBar({ conversationId, isStreaming }) {
   const [flash, setFlash] = useState(false);
   const prevTokens        = useRef(null);
   const wasStreaming      = useRef(false);
+  const requestIdRef      = useRef(0); // ← guards against stale responses
  
-  const fetchLog = async (convId) => {
+  // const fetchLog = async (convId) => {
+  //   try {
+  //     const res  = await fetch(`${API_BASE_URL}/logs`);
+  //     const data = await res.json();
+  //     const match = [...data].reverse().find((l) => l.conversation_id === convId);
+  //     if (!match) return;
+  //     setLog(match);
+  //     if (prevTokens.current !== null && prevTokens.current !== match.tokens) {
+  //       setFlash(true);
+  //       setTimeout(() => setFlash(false), 800);
+  //     }
+  //     prevTokens.current = match.tokens;
+  //   } catch {
+  //     // silently fail
+  //   }
+  // };
+   const fetchLog = async (convId) => {
+    const thisRequestId = ++requestIdRef.current; // tag this call uniquely
     try {
       const res  = await fetch(`${API_BASE_URL}/logs`);
       const data = await res.json();
+
+      // If a newer fetchLog call has started since this one began,
+      // this response is stale — discard it.
+      if (thisRequestId !== requestIdRef.current) return;
+      // Also guard against the conversation having changed underneath us.
+      if (convId !== conversationId) return;
+
       const match = [...data].reverse().find((l) => l.conversation_id === convId);
       if (!match) return;
       setLog(match);

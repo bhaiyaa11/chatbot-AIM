@@ -752,10 +752,41 @@ setVoiceGenerating(false);
     if (!stillValid && filtered.length > 0) setSelectedVoice(filtered[0].value);
   }, [accent, tone, age, gender]); // eslint-disable-line
 
+  // const countWords = () => {
+  //   const el = canvasRef.current; if (!el) return;
+  //   setWordCount(el.innerText.trim().split(/\s+/).filter(Boolean).length);
+  // };
+
   const countWords = () => {
-    const el = canvasRef.current; if (!el) return;
-    setWordCount(el.innerText.trim().split(/\s+/).filter(Boolean).length);
-  };
+  const el = canvasRef.current;
+  if (!el) return;
+
+  const tables = [...el.querySelectorAll("table")];
+  let count = 0;
+  let foundVoiceColumn = false;
+
+  tables.forEach((table) => {
+    const headers = [...table.querySelectorAll("thead th")];
+    const voiceColumnIndex = headers.findIndex(
+      (th) => th.innerText.trim().toUpperCase() === "VOICE OVER"
+    );
+    if (voiceColumnIndex === -1) return;
+
+    foundVoiceColumn = true;
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      const cell = row.cells[voiceColumnIndex];
+      if (!cell) return;
+      count += cell.innerText.trim().split(/\s+/).filter(Boolean).length;
+    });
+  });
+
+  if (!foundVoiceColumn) {
+    // no table / no VOICE OVER column anywhere — fall back to full text
+    count = el.innerText.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  setWordCount(count);
+};
 
   const pushUndo = () => {
     const el = canvasRef.current; if (!el) return;
@@ -1320,7 +1351,8 @@ const InlineResearchPanel = ({ research, onResearchChange, transcriptCount }) =>
     <div style={{ marginTop: "8px", maxWidth: "520px" }}>
       <button onClick={() => setOpen(v => !v)} style={{ display: "inline-flex", alignItems: "center", gap: "7px", background: open ? "rgba(139,92,246,.18)" : "rgba(139,92,246,.10)", border: "1px solid rgba(139,92,246,.35)", borderRadius: "9999px", padding: "5px 13px 5px 10px", cursor: "pointer", fontFamily: "'Inter',sans-serif", fontSize: "12px", color: "rgba(200,180,255,.9)", transition: "background .15s" }}>
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" /><line x1="8.8" y1="8.8" x2="11.5" y2="11.5" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" strokeLinecap="round" /></svg>
-        Research — {transcriptCount ?? 0} sources analyzed
+        {/* Research — {transcriptCount ?? 0} sources analyzed */}
+        Research Completed: Click to view and edit the research data. You can modify the project intelligence, niche summary, winning hooks, pain points, and recommended angle. Changes will be reflected when you hit Generate Script.
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}><path d="M2 3.5L5 6.5L8 3.5" stroke="rgba(180,150,255,.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" /></svg>
       </button>
       {open && (
@@ -1417,7 +1449,8 @@ function reconstructMessage(m) {
     researchPending: false,
     researchData: null,
     transcriptCount: 0,
-    hideText: !!researchId,
+    // hideText: !!researchId,
+    hideText: false,  
     researchLoading: !!researchId,
     researchId,
   };
@@ -1438,16 +1471,722 @@ const ErrorBanner = ({ message }) => (
   </div>
 );
 
+
+
 // ── Main ChatWindow ────────────────────────────────────────────
+// function ChatWindow() {
+//   // const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations } = useChat();
+//   const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations, getAuthHeaders } = useChat();
+
+//   const [input,             setInput]            = useState("");
+//   const [files,             setFiles]            = useState([]);
+//   const dragCounterRef    = useRef(0);
+//   const [isDragging,        setIsDragging]       = useState(false);
+//   const [pipelineStatus,    setPipelineStatus]   = useState(null);
+//   const [previewFile,       setPreviewFile]      = useState(null);
+//   const [selectedClient,    setSelectedClient]   = useState("");
+//   const [selectedIndustries, setSelectedIndustries] = useState("");
+//   const [selectedServiceLines, setSelectedServiceLines] = useState("")
+//   const [selectedStyles, setSelectedStyles] = useState("")
+//   const [selectedBU,        setSelectedBU]       = useState("");
+//   const [selectedVideoType, setSelectedVideoType] = useState("");
+//   const [selectedVideoTone, setSelectedVideoTone] = useState("");
+//   const [selectedDuration,  setSelectedDuration] = useState("");
+//   const [sliderValue,       setSliderValue]      = useState(50);
+//   const [isResearching,     setIsResearching]    = useState(false);
+//   const [editedResearch,    setEditedResearch]   = useState(null);
+//   const [researchId,        setResearchId]       = useState(null);
+//   const [researchError,     setResearchError]    = useState(null);
+//   const [researchPrompt,    setResearchPrompt]   = useState("");
+//   const [activeStreamText,  setActiveStreamText] = useState("");
+//   const [isStreaming,       setIsStreaming]      = useState(false);
+
+//   // Creative review state
+//   const [narrativeReview,   setNarrativeReview]  = useState(null);
+//   const [narrativeLoading,  setNarrativeLoading] = useState(false);
+//   const [narrativeError,    setNarrativeError]   = useState(null);
+
+//   const abortControllerRef = useRef(null);
+//   const conversationIdRef  = useRef(conversationId);
+//   useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
+
+//   const lastPromptRef  = useRef("");
+//   const lastOutputRef  = useRef("");
+//   const chatEndRef     = useRef(null);
+//   const fileInputRef   = useRef(null);
+//   const chatHistoryRef = useRef(null);
+//   const loadingRef     = useRef(false);
+
+//   const [page,            setPage]           = useState(1);
+//   const [hasMore,         setHasMore]        = useState(true);
+//   const [loadingMessages, setLoadingMessages] = useState(false);
+
+//   const isEmpty   = messages.length === 0 && !loadingMessages;
+//   const lastBotId = [...messages].reverse().find(m => m.sender === "bot")?.id ?? null;
+
+//   // ── Creative Review ────────────────────────────────────────────
+//   const runCreativeReview = async () => {
+//     if (!input.trim()) return;
+
+//     // FIX: capture and clear inputs BEFORE the async call
+//     // so edits during the fetch don't corrupt what was submitted
+//     const rawInput = input;
+//     const cf = [...files];
+//     setInput("");
+//     setFiles([]);
+
+//     setNarrativeLoading(true);
+//     setNarrativeReview(null);
+//     setNarrativeError(null);
+
+//     const fpd = cf.map((f) => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
+
+//     const uid = crypto.randomUUID();
+//     setMessages((prev) =>
+//       dedupeById([
+//         ...prev,
+//         {
+//           id: uid,
+//           sender: "user",
+//           text: rawInput,
+//           content: rawInput,
+//           rawPrompt: rawInput,
+//           prompt: "",
+//           files: fpd,
+//           researchPending: false,
+//           reviewPending: true,
+//           researchData: null,
+//           hideText: false,
+//           researchLoading: false,
+//           researchId: null,
+//           _reviewId: uid,
+//         },
+//       ])
+//     );
+
+//     const fd = new FormData();
+//     fd.append("prompt", rawInput);
+    
+//     fd.append("client", formatList(selectedClient));
+//     fd.append("industries", formatList(selectedIndustries));
+//     fd.append("serviceLines", formatList(selectedServiceLines));
+//     fd.append("styles", formatList(selectedStyles));
+//     fd.append("business_unit", formatList(selectedBU));
+//     fd.append("video_type", formatList(selectedVideoType));
+//     fd.append("video_tone", formatList(selectedVideoTone));
+//     fd.append("duration", selectedDuration);
+//     fd.append("creativity_ratio", sliderValue / 100);
+//     if (conversationId) fd.append("conversation_id", conversationId);
+//     cf.forEach((f) => fd.append("files", f));
+
+//     const patch = (p) =>
+//       setMessages((prev) =>
+//         dedupeById(prev.map((m) => (m._reviewId === uid ? { ...m, ...p } : m)))
+//       );
+
+//     try {
+//       const res = await fetch(`${API_BASE_URL}/creative-review`, { method: "POST", body: fd });
+//       const data = await res.json();
+//       console.log("CREATIVE REVIEW RESPONSE", data);
+
+
+//       if (data.review_id) {
+//         patch({
+//           reviewPending: false,
+//           researchPending: false,
+//           // hideText: true,
+//           narrativeReviewData: {
+//             ...data,
+//             _promptContext: {
+//               rawInput,
+//               cf,
+              
+//               client:        formatList(selectedClient),
+//               industries: formatList(selectedIndustries),
+//               serviceLines: formatList(selectedServiceLines),
+//               business_unit: formatList(selectedBU),
+//               styles:        formatList(selectedStyles),
+//               video_type:    formatList(selectedVideoType),
+//               video_tone:    formatList(selectedVideoTone),
+//               duration:      selectedDuration,
+//               sliderValue,
+//             },
+//           },
+//         });
+//         setNarrativeReview(null); // clear the old separate state
+//       } else {
+//         setNarrativeError(data.error || "Creative review failed");
+//         patch({ reviewPending: false });
+//       }
+//     } catch (err) {
+//       console.error("[runCreativeReview]", err);
+//       setNarrativeError("Could not reach server");
+//       patch({ researchPending: false });
+//     } finally {
+//       setNarrativeLoading(false);
+//     }
+//   };
+
+//   // ── Generate Approved Script (after creative review) ───────────
+//   // const generateApprovedScript = async (approvedPayload) => {
+//   //   const ctx = narrativeReview?._promptContext;
+//   //   if (!ctx) return;
+// const generateApprovedScript = async (approvedPayload, ctx) => {
+//   if (!ctx) return;
+//     const { rawInput, cf, styles, serviceLines, industries, client, business_unit, video_type, video_tone, duration, sliderValue: sv } = ctx;
+
+//     setNarrativeReview(null);
+
+//     const botId = crypto.randomUUID();
+//     setMessages((prev) =>
+//       dedupeById([
+//         ...prev,
+//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
+//       ])
+//     );
+
+//     setActiveStreamText("");
+//     setIsStreaming(true);
+//     abortControllerRef.current?.abort();
+//     const ctrl = new AbortController();
+//     abortControllerRef.current = ctrl;
+
+//     const fd = new FormData();
+//     fd.append("prompt",                    rawInput);
+//     fd.append("review_id",                 approvedPayload.review_id || "");
+//     fd.append("approved_retrievals",       JSON.stringify(approvedPayload.approved_retrievals || []));
+//     fd.append("approved_essences",         JSON.stringify(approvedPayload.approved_essences || []));
+//     fd.append("approved_interpretations",  JSON.stringify(approvedPayload.approved_interpretations || []));
+//     // fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
+//     fd.append("creative_summary", approvedPayload.approved_creative_summary || "");
+//     fd.append("industries",                industries);
+//     fd.append("serviceLines",            serviceLines);
+//     fd.append("client",          client);
+//     fd.append("business_unit",   business_unit);
+//     fd.append("video_type",      video_type);
+//     fd.append("styles",          styles);
+//     fd.append("video_tone",      video_tone);
+//     fd.append("duration",        duration);
+//     fd.append("creativity_ratio", sv / 100);
+//     if (conversationId) fd.append("conversation_id", conversationId);
+//     (cf || []).forEach((f) => fd.append("files", f));
+
+//     try {
+//       // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal });
+//       // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
+//       //  const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+//       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
+//       const reader  = res.body.getReader();
+//       const decoder = new TextDecoder("utf-8");
+//       let done = false, fullText = "", rcid = conversationId;
+
+//       while (!done) {
+//         const { value, done: d } = await reader.read();
+//         done = d;
+//         if (ctrl.signal.aborted) break;
+//         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
+//           if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
+//           if (line.startsWith("status:"))  { setPipelineStatus(line.replace("status:", "").trim()); continue; }
+//           if (line.startsWith("result:"))  { fullText = line.replace("result:", "").trim(); continue; }
+//           if (line.startsWith("error:"))   { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
+//           if (line.trim() && fullText)     fullText += "\n" + line;
+//         }
+//         setActiveStreamText(fullText);
+//       }
+
+//       fullText = fullText.replace(/\\n/g, "\n");
+//       lastOutputRef.current = fullText;
+//       setIsStreaming(false);
+//       setActiveStreamText("");
+//       setPipelineStatus(null);
+//       updateLastMessage(rcid, fullText, rawInput);
+//       setMessages((prev) =>
+//         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m))
+//       );
+//       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
+//     } catch (err) {
+//       if (err.name === "AbortError") return;
+//       console.error("[generateApprovedScript]", err);
+//       setIsStreaming(false);
+//       setActiveStreamText("");
+//       setMessages((prev) =>
+//         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m))
+//       );
+//     }
+//   };
+
+//   // ── Hydrate research from previous sessions ────────────────────
+//   const hydrateResearchMessages = useCallback(async (msgList, chatIdParam) => {
+//     const toH = msgList.filter(m => m.researchLoading && m.researchId);
+//     if (!toH.length) return;
+//     await Promise.all(toH.map(async (msg) => {
+//       try {
+//         const res = await fetch(`${API_BASE_URL}/research/${msg.researchId}`);
+//         const data = await res.json();
+//         if (chatIdParam !== conversationIdRef.current) return;
+//         setMessages(prev => dedupeById(prev.map(m => m.id === msg.id
+//           ? (data.success && data.research
+//             ? { ...m, researchLoading: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0 }
+//             : { ...m, researchLoading: false })
+//           : m)));
+//       } catch {
+//         setMessages(prev => dedupeById(prev.map(m => m.id === msg.id ? { ...m, researchLoading: false } : m)));
+//       }
+//     }));
+//   }, []); // eslint-disable-line
+
+//   const fetchMessages = useCallback(async (chatIdParam, pageNum) => {
+//     if (loadingRef.current) return;
+//     loadingRef.current = true; setLoadingMessages(true);
+//     try {
+//       const res = await fetch(`${API_BASE_URL}/messages?conversation_id=${chatIdParam}&page=${pageNum}&limit=20`);
+//       const data = await res.json();
+//       if (chatIdParam !== conversationIdRef.current) return;
+//       const fetched = Array.isArray(data.messages) ? data.messages : Array.isArray(data) ? data : [];
+//       if (fetched.length < 20) setHasMore(false);
+//       const ordered = fetched.map(m => reconstructMessage(m));
+//       if (pageNum === 1) {
+//         setMessages(dedupeById(ordered));
+//         requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
+//       } else {
+//         const c = chatHistoryRef.current; const ph = c?.scrollHeight || 0;
+//         setMessages(prev => dedupeById([...ordered, ...prev]));
+//         requestAnimationFrame(() => { if (c) c.scrollTop = c.scrollHeight - ph; });
+//       }
+//       hydrateResearchMessages(ordered, chatIdParam);
+//     } catch (err) { console.error("Failed to fetch messages:", err); }
+//     finally { setLoadingMessages(false); loadingRef.current = false; }
+//   }, [hydrateResearchMessages]); // eslint-disable-line
+
+//   useEffect(() => {
+//     setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
+//     setResearchError(null); setMessages([]); setPage(1); setHasMore(true);
+//     loadingRef.current = false;
+//     abortControllerRef.current?.abort();
+//     if (!conversationId) return;
+//     fetchMessages(conversationId, 1);
+//   }, [conversationId]); // eslint-disable-line
+
+//   useEffect(() => { if (page > 1 && conversationId) fetchMessages(conversationId, page); }, [page]); // eslint-disable-line
+
+//   useEffect(() => {
+//     const c = chatHistoryRef.current; if (!c || !conversationId) return;
+//     const h = () => { if (c.scrollTop <= 5 && hasMore && !loadingRef.current) setPage(p => p + 1); };
+//     c.addEventListener("scroll", h); return () => c.removeEventListener("scroll", h);
+//   }, [conversationId, hasMore]);
+
+//   useEffect(() => {
+//     if (!messages.length) return; const c = chatHistoryRef.current; if (!c) return;
+//     if (c.scrollHeight - c.scrollTop - c.clientHeight < 150) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+//   }, [messages.length]);
+
+//   const handleDragEnter = (e) => { e.preventDefault(); dragCounterRef.current += 1; if (dragCounterRef.current === 1) setIsDragging(true); };
+//   const handleDragOver  = (e) => e.preventDefault();
+//   const handleDragLeave = (e) => { e.preventDefault(); dragCounterRef.current -= 1; if (dragCounterRef.current === 0) setIsDragging(false); };
+//   const handleDrop      = (e) => { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); const d = Array.from(e.dataTransfer.files); if (d.length) setFiles(p => [...p, ...d]); };
+
+//   const openPreview  = (file) => { const url = file.url || URL.createObjectURL(file); setPreviewFile({ name: file.name, url, type: file.type }); };
+//   const closePreview = () => setPreviewFile(null);
+
+//   const sendFeedback = async (rating, prompt, output) => {
+//     const fd = new FormData();
+//     fd.append("prompt", prompt || lastPromptRef.current);
+//     fd.append("output", output || lastOutputRef.current);
+//     fd.append("rating", rating);
+//     await fetch(`${API_BASE_URL}/feedback`, { method: "POST", body: fd });
+//   };
+
+//   // ── Research ───────────────────────────────────────────────────
+//   const runResearch = async () => {
+//     if (!input.trim()) return;
+//     setIsResearching(true); setEditedResearch(null); setResearchId(null); setResearchError(null);
+
+//     const rawInput = input;
+//     setResearchPrompt(rawInput);  
+//     const cf = [...files];
+//     const fpd = cf.map(f => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
+
+//     setInput(""); setFiles([]);
+
+//     const bid = crypto.randomUUID();
+//     setMessages(prev => dedupeById([...prev, {
+//       id: bid,
+//       sender: "user",
+//       text: rawInput,
+//       content: rawInput,
+//       rawPrompt: rawInput,
+//       prompt: "",
+//       files: fpd,
+//       researchPending: true,
+//       researchData: null,
+//       hideText: false,
+//       researchLoading: false,
+//       researchId: null,
+//       _researchId: bid,
+//     }]));
+
+//     const fd = new FormData();
+//     fd.append("creativity_ratio", sliderValue / 100);
+    
+//     fd.append("client",           formatList(selectedClient));
+//     fd.append("serviceLines",    formatList(selectedServiceLines));
+//     fd.append("industries",       formatList(selectedIndustries));
+//     fd.append("business_unit",    formatList(selectedBU));
+//     fd.append("video_type",       formatList(selectedVideoType));
+//     fd.append("styles",           formatList(selectedStyles));
+//     fd.append("video_tone",       formatList(selectedVideoTone));
+//     fd.append("duration",         selectedDuration);
+//     fd.append("prompt",           rawInput);
+//     cf.forEach(f => fd.append("files", f));
+
+//     const patch = (p) => setMessages(prev => dedupeById(prev.map(m => m._researchId === bid ? { ...m, ...p } : m)));
+
+//     try {
+//       const res  = await fetch(`${API_BASE_URL}/research`, { method: "POST", body: fd });
+//       const data = await res.json();
+//       if (data.success && data.research) {
+//         setEditedResearch(data.research);
+//         setResearchId(data.research_id);
+//         patch({ researchPending: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0,
+//           //  hideText: true
+//            });
+//       } else {
+//         setResearchError(data.error || "Research failed");
+//         patch({ researchPending: false });
+//       }
+//     } catch {
+//       setResearchError("Could not reach server");
+//       patch({ researchPending: false });
+//     } finally {
+//       setIsResearching(false);
+//     }
+//   };
+
+//   // ── Generate Script ────────────────────────────────────────────
+//   const generateScript = async () => {
+//     if (!input.trim() && !files.length && !editedResearch) return;
+
+//     const cf       = [...files];
+//     // const rawInput = input;
+//      const rawInput = editedResearch ? (researchPrompt || input) : input;  
+//     const trainingPrompt =
+//       // `create a ${selectedDuration || "unspecified duration"} ` +
+//       // `${formatList(selectedVideoType) || "video"} video script for ` +
+//       // `${formatList(selectedClient) || "the client"} ` +
+//       // `,which operates in ${formatList(selectedIndustries)} sectors, ` +
+//       // `about ${rawInput}, ` +
+//       // `creative freedom ${sliderValue}, ` +
+//       // `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
+//       `Create a ${selectedDuration || "unspecified duration"} ` +
+//       `${formatList(selectedVideoType) || "video"} video script for ` +
+//       `${formatList(selectedClient) || "the client"}, operating in ` +
+//       `${formatList(selectedIndustries) || "the specified"} industry, ` +
+//       `focused on ${formatList(selectedServiceLines) || "its services"}, ` +
+//       `about ${rawInput}. ` +
+//       `Use a ${formatList(selectedStyles) || "professional"} style and ` +
+//       `${formatList(selectedVideoTone) || "professional"} tone. ` +
+//         `creative freedom ${sliderValue}, `;
+
+//     const cr  = editedResearch;
+//     const cri = researchId;
+//     const fpd = cf.map(f => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
+
+//     lastPromptRef.current = trainingPrompt;
+
+//     // setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
+//     setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchPrompt("");
+
+//     const botId = crypto.randomUUID();
+
+//     if (!cr) {
+//       const uid = crypto.randomUUID();
+//       setMessages(prev => dedupeById([...prev,
+//         { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false },
+//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
+//       ]));
+//     } else {
+//       setMessages(prev => dedupeById([...prev,
+//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
+//       ]));
+//     }
+
+//     setActiveStreamText(""); setIsStreaming(true);
+//     abortControllerRef.current?.abort();
+//     const ctrl = new AbortController(); abortControllerRef.current = ctrl;
+
+//     const fd = new FormData();
+//     fd.append("prompt",           rawInput);
+    
+//     fd.append("client",           formatList(selectedClient));
+//     fd.append("serviceLines",    formatList(selectedServiceLines));
+//     fd.append("styles",           formatList(selectedStyles));
+//     fd.append("industries",       formatList(selectedIndustries));
+//     fd.append("business_unit",    formatList(selectedBU));
+//     fd.append("video_type",       formatList(selectedVideoType));
+//     fd.append("video_tone",       formatList(selectedVideoTone));
+//     fd.append("creativity_ratio", sliderValue / 100);
+//     if (selectedDuration) fd.append("duration",       selectedDuration);
+//     if (cri)              fd.append("research_id",    cri);
+//     if (cr)               fd.append("research_brief", JSON.stringify(cr));
+//     if (conversationId)   fd.append("conversation_id", conversationId);
+//     cf.forEach(f => fd.append("files", f));
+
+//     try {
+//       // const res     = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
+//       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
+//       const reader  = res.body.getReader();
+//       const decoder = new TextDecoder("utf-8");
+//       let done = false, fullText = "", rcid = conversationId;
+
+//       while (!done) {
+//         const { value, done: d } = await reader.read();
+//         done = d; if (ctrl.signal.aborted) break;
+//         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
+//           if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
+//           if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
+//           if (line.startsWith("result:"))     { fullText = line.replace("result:", "").trim(); continue; }
+//           if (line.startsWith("error:"))      { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
+//           if (line.startsWith("<!-- debug:")) continue;
+//           if (line.trim() && fullText)        fullText += "\n" + line;
+//         }
+//         setActiveStreamText(fullText);
+//       }
+
+//       fullText = fullText.replace(/\\n/g, "\n"); lastOutputRef.current = fullText;
+//       setIsStreaming(false); setActiveStreamText(""); setPipelineStatus(null);
+//       updateLastMessage(rcid, fullText, rawInput);
+//       setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
+//       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
+//     } catch (err) {
+//       if (err.name === "AbortError") return;
+//       console.error("generateScript error:", err);
+//       setIsStreaming(false); setActiveStreamText("");
+//       setInput(rawInput); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
+//       setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m)));
+//     }
+//   };
+
+//   const removeFile = (idx) => setFiles(files.filter((_, i) => i !== idx));
+
+//   const handleTranscript = useCallback((text) => {
+//   setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+// }, []);
+
+//   // ── Derived disabled states ────────────────────────────────────
+//   const researchDisabled = isResearching || !input.trim();
+//   // FIX: also disable creative review when a review is already pending approval
+//   // const creativeReviewDisabled = narrativeLoading || isStreaming || !!narrativeReview || !input.trim();
+//   const creativeReviewDisabled = narrativeLoading || isStreaming || !input.trim();
+//   const sendDisabled = !input.trim() && !files.length && !editedResearch;
+
+//   // ── Creative review button label ───────────────────────────────
+//   const creativeReviewLabel = narrativeLoading
+//     ? "◈ Reviewing…"
+//     : narrativeReview
+//       ? "◈ Review Pending"
+//       // : "◈ Creative Review";
+//       : "◈ Human Review";
+
+
+//   return (
+//     <div className="chat-window">
+//       <FilePreviewModal previewFile={previewFile} onClose={closePreview} />
+//       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+
+//       {isEmpty ? (
+//         <>
+//           <div className="empty-wrapper">
+//             <h2>How can I help you <span>today?</span></h2>
+//             <p className="subtitle">Your creative partner for scriptwriting, asset generation, and video planning.</p>
+//           </div>
+//           <div className="bottom-control-bar"><div className="glass-panel">
+//             <div className="dropdown-row">
+              
+//               <Clients onChange={setSelectedClient} />
+//               <Industrys onChange={setSelectedIndustries} />
+//               <ServiceLine onchange={setSelectedServiceLines} />
+//               {/* <Business_Unit onChange={setSelectedBU} /> */}
+//               <Videotype onChange={setSelectedVideoType} />
+//               <Styles onChange={setSelectedStyles} />
+//               <VideoTone onChange={setSelectedVideoTone} />
+//               <DURATION_OPTIONS onChange={setSelectedDuration} />
+//               <SliderSizes value={sliderValue} onChange={setSliderValue} />
+//             </div>
+//             <div className={`chat-input-area-og ${isDragging ? "drag-active" : ""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+//               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
+//               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
+//               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
+//               <div className="og-bottom-row">
+//                 <div className="og-bottom-left">
+//                   <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+//                     <VoiceInputButton onTranscript={handleTranscript} />
+//                 </div>
+//                 <div className="og-bottom-right">
+//                   <EnhancePromptButton input={input} setInput={setInput} />
+//                   <button className="btn-research" onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
+//                     🔍 {isResearching ? "Researching…" : "Research"}
+//                   </button>
+//                   <button
+//                     onClick={runCreativeReview}
+//                     disabled={creativeReviewDisabled}
+//                     style={{
+//                       opacity: creativeReviewDisabled ? 0.4 : 1,
+//                       background: "rgba(139,92,246,.12)",
+//                       border: "1px solid rgba(139,92,246,.35)",
+//                       borderRadius: "9999px",
+//                       color: "rgba(200,160,255,.9)",
+//                       cursor: creativeReviewDisabled ? "not-allowed" : "pointer",
+//                       fontSize: "12px",
+//                       fontFamily: "'Inter', sans-serif",
+//                       padding: "6px 16px",
+//                     }}
+//                   >
+//                     {creativeReviewLabel}
+//                   </button>
+//                   <button className="btn-send" onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
+//                     {editedResearch ? "✦ Generate Script →" : "Send →"}
+//                   </button>
+//                 </div>
+//               </div>
+//             </div>
+//             {/* FIX: errors are in-flow, not fixed-position */}
+//             {researchError && <ErrorBanner message={researchError} />}
+//             {narrativeError && <ErrorBanner message={narrativeError} />}
+//           </div></div>
+//         </>
+//       ) : (
+//         <div className="chat-container">
+//           <div className="chat-history" ref={chatHistoryRef}>
+//             {loadingMessages && (
+//               <div style={{ textAlign: "center", padding: "12px", color: "rgba(255,255,255,.4)", fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>
+//                 Loading older messages…
+//               </div>
+//             )}
+
+//             {messages.map((msg) => (
+//               <div key={msg.id} className={`chat-bubble ${msg.sender}`}>
+//                 {msg.sender === "bot" ? (
+//                   <BotMessage msg={msg} onFeedback={sendFeedback} isLatestBot={msg.id === lastBotId} />
+//                 ) : (
+//                   <div>
+//                     {!msg.hideText && (msg.rawPrompt || msg.text) && (
+//                       <p style={{ margin: 0 }}>{msg.rawPrompt || msg.text}</p>
+//                     )}
+//                     {msg.files?.length > 0 && <FileChips fileList={msg.files} onPreview={openPreview} />}
+//                     {msg.researchPending && <ResearchingIndicator />}
+//                     {msg.reviewPending && <ReviewingIndicator />}
+//                     {msg.researchLoading && !msg.researchPending && (
+//                       <div style={{ fontSize: "12px", color: "rgba(255,255,255,.3)", fontFamily: "'Inter',sans-serif", marginTop: "6px" }}>Loading research…</div>
+//                     )}
+//                     {msg.researchData && (
+//                       <InlineResearchPanel research={msg.researchData} transcriptCount={msg.transcriptCount} onResearchChange={setEditedResearch} />
+//                     )}
+//                     {msg.narrativeReviewData && (
+//                       <InlineNarrativeReviewPanel
+//                         reviewData={msg.narrativeReviewData}
+//                         onGenerate={generateApprovedScript}
+//                         isGenerating={isStreaming}
+//                       />
+//                     )}
+//                   </div>
+//                 )}
+//               </div>
+//             ))}
+
+//             {isStreaming && (
+//               <div className="chat-bubble bot streaming">
+//                 <div className="feedback-row-rating">
+//                   <div
+//                     style={{ fontSize: "13px", color: "rgba(255,255,255,.7)", fontFamily: "'Inter',sans-serif", lineHeight: 1.7, wordBreak: "break-word" }}
+//                     dangerouslySetInnerHTML={{
+//                       __html: markdownToHtml(activeStreamText) +
+//                         `<span style="display:inline-block;width:2px;height:14px;background:rgba(255,255,255,.4);margin-left:2px;animation:blink 1s step-end infinite;vertical-align:text-bottom;"></span>`
+//                     }}
+//                   />
+//                 </div>
+//               </div>
+//             )}
+
+//             {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>}
+//             <ContextDebugBar conversationId={conversationId} isStreaming={isStreaming} />
+//             <div className="scroll-anchor" ref={chatEndRef} />
+//           </div>
+
+//           {/* FIX: NarrativeReviewPanel has constrained max-height to prevent pushing input off-screen */}
+
+//           {/* FIX: in-flow error banners, not fixed-position */}
+//           {(researchError || narrativeError) && (
+//             <div style={{ padding: "0 16px" }}>
+//               {researchError  && <ErrorBanner message={researchError} />}
+//               {narrativeError && <ErrorBanner message={narrativeError} />}
+//             </div>
+//           )}
+
+//           <div className={`chat-input-area ${isDragging ? "drag-active" : ""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+//             <div className="chat-input-inner">
+//               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
+//               <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+//               <VoiceInputButton onTranscript={handleTranscript} />
+//               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
+//               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
+//               <button onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
+//                 🔍 {isResearching ? "Researching…" : "Research"}
+//               </button>
+//               <button
+//                 onClick={runCreativeReview}
+//                 disabled={creativeReviewDisabled}
+//                 style={{
+//                   opacity: creativeReviewDisabled ? 0.4 : 1,
+//                   background: "rgba(139,92,246,.12)",
+//                   border: "1px solid rgba(139,92,246,.35)",
+//                   borderRadius: "9999px",
+//                   color: "rgba(200,160,255,.9)",
+//                   cursor: creativeReviewDisabled ? "not-allowed" : "pointer",
+//                   fontSize: "12px",
+//                   fontFamily: "'Inter', sans-serif",
+//                   padding: "6px 16px",
+//                 }}
+//               >
+//                 {creativeReviewLabel}
+//               </button>
+//               <button onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
+//                 {editedResearch ? "✦ Generate Script →" : "Send →"}
+//               </button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
+// export default ChatWindow;
+
+
+
+// ── Main ChatWindow ────────────────────────────────────────────
+const isDraftId = (id) => typeof id === "string" && id.startsWith("draft-");
+
 function ChatWindow() {
-  // const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations } = useChat();
-  const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations, getAuthHeaders } = useChat();
+  const {
+    conversationId, setConversationId,
+    getMessages, setMessagesForConversation, addMessage, updateLastMessage,
+    migrateConversation,
+    isGenerating, startGenerating, stopGenerating,
+    activeStreamTextByConversation, setStreamText, clearStreamText,
+    pipelineStatusByConversation, setPipelineStatus, clearPipelineStatus,   // ← add
+    loadConversations, getAuthHeaders,
+  } = useChat();
+
+  const messages   = getMessages(conversationId);
+  const streaming  = isGenerating(conversationId);
+  const activeStreamText = (conversationId && activeStreamTextByConversation[conversationId]) || "";
+  const pipelineStatus = (conversationId && pipelineStatusByConversation[conversationId]) || null;  // ← add
 
   const [input,             setInput]            = useState("");
   const [files,             setFiles]            = useState([]);
   const dragCounterRef    = useRef(0);
   const [isDragging,        setIsDragging]       = useState(false);
-  const [pipelineStatus,    setPipelineStatus]   = useState(null);
   const [previewFile,       setPreviewFile]      = useState(null);
   const [selectedClient,    setSelectedClient]   = useState("");
   const [selectedIndustries, setSelectedIndustries] = useState("");
@@ -1462,15 +2201,17 @@ function ChatWindow() {
   const [editedResearch,    setEditedResearch]   = useState(null);
   const [researchId,        setResearchId]       = useState(null);
   const [researchError,     setResearchError]    = useState(null);
-  const [activeStreamText,  setActiveStreamText] = useState("");
-  const [isStreaming,       setIsStreaming]      = useState(false);
+  const [researchPrompt,    setResearchPrompt]   = useState("");
 
   // Creative review state
   const [narrativeReview,   setNarrativeReview]  = useState(null);
   const [narrativeLoading,  setNarrativeLoading] = useState(false);
   const [narrativeError,    setNarrativeError]   = useState(null);
 
-  const abortControllerRef = useRef(null);
+  // Per-conversation abort controllers — never a single shared controller,
+  // so switching chats doesn't kill background generation.
+  const convAbortControllers = useRef(new Map());
+
   const conversationIdRef  = useRef(conversationId);
   useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
 
@@ -1481,8 +2222,10 @@ function ChatWindow() {
   const chatHistoryRef = useRef(null);
   const loadingRef     = useRef(false);
 
-  const [page,            setPage]           = useState(1);
-  const [hasMore,         setHasMore]        = useState(true);
+  // Per-conversation pagination bookkeeping (ChatWindow-local, doesn't need context)
+  const pageByConv    = useRef(new Map());
+  const hasMoreByConv = useRef(new Map());
+  const loadedConvs   = useRef(new Set());
   const [loadingMessages, setLoadingMessages] = useState(false);
 
   const isEmpty   = messages.length === 0 && !loadingMessages;
@@ -1492,8 +2235,6 @@ function ChatWindow() {
   const runCreativeReview = async () => {
     if (!input.trim()) return;
 
-    // FIX: capture and clear inputs BEFORE the async call
-    // so edits during the fetch don't corrupt what was submitted
     const rawInput = input;
     const cf = [...files];
     setInput("");
@@ -1505,32 +2246,19 @@ function ChatWindow() {
 
     const fpd = cf.map((f) => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
 
+    const isNewChat = !conversationId;
+    const targetConvId = conversationId || `draft-${crypto.randomUUID()}`;
+    if (isNewChat) setConversationId(targetConvId);
+
     const uid = crypto.randomUUID();
-    setMessages((prev) =>
-      dedupeById([
-        ...prev,
-        {
-          id: uid,
-          sender: "user",
-          text: rawInput,
-          content: rawInput,
-          rawPrompt: rawInput,
-          prompt: "",
-          files: fpd,
-          researchPending: false,
-          reviewPending: true,
-          researchData: null,
-          hideText: false,
-          researchLoading: false,
-          researchId: null,
-          _reviewId: uid,
-        },
-      ])
-    );
+    addMessage(targetConvId, {
+      id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "",
+      files: fpd, researchPending: false, reviewPending: true, researchData: null, hideText: false,
+      researchLoading: false, researchId: null, _reviewId: uid,
+    });
 
     const fd = new FormData();
     fd.append("prompt", rawInput);
-    
     fd.append("client", formatList(selectedClient));
     fd.append("industries", formatList(selectedIndustries));
     fd.append("serviceLines", formatList(selectedServiceLines));
@@ -1540,34 +2268,30 @@ function ChatWindow() {
     fd.append("video_tone", formatList(selectedVideoTone));
     fd.append("duration", selectedDuration);
     fd.append("creativity_ratio", sliderValue / 100);
-    if (conversationId) fd.append("conversation_id", conversationId);
+    // if (!isNewChat) fd.append("conversation_id", targetConvId);
+    if (!isDraftId(targetConvId)) fd.append("conversation_id", targetConvId);
     cf.forEach((f) => fd.append("files", f));
 
     const patch = (p) =>
-      setMessages((prev) =>
+      setMessagesForConversation(targetConvId, (prev) =>
         dedupeById(prev.map((m) => (m._reviewId === uid ? { ...m, ...p } : m)))
       );
 
     try {
       const res = await fetch(`${API_BASE_URL}/creative-review`, { method: "POST", body: fd });
       const data = await res.json();
-      console.log("CREATIVE REVIEW RESPONSE", data);
-
 
       if (data.review_id) {
         patch({
           reviewPending: false,
           researchPending: false,
-          hideText: true,
           narrativeReviewData: {
             ...data,
             _promptContext: {
-              rawInput,
-              cf,
-              
+              rawInput, cf,
               client:        formatList(selectedClient),
-              industries: formatList(selectedIndustries),
-              serviceLines: formatList(selectedServiceLines),
+              industries:    formatList(selectedIndustries),
+              serviceLines:  formatList(selectedServiceLines),
               business_unit: formatList(selectedBU),
               styles:        formatList(selectedStyles),
               video_type:    formatList(selectedVideoType),
@@ -1577,7 +2301,7 @@ function ChatWindow() {
             },
           },
         });
-        setNarrativeReview(null); // clear the old separate state
+        setNarrativeReview(null);
       } else {
         setNarrativeError(data.error || "Creative review failed");
         patch({ reviewPending: false });
@@ -1592,28 +2316,28 @@ function ChatWindow() {
   };
 
   // ── Generate Approved Script (after creative review) ───────────
-  // const generateApprovedScript = async (approvedPayload) => {
-  //   const ctx = narrativeReview?._promptContext;
-  //   if (!ctx) return;
-const generateApprovedScript = async (approvedPayload, ctx) => {
-  if (!ctx) return;
+  const generateApprovedScript = async (approvedPayload, ctx, targetConvIdParam) => {
+    if (!ctx) return;
     const { rawInput, cf, styles, serviceLines, industries, client, business_unit, video_type, video_tone, duration, sliderValue: sv } = ctx;
 
     setNarrativeReview(null);
 
-    const botId = crypto.randomUUID();
-    setMessages((prev) =>
-      dedupeById([
-        ...prev,
-        { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-      ])
-    );
+    let targetConvId = targetConvIdParam || conversationId;
+    const isNewChat = !targetConvId;
+    if (isNewChat) {
+      targetConvId = `draft-${crypto.randomUUID()}`;
+      setConversationId(targetConvId);
+    }
 
-    setActiveStreamText("");
-    setIsStreaming(true);
-    abortControllerRef.current?.abort();
+    const botId = crypto.randomUUID();
+    addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
+
+    setStreamText(targetConvId, "");
+    startGenerating(targetConvId);
+
+    convAbortControllers.current.get(targetConvId)?.abort();
     const ctrl = new AbortController();
-    abortControllerRef.current = ctrl;
+    convAbortControllers.current.set(targetConvId, ctrl);
 
     const fd = new FormData();
     fd.append("prompt",                    rawInput);
@@ -1621,7 +2345,6 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     fd.append("approved_retrievals",       JSON.stringify(approvedPayload.approved_retrievals || []));
     fd.append("approved_essences",         JSON.stringify(approvedPayload.approved_essences || []));
     fd.append("approved_interpretations",  JSON.stringify(approvedPayload.approved_interpretations || []));
-    // fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
     fd.append("creative_summary", approvedPayload.approved_creative_summary || "");
     fd.append("industries",                industries);
     fd.append("serviceLines",            serviceLines);
@@ -1632,112 +2355,152 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     fd.append("video_tone",      video_tone);
     fd.append("duration",        duration);
     fd.append("creativity_ratio", sv / 100);
-    if (conversationId) fd.append("conversation_id", conversationId);
+    // if (!isNewChat) fd.append("conversation_id", targetConvId);
+    if (!isDraftId(targetConvId)) fd.append("conversation_id", targetConvId);
     (cf || []).forEach((f) => fd.append("files", f));
 
     try {
-      // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal });
-      // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
-      //  const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       const reader  = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      let done = false, fullText = "", rcid = conversationId;
+      let done = false, fullText = "";
 
       while (!done) {
         const { value, done: d } = await reader.read();
         done = d;
         if (ctrl.signal.aborted) break;
         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
-          if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
-          if (line.startsWith("status:"))  { setPipelineStatus(line.replace("status:", "").trim()); continue; }
-          if (line.startsWith("result:"))  { fullText = line.replace("result:", "").trim(); continue; }
-          if (line.startsWith("error:"))   { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
-          if (line.trim() && fullText)     fullText += "\n" + line;
+          if (line.startsWith("conversation_id:")) {
+            const realId = line.replace("conversation_id:", "").trim();
+            if (realId && realId !== targetConvId) {
+              migrateConversation(targetConvId, realId);
+              const c = convAbortControllers.current.get(targetConvId);
+              if (c) { convAbortControllers.current.set(realId, c); convAbortControllers.current.delete(targetConvId); }
+              targetConvId = realId;
+              if (isNewChat) loadConversations();
+            }
+            continue;
+          }
+          if (line.startsWith("status:")) { setPipelineStatus(targetConvId, line.replace("status:", "").trim()); continue; }
+          if (line.startsWith("result:")) { fullText = line.replace("result:", "").trim(); continue; }
+          if (line.startsWith("error:"))  { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
+          if (line.trim() && fullText)    fullText += "\n" + line;
         }
-        setActiveStreamText(fullText);
+        setStreamText(targetConvId, fullText);
       }
 
       fullText = fullText.replace(/\\n/g, "\n");
       lastOutputRef.current = fullText;
-      setIsStreaming(false);
-      setActiveStreamText("");
-      setPipelineStatus(null);
-      updateLastMessage(rcid, fullText, rawInput);
-      setMessages((prev) =>
+      stopGenerating(targetConvId);
+      clearStreamText(targetConvId);
+      // setPipelineStatus(null);
+      clearPipelineStatus(targetConvId);
+      updateLastMessage(targetConvId, fullText, rawInput);
+      setMessagesForConversation(targetConvId, (prev) =>
         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m))
       );
       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("[generateApprovedScript]", err);
-      setIsStreaming(false);
-      setActiveStreamText("");
-      setMessages((prev) =>
+      stopGenerating(targetConvId);
+      clearStreamText(targetConvId);
+      setMessagesForConversation(targetConvId, (prev) =>
         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m))
       );
     }
   };
 
   // ── Hydrate research from previous sessions ────────────────────
-  const hydrateResearchMessages = useCallback(async (msgList, chatIdParam) => {
+  const hydrateResearchMessages = useCallback(async (convId, msgList) => {
     const toH = msgList.filter(m => m.researchLoading && m.researchId);
     if (!toH.length) return;
     await Promise.all(toH.map(async (msg) => {
       try {
         const res = await fetch(`${API_BASE_URL}/research/${msg.researchId}`);
         const data = await res.json();
-        if (chatIdParam !== conversationIdRef.current) return;
-        setMessages(prev => dedupeById(prev.map(m => m.id === msg.id
+        setMessagesForConversation(convId, (prev) => dedupeById(prev.map(m => m.id === msg.id
           ? (data.success && data.research
             ? { ...m, researchLoading: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0 }
             : { ...m, researchLoading: false })
           : m)));
       } catch {
-        setMessages(prev => dedupeById(prev.map(m => m.id === msg.id ? { ...m, researchLoading: false } : m)));
+        setMessagesForConversation(convId, (prev) => dedupeById(prev.map(m => m.id === msg.id ? { ...m, researchLoading: false } : m)));
       }
     }));
-  }, []); // eslint-disable-line
+  }, [setMessagesForConversation]);
 
-  const fetchMessages = useCallback(async (chatIdParam, pageNum) => {
+  const fetchMessages = useCallback(async (convId, pageNum) => {
+    if (!convId || isDraftId(convId)) return;
     if (loadingRef.current) return;
     loadingRef.current = true; setLoadingMessages(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/messages?conversation_id=${chatIdParam}&page=${pageNum}&limit=20`);
+      const res = await fetch(`${API_BASE_URL}/messages?conversation_id=${convId}&page=${pageNum}&limit=20`);
       const data = await res.json();
-      if (chatIdParam !== conversationIdRef.current) return;
       const fetched = Array.isArray(data.messages) ? data.messages : Array.isArray(data) ? data : [];
-      if (fetched.length < 20) setHasMore(false);
+      hasMoreByConv.current.set(convId, fetched.length >= 20);
       const ordered = fetched.map(m => reconstructMessage(m));
+      const isViewing = convId === conversationIdRef.current;
+
       if (pageNum === 1) {
-        setMessages(dedupeById(ordered));
-        requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
+        setMessagesForConversation(convId, dedupeById(ordered));
+        loadedConvs.current.add(convId);
+        pageByConv.current.set(convId, 1);
+        if (isViewing) {
+          requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
+        }
       } else {
-        const c = chatHistoryRef.current; const ph = c?.scrollHeight || 0;
-        setMessages(prev => dedupeById([...ordered, ...prev]));
-        requestAnimationFrame(() => { if (c) c.scrollTop = c.scrollHeight - ph; });
+        const c = isViewing ? chatHistoryRef.current : null;
+        const ph = c?.scrollHeight || 0;
+        setMessagesForConversation(convId, (prev) => dedupeById([...ordered, ...prev]));
+        pageByConv.current.set(convId, pageNum);
+        if (c) requestAnimationFrame(() => { c.scrollTop = c.scrollHeight - ph; });
       }
-      hydrateResearchMessages(ordered, chatIdParam);
+      hydrateResearchMessages(convId, ordered);
     } catch (err) { console.error("Failed to fetch messages:", err); }
     finally { setLoadingMessages(false); loadingRef.current = false; }
-  }, [hydrateResearchMessages]); // eslint-disable-line
+  }, [hydrateResearchMessages, setMessagesForConversation]);
+
+  // useEffect(() => {
+  //   setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchError(null);
+  //   if (!conversationId || isDraftId(conversationId)) return;
+  //   if (loadedConvs.current.has(conversationId)) {
+  //     requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
+  //     return;
+  //   }
+  //   fetchMessages(conversationId, 1);
+  // }, [conversationId]); // eslint-disable-line
 
   useEffect(() => {
-    setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
-    setResearchError(null); setMessages([]); setPage(1); setHasMore(true);
-    loadingRef.current = false;
-    abortControllerRef.current?.abort();
-    if (!conversationId) return;
-    fetchMessages(conversationId, 1);
-  }, [conversationId]); // eslint-disable-line
-
-  useEffect(() => { if (page > 1 && conversationId) fetchMessages(conversationId, page); }, [page]); // eslint-disable-line
+  setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchError(null);
+  if (!conversationId || isDraftId(conversationId)) return;
+  if (loadedConvs.current.has(conversationId)) {
+    requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
+    return;
+  }
+  // If this conversation is actively streaming (e.g. we just migrated from a
+  // draft id mid-generation), local state already has the full picture —
+  // fetching now would overwrite the in-progress bot message with a stale,
+  // partial DB snapshot (assistant message isn't saved until the pipeline finishes).
+  if (isGenerating(conversationId)) {
+    loadedConvs.current.add(conversationId);
+    return;
+  }
+  fetchMessages(conversationId, 1);
+}, [conversationId, isGenerating]); // eslint-disable-line
 
   useEffect(() => {
-    const c = chatHistoryRef.current; if (!c || !conversationId) return;
-    const h = () => { if (c.scrollTop <= 5 && hasMore && !loadingRef.current) setPage(p => p + 1); };
+    const c = chatHistoryRef.current;
+    if (!c || !conversationId || isDraftId(conversationId)) return;
+    const h = () => {
+      const hasMore = hasMoreByConv.current.get(conversationId) ?? true;
+      if (c.scrollTop <= 5 && hasMore && !loadingRef.current) {
+        const nextPage = (pageByConv.current.get(conversationId) || 1) + 1;
+        fetchMessages(conversationId, nextPage);
+      }
+    };
     c.addEventListener("scroll", h); return () => c.removeEventListener("scroll", h);
-  }, [conversationId, hasMore]);
+  }, [conversationId, fetchMessages]);
 
   useEffect(() => {
     if (!messages.length) return; const c = chatHistoryRef.current; if (!c) return;
@@ -1766,31 +2529,25 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     setIsResearching(true); setEditedResearch(null); setResearchId(null); setResearchError(null);
 
     const rawInput = input;
+    setResearchPrompt(rawInput);
     const cf = [...files];
     const fpd = cf.map(f => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
 
     setInput(""); setFiles([]);
 
+    const isNewChat = !conversationId;
+    const targetConvId = conversationId || `draft-${crypto.randomUUID()}`;
+    if (isNewChat) setConversationId(targetConvId);
+
     const bid = crypto.randomUUID();
-    setMessages(prev => dedupeById([...prev, {
-      id: bid,
-      sender: "user",
-      text: rawInput,
-      content: rawInput,
-      rawPrompt: rawInput,
-      prompt: "",
-      files: fpd,
-      researchPending: true,
-      researchData: null,
-      hideText: false,
-      researchLoading: false,
-      researchId: null,
-      _researchId: bid,
-    }]));
+    addMessage(targetConvId, {
+      id: bid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "",
+      files: fpd, researchPending: true, researchData: null, hideText: false, researchLoading: false,
+      researchId: null, _researchId: bid,
+    });
 
     const fd = new FormData();
     fd.append("creativity_ratio", sliderValue / 100);
-    
     fd.append("client",           formatList(selectedClient));
     fd.append("serviceLines",    formatList(selectedServiceLines));
     fd.append("industries",       formatList(selectedIndustries));
@@ -1802,7 +2559,7 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     fd.append("prompt",           rawInput);
     cf.forEach(f => fd.append("files", f));
 
-    const patch = (p) => setMessages(prev => dedupeById(prev.map(m => m._researchId === bid ? { ...m, ...p } : m)));
+    const patch = (p) => setMessagesForConversation(targetConvId, (prev) => dedupeById(prev.map(m => m._researchId === bid ? { ...m, ...p } : m)));
 
     try {
       const res  = await fetch(`${API_BASE_URL}/research`, { method: "POST", body: fd });
@@ -1810,7 +2567,7 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
       if (data.success && data.research) {
         setEditedResearch(data.research);
         setResearchId(data.research_id);
-        patch({ researchPending: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0, hideText: true });
+        patch({ researchPending: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0 });
       } else {
         setResearchError(data.error || "Research failed");
         patch({ researchPending: false });
@@ -1828,15 +2585,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     if (!input.trim() && !files.length && !editedResearch) return;
 
     const cf       = [...files];
-    const rawInput = input;
+    const rawInput = editedResearch ? (researchPrompt || input) : input;
     const trainingPrompt =
-      // `create a ${selectedDuration || "unspecified duration"} ` +
-      // `${formatList(selectedVideoType) || "video"} video script for ` +
-      // `${formatList(selectedClient) || "the client"} ` +
-      // `,which operates in ${formatList(selectedIndustries)} sectors, ` +
-      // `about ${rawInput}, ` +
-      // `creative freedom ${sliderValue}, ` +
-      // `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
       `Create a ${selectedDuration || "unspecified duration"} ` +
       `${formatList(selectedVideoType) || "video"} video script for ` +
       `${formatList(selectedClient) || "the client"}, operating in ` +
@@ -1853,29 +2603,31 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 
     lastPromptRef.current = trainingPrompt;
 
-    setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
+    setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchPrompt("");
+
+    const isNewChat = !conversationId;
+    let targetConvId = conversationId || `draft-${crypto.randomUUID()}`;
+    if (isNewChat) setConversationId(targetConvId);
 
     const botId = crypto.randomUUID();
 
     if (!cr) {
       const uid = crypto.randomUUID();
-      setMessages(prev => dedupeById([...prev,
-        { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false },
-        { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-      ]));
+      addMessage(targetConvId, { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false });
+      addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
     } else {
-      setMessages(prev => dedupeById([...prev,
-        { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-      ]));
+      addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
     }
 
-    setActiveStreamText(""); setIsStreaming(true);
-    abortControllerRef.current?.abort();
-    const ctrl = new AbortController(); abortControllerRef.current = ctrl;
+    setStreamText(targetConvId, "");
+    startGenerating(targetConvId);
+
+    convAbortControllers.current.get(targetConvId)?.abort();
+    const ctrl = new AbortController();
+    convAbortControllers.current.set(targetConvId, ctrl);
 
     const fd = new FormData();
     fd.append("prompt",           rawInput);
-    
     fd.append("client",           formatList(selectedClient));
     fd.append("serviceLines",    formatList(selectedServiceLines));
     fd.append("styles",           formatList(selectedStyles));
@@ -1887,65 +2639,76 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
     if (selectedDuration) fd.append("duration",       selectedDuration);
     if (cri)              fd.append("research_id",    cri);
     if (cr)               fd.append("research_brief", JSON.stringify(cr));
-    if (conversationId)   fd.append("conversation_id", conversationId);
+    // if (!isNewChat)        fd.append("conversation_id", targetConvId);
+    if (!isDraftId(targetConvId)) fd.append("conversation_id", targetConvId);
     cf.forEach(f => fd.append("files", f));
 
     try {
-      // const res     = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
       const reader  = res.body.getReader();
       const decoder = new TextDecoder("utf-8");
-      let done = false, fullText = "", rcid = conversationId;
+      let done = false, fullText = "";
 
       while (!done) {
         const { value, done: d } = await reader.read();
         done = d; if (ctrl.signal.aborted) break;
         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
-          if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
-          if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
+          if (line.startsWith("conversation_id:")) {
+            const realId = line.replace("conversation_id:", "").trim();
+            if (realId && realId !== targetConvId) {
+              migrateConversation(targetConvId, realId);
+              const c = convAbortControllers.current.get(targetConvId);
+              if (c) { convAbortControllers.current.set(realId, c); convAbortControllers.current.delete(targetConvId); }
+              targetConvId = realId;
+              if (isNewChat) loadConversations();
+            }
+            continue;
+          }
+          // if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
+          if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(targetConvId, line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
           if (line.startsWith("result:"))     { fullText = line.replace("result:", "").trim(); continue; }
           if (line.startsWith("error:"))      { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
           if (line.startsWith("<!-- debug:")) continue;
           if (line.trim() && fullText)        fullText += "\n" + line;
         }
-        setActiveStreamText(fullText);
+        setStreamText(targetConvId, fullText);
       }
 
       fullText = fullText.replace(/\\n/g, "\n"); lastOutputRef.current = fullText;
-      setIsStreaming(false); setActiveStreamText(""); setPipelineStatus(null);
-      updateLastMessage(rcid, fullText, rawInput);
-      setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
+      stopGenerating(targetConvId);
+      clearStreamText(targetConvId);
+      // setPipelineStatus(null);
+      clearPipelineStatus(targetConvId);
+      updateLastMessage(targetConvId, fullText, rawInput);
+      setMessagesForConversation(targetConvId, (prev) => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
     } catch (err) {
       if (err.name === "AbortError") return;
       console.error("generateScript error:", err);
-      setIsStreaming(false); setActiveStreamText("");
-      setInput(rawInput); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
-      setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m)));
+      stopGenerating(targetConvId);
+      clearStreamText(targetConvId);
+      if (conversationIdRef.current === targetConvId) {
+        setInput(rawInput); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
+      }
+      setMessagesForConversation(targetConvId, (prev) => dedupeById(prev.map(m => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m)));
     }
   };
 
   const removeFile = (idx) => setFiles(files.filter((_, i) => i !== idx));
 
   const handleTranscript = useCallback((text) => {
-  setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
-}, []);
+    setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+  }, []);
 
-  // ── Derived disabled states ────────────────────────────────────
   const researchDisabled = isResearching || !input.trim();
-  // FIX: also disable creative review when a review is already pending approval
-  // const creativeReviewDisabled = narrativeLoading || isStreaming || !!narrativeReview || !input.trim();
-  const creativeReviewDisabled = narrativeLoading || isStreaming || !input.trim();
+  const creativeReviewDisabled = narrativeLoading || streaming || !input.trim();
   const sendDisabled = !input.trim() && !files.length && !editedResearch;
 
-  // ── Creative review button label ───────────────────────────────
   const creativeReviewLabel = narrativeLoading
     ? "◈ Reviewing…"
     : narrativeReview
       ? "◈ Review Pending"
-      // : "◈ Creative Review";
       : "◈ Human Review";
-
 
   return (
     <div className="chat-window">
@@ -1960,11 +2723,9 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
           </div>
           <div className="bottom-control-bar"><div className="glass-panel">
             <div className="dropdown-row">
-              
               <Clients onChange={setSelectedClient} />
               <Industrys onChange={setSelectedIndustries} />
               <ServiceLine onchange={setSelectedServiceLines} />
-              {/* <Business_Unit onChange={setSelectedBU} /> */}
               <Videotype onChange={setSelectedVideoType} />
               <Styles onChange={setSelectedStyles} />
               <VideoTone onChange={setSelectedVideoTone} />
@@ -2008,7 +2769,6 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
                 </div>
               </div>
             </div>
-            {/* FIX: errors are in-flow, not fixed-position */}
             {researchError && <ErrorBanner message={researchError} />}
             {narrativeError && <ErrorBanner message={narrativeError} />}
           </div></div>
@@ -2043,8 +2803,8 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
                     {msg.narrativeReviewData && (
                       <InlineNarrativeReviewPanel
                         reviewData={msg.narrativeReviewData}
-                        onGenerate={generateApprovedScript}
-                        isGenerating={isStreaming}
+                        onGenerate={(payload) => generateApprovedScript(payload, msg.narrativeReviewData._promptContext, conversationId)}
+                        isGenerating={streaming}
                       />
                     )}
                   </div>
@@ -2052,7 +2812,7 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
               </div>
             ))}
 
-            {isStreaming && (
+            {streaming && (
               <div className="chat-bubble bot streaming">
                 <div className="feedback-row-rating">
                   <div
@@ -2067,13 +2827,10 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
             )}
 
             {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>}
-            <ContextDebugBar conversationId={conversationId} isStreaming={isStreaming} />
+            <ContextDebugBar conversationId={conversationId} isStreaming={streaming} />
             <div className="scroll-anchor" ref={chatEndRef} />
           </div>
 
-          {/* FIX: NarrativeReviewPanel has constrained max-height to prevent pushing input off-screen */}
-
-          {/* FIX: in-flow error banners, not fixed-position */}
           {(researchError || narrativeError) && (
             <div style={{ padding: "0 16px" }}>
               {researchError  && <ErrorBanner message={researchError} />}
@@ -2120,3 +2877,6 @@ const generateApprovedScript = async (approvedPayload, ctx) => {
 }
 
 export default ChatWindow;
+
+
+
