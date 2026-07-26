@@ -3,6 +3,7 @@ import "./chatWindow.css";
 import { useChat } from "../contexts/ChatContext";
 import ChatResponse from "./chat_message.jsx";
 import Clients from "./dropdown/clients.jsx";
+import LineWaves from "./LineWaves";
 // import Business_Unit from "./dropdown/BU.jsx";
 import Industrys from "./dropdown/industry.jsx"; 
 import ServiceLine from "./dropdown/serviceLine.jsx";
@@ -1503,701 +1504,360 @@ const ErrorBanner = ({ message }) => (
   </div>
 );
 
-
-
-// ── Main ChatWindow ────────────────────────────────────────────
-// function ChatWindow() {
-//   // const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations } = useChat();
-//   const { messages, setMessages, addMessage, updateLastMessage, conversationId, setConversationId, loadConversations, getAuthHeaders } = useChat();
-
-//   const [input,             setInput]            = useState("");
-//   const [files,             setFiles]            = useState([]);
-//   const dragCounterRef    = useRef(0);
-//   const [isDragging,        setIsDragging]       = useState(false);
-//   const [pipelineStatus,    setPipelineStatus]   = useState(null);
-//   const [previewFile,       setPreviewFile]      = useState(null);
-//   const [selectedClient,    setSelectedClient]   = useState("");
-//   const [selectedIndustries, setSelectedIndustries] = useState("");
-//   const [selectedServiceLines, setSelectedServiceLines] = useState("")
-//   const [selectedStyles, setSelectedStyles] = useState("")
-//   const [selectedBU,        setSelectedBU]       = useState("");
-//   const [selectedVideoType, setSelectedVideoType] = useState("");
-//   const [selectedVideoTone, setSelectedVideoTone] = useState("");
-//   const [selectedDuration,  setSelectedDuration] = useState("");
-//   const [sliderValue,       setSliderValue]      = useState(50);
-//   const [isResearching,     setIsResearching]    = useState(false);
-//   const [editedResearch,    setEditedResearch]   = useState(null);
-//   const [researchId,        setResearchId]       = useState(null);
-//   const [researchError,     setResearchError]    = useState(null);
-//   const [researchPrompt,    setResearchPrompt]   = useState("");
-//   const [activeStreamText,  setActiveStreamText] = useState("");
-//   const [isStreaming,       setIsStreaming]      = useState(false);
-
-//   // Creative review state
-//   const [narrativeReview,   setNarrativeReview]  = useState(null);
-//   const [narrativeLoading,  setNarrativeLoading] = useState(false);
-//   const [narrativeError,    setNarrativeError]   = useState(null);
-
-//   const abortControllerRef = useRef(null);
-//   const conversationIdRef  = useRef(conversationId);
-//   useEffect(() => { conversationIdRef.current = conversationId; }, [conversationId]);
-
-//   const lastPromptRef  = useRef("");
-//   const lastOutputRef  = useRef("");
-//   const chatEndRef     = useRef(null);
-//   const fileInputRef   = useRef(null);
-//   const chatHistoryRef = useRef(null);
-//   const loadingRef     = useRef(false);
-
-//   const [page,            setPage]           = useState(1);
-//   const [hasMore,         setHasMore]        = useState(true);
-//   const [loadingMessages, setLoadingMessages] = useState(false);
-
-//   const isEmpty   = messages.length === 0 && !loadingMessages;
-//   const lastBotId = [...messages].reverse().find(m => m.sender === "bot")?.id ?? null;
-
-//   // ── Creative Review ────────────────────────────────────────────
-//   const runCreativeReview = async () => {
-//     if (!input.trim()) return;
-
-//     // FIX: capture and clear inputs BEFORE the async call
-//     // so edits during the fetch don't corrupt what was submitted
-//     const rawInput = input;
-//     const cf = [...files];
-//     setInput("");
-//     setFiles([]);
-
-//     setNarrativeLoading(true);
-//     setNarrativeReview(null);
-//     setNarrativeError(null);
-
-//     const fpd = cf.map((f) => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
-
-//     const uid = crypto.randomUUID();
-//     setMessages((prev) =>
-//       dedupeById([
-//         ...prev,
-//         {
-//           id: uid,
-//           sender: "user",
-//           text: rawInput,
-//           content: rawInput,
-//           rawPrompt: rawInput,
-//           prompt: "",
-//           files: fpd,
-//           researchPending: false,
-//           reviewPending: true,
-//           researchData: null,
-//           hideText: false,
-//           researchLoading: false,
-//           researchId: null,
-//           _reviewId: uid,
-//         },
-//       ])
-//     );
-
-//     const fd = new FormData();
-//     fd.append("prompt", rawInput);
-    
-//     fd.append("client", formatList(selectedClient));
-//     fd.append("industries", formatList(selectedIndustries));
-//     fd.append("serviceLines", formatList(selectedServiceLines));
-//     fd.append("styles", formatList(selectedStyles));
-//     fd.append("business_unit", formatList(selectedBU));
-//     fd.append("video_type", formatList(selectedVideoType));
-//     fd.append("video_tone", formatList(selectedVideoTone));
-//     fd.append("duration", selectedDuration);
-//     fd.append("creativity_ratio", sliderValue / 100);
-//     if (conversationId) fd.append("conversation_id", conversationId);
-//     cf.forEach((f) => fd.append("files", f));
-
-//     const patch = (p) =>
-//       setMessages((prev) =>
-//         dedupeById(prev.map((m) => (m._reviewId === uid ? { ...m, ...p } : m)))
-//       );
-
-//     try {
-//       const res = await fetch(`${API_BASE_URL}/creative-review`, { method: "POST", body: fd });
-//       const data = await res.json();
-//       console.log("CREATIVE REVIEW RESPONSE", data);
-
-
-//       if (data.review_id) {
-//         patch({
-//           reviewPending: false,
-//           researchPending: false,
-//           // hideText: true,
-//           narrativeReviewData: {
-//             ...data,
-//             _promptContext: {
-//               rawInput,
-//               cf,
-              
-//               client:        formatList(selectedClient),
-//               industries: formatList(selectedIndustries),
-//               serviceLines: formatList(selectedServiceLines),
-//               business_unit: formatList(selectedBU),
-//               styles:        formatList(selectedStyles),
-//               video_type:    formatList(selectedVideoType),
-//               video_tone:    formatList(selectedVideoTone),
-//               duration:      selectedDuration,
-//               sliderValue,
-//             },
-//           },
-//         });
-//         setNarrativeReview(null); // clear the old separate state
-//       } else {
-//         setNarrativeError(data.error || "Creative review failed");
-//         patch({ reviewPending: false });
-//       }
-//     } catch (err) {
-//       console.error("[runCreativeReview]", err);
-//       setNarrativeError("Could not reach server");
-//       patch({ researchPending: false });
-//     } finally {
-//       setNarrativeLoading(false);
-//     }
-//   };
-
-//   // ── Generate Approved Script (after creative review) ───────────
-//   // const generateApprovedScript = async (approvedPayload) => {
-//   //   const ctx = narrativeReview?._promptContext;
-//   //   if (!ctx) return;
-// const generateApprovedScript = async (approvedPayload, ctx) => {
-//   if (!ctx) return;
-//     const { rawInput, cf, styles, serviceLines, industries, client, business_unit, video_type, video_tone, duration, sliderValue: sv } = ctx;
-
-//     setNarrativeReview(null);
-
-//     const botId = crypto.randomUUID();
-//     setMessages((prev) =>
-//       dedupeById([
-//         ...prev,
-//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-//       ])
-//     );
-
-//     setActiveStreamText("");
-//     setIsStreaming(true);
-//     abortControllerRef.current?.abort();
-//     const ctrl = new AbortController();
-//     abortControllerRef.current = ctrl;
-
-//     const fd = new FormData();
-//     fd.append("prompt",                    rawInput);
-//     fd.append("review_id",                 approvedPayload.review_id || "");
-//     fd.append("approved_retrievals",       JSON.stringify(approvedPayload.approved_retrievals || []));
-//     fd.append("approved_essences",         JSON.stringify(approvedPayload.approved_essences || []));
-//     fd.append("approved_interpretations",  JSON.stringify(approvedPayload.approved_interpretations || []));
-//     // fd.append("approved_creative_summary", approvedPayload.approved_creative_summary || "");
-//     fd.append("creative_summary", approvedPayload.approved_creative_summary || "");
-//     fd.append("industries",                industries);
-//     fd.append("serviceLines",            serviceLines);
-//     fd.append("client",          client);
-//     fd.append("business_unit",   business_unit);
-//     fd.append("video_type",      video_type);
-//     fd.append("styles",          styles);
-//     fd.append("video_tone",      video_tone);
-//     fd.append("duration",        duration);
-//     fd.append("creativity_ratio", sv / 100);
-//     if (conversationId) fd.append("conversation_id", conversationId);
-//     (cf || []).forEach((f) => fd.append("files", f));
-
-//     try {
-//       // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal });
-//       // const res    = await fetch(`${API_BASE_URL}/generate-from-review`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
-//       //  const res    = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
-//       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
-//       const reader  = res.body.getReader();
-//       const decoder = new TextDecoder("utf-8");
-//       let done = false, fullText = "", rcid = conversationId;
-
-//       while (!done) {
-//         const { value, done: d } = await reader.read();
-//         done = d;
-//         if (ctrl.signal.aborted) break;
-//         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
-//           if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
-//           if (line.startsWith("status:"))  { setPipelineStatus(line.replace("status:", "").trim()); continue; }
-//           if (line.startsWith("result:"))  { fullText = line.replace("result:", "").trim(); continue; }
-//           if (line.startsWith("error:"))   { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
-//           if (line.trim() && fullText)     fullText += "\n" + line;
-//         }
-//         setActiveStreamText(fullText);
-//       }
-
-//       fullText = fullText.replace(/\\n/g, "\n");
-//       lastOutputRef.current = fullText;
-//       setIsStreaming(false);
-//       setActiveStreamText("");
-//       setPipelineStatus(null);
-//       updateLastMessage(rcid, fullText, rawInput);
-//       setMessages((prev) =>
-//         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m))
-//       );
-//       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
-//     } catch (err) {
-//       if (err.name === "AbortError") return;
-//       console.error("[generateApprovedScript]", err);
-//       setIsStreaming(false);
-//       setActiveStreamText("");
-//       setMessages((prev) =>
-//         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m))
-//       );
-//     }
-//   };
-
-//   // ── Hydrate research from previous sessions ────────────────────
-//   const hydrateResearchMessages = useCallback(async (msgList, chatIdParam) => {
-//     const toH = msgList.filter(m => m.researchLoading && m.researchId);
-//     if (!toH.length) return;
-//     await Promise.all(toH.map(async (msg) => {
-//       try {
-//         const res = await fetch(`${API_BASE_URL}/research/${msg.researchId}`);
-//         const data = await res.json();
-//         if (chatIdParam !== conversationIdRef.current) return;
-//         setMessages(prev => dedupeById(prev.map(m => m.id === msg.id
-//           ? (data.success && data.research
-//             ? { ...m, researchLoading: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0 }
-//             : { ...m, researchLoading: false })
-//           : m)));
-//       } catch {
-//         setMessages(prev => dedupeById(prev.map(m => m.id === msg.id ? { ...m, researchLoading: false } : m)));
-//       }
-//     }));
-//   }, []); // eslint-disable-line
-
-//   const fetchMessages = useCallback(async (chatIdParam, pageNum) => {
-//     if (loadingRef.current) return;
-//     loadingRef.current = true; setLoadingMessages(true);
-//     try {
-//       const res = await fetch(`${API_BASE_URL}/messages?conversation_id=${chatIdParam}&page=${pageNum}&limit=20`);
-//       const data = await res.json();
-//       if (chatIdParam !== conversationIdRef.current) return;
-//       const fetched = Array.isArray(data.messages) ? data.messages : Array.isArray(data) ? data : [];
-//       if (fetched.length < 20) setHasMore(false);
-//       const ordered = fetched.map(m => reconstructMessage(m));
-//       if (pageNum === 1) {
-//         setMessages(dedupeById(ordered));
-//         requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
-//       } else {
-//         const c = chatHistoryRef.current; const ph = c?.scrollHeight || 0;
-//         setMessages(prev => dedupeById([...ordered, ...prev]));
-//         requestAnimationFrame(() => { if (c) c.scrollTop = c.scrollHeight - ph; });
-//       }
-//       hydrateResearchMessages(ordered, chatIdParam);
-//     } catch (err) { console.error("Failed to fetch messages:", err); }
-//     finally { setLoadingMessages(false); loadingRef.current = false; }
-//   }, [hydrateResearchMessages]); // eslint-disable-line
-
-//   useEffect(() => {
-//     setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
-//     setResearchError(null); setMessages([]); setPage(1); setHasMore(true);
-//     loadingRef.current = false;
-//     abortControllerRef.current?.abort();
-//     if (!conversationId) return;
-//     fetchMessages(conversationId, 1);
-//   }, [conversationId]); // eslint-disable-line
-
-//   useEffect(() => { if (page > 1 && conversationId) fetchMessages(conversationId, page); }, [page]); // eslint-disable-line
-
-//   useEffect(() => {
-//     const c = chatHistoryRef.current; if (!c || !conversationId) return;
-//     const h = () => { if (c.scrollTop <= 5 && hasMore && !loadingRef.current) setPage(p => p + 1); };
-//     c.addEventListener("scroll", h); return () => c.removeEventListener("scroll", h);
-//   }, [conversationId, hasMore]);
-
-//   useEffect(() => {
-//     if (!messages.length) return; const c = chatHistoryRef.current; if (!c) return;
-//     if (c.scrollHeight - c.scrollTop - c.clientHeight < 150) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-//   }, [messages.length]);
-
-//   const handleDragEnter = (e) => { e.preventDefault(); dragCounterRef.current += 1; if (dragCounterRef.current === 1) setIsDragging(true); };
-//   const handleDragOver  = (e) => e.preventDefault();
-//   const handleDragLeave = (e) => { e.preventDefault(); dragCounterRef.current -= 1; if (dragCounterRef.current === 0) setIsDragging(false); };
-//   const handleDrop      = (e) => { e.preventDefault(); dragCounterRef.current = 0; setIsDragging(false); const d = Array.from(e.dataTransfer.files); if (d.length) setFiles(p => [...p, ...d]); };
-
-//   const openPreview  = (file) => { const url = file.url || URL.createObjectURL(file); setPreviewFile({ name: file.name, url, type: file.type }); };
-//   const closePreview = () => setPreviewFile(null);
-
-//   const sendFeedback = async (rating, prompt, output) => {
-//     const fd = new FormData();
-//     fd.append("prompt", prompt || lastPromptRef.current);
-//     fd.append("output", output || lastOutputRef.current);
-//     fd.append("rating", rating);
-//     await fetch(`${API_BASE_URL}/feedback`, { method: "POST", body: fd });
-//   };
-
-//   // ── Research ───────────────────────────────────────────────────
-//   const runResearch = async () => {
-//     if (!input.trim()) return;
-//     setIsResearching(true); setEditedResearch(null); setResearchId(null); setResearchError(null);
-
-//     const rawInput = input;
-//     setResearchPrompt(rawInput);  
-//     const cf = [...files];
-//     const fpd = cf.map(f => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
-
-//     setInput(""); setFiles([]);
-
-//     const bid = crypto.randomUUID();
-//     setMessages(prev => dedupeById([...prev, {
-//       id: bid,
-//       sender: "user",
-//       text: rawInput,
-//       content: rawInput,
-//       rawPrompt: rawInput,
-//       prompt: "",
-//       files: fpd,
-//       researchPending: true,
-//       researchData: null,
-//       hideText: false,
-//       researchLoading: false,
-//       researchId: null,
-//       _researchId: bid,
-//     }]));
-
-//     const fd = new FormData();
-//     fd.append("creativity_ratio", sliderValue / 100);
-    
-//     fd.append("client",           formatList(selectedClient));
-//     fd.append("serviceLines",    formatList(selectedServiceLines));
-//     fd.append("industries",       formatList(selectedIndustries));
-//     fd.append("business_unit",    formatList(selectedBU));
-//     fd.append("video_type",       formatList(selectedVideoType));
-//     fd.append("styles",           formatList(selectedStyles));
-//     fd.append("video_tone",       formatList(selectedVideoTone));
-//     fd.append("duration",         selectedDuration);
-//     fd.append("prompt",           rawInput);
-//     cf.forEach(f => fd.append("files", f));
-
-//     const patch = (p) => setMessages(prev => dedupeById(prev.map(m => m._researchId === bid ? { ...m, ...p } : m)));
-
-//     try {
-//       const res  = await fetch(`${API_BASE_URL}/research`, { method: "POST", body: fd });
-//       const data = await res.json();
-//       if (data.success && data.research) {
-//         setEditedResearch(data.research);
-//         setResearchId(data.research_id);
-//         patch({ researchPending: false, researchData: data.research, transcriptCount: data.research.transcript_count ?? 0,
-//           //  hideText: true
-//            });
-//       } else {
-//         setResearchError(data.error || "Research failed");
-//         patch({ researchPending: false });
-//       }
-//     } catch {
-//       setResearchError("Could not reach server");
-//       patch({ researchPending: false });
-//     } finally {
-//       setIsResearching(false);
-//     }
-//   };
-
-//   // ── Generate Script ────────────────────────────────────────────
-//   const generateScript = async () => {
-//     if (!input.trim() && !files.length && !editedResearch) return;
-
-//     const cf       = [...files];
-//     // const rawInput = input;
-//      const rawInput = editedResearch ? (researchPrompt || input) : input;  
-//     const trainingPrompt =
-//       // `create a ${selectedDuration || "unspecified duration"} ` +
-//       // `${formatList(selectedVideoType) || "video"} video script for ` +
-//       // `${formatList(selectedClient) || "the client"} ` +
-//       // `,which operates in ${formatList(selectedIndustries)} sectors, ` +
-//       // `about ${rawInput}, ` +
-//       // `creative freedom ${sliderValue}, ` +
-//       // `and maintain a ${formatList(selectedVideoTone) || "professional"} tone consistently.`;
-//       `Create a ${selectedDuration || "unspecified duration"} ` +
-//       `${formatList(selectedVideoType) || "video"} video script for ` +
-//       `${formatList(selectedClient) || "the client"}, operating in ` +
-//       `${formatList(selectedIndustries) || "the specified"} industry, ` +
-//       `focused on ${formatList(selectedServiceLines) || "its services"}, ` +
-//       `about ${rawInput}. ` +
-//       `Use a ${formatList(selectedStyles) || "professional"} style and ` +
-//       `${formatList(selectedVideoTone) || "professional"} tone. ` +
-//         `creative freedom ${sliderValue}, `;
-
-//     const cr  = editedResearch;
-//     const cri = researchId;
-//     const fpd = cf.map(f => ({ name: f.name, type: f.type, url: URL.createObjectURL(f) }));
-
-//     lastPromptRef.current = trainingPrompt;
-
-//     // setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null);
-//     setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchPrompt("");
-
-//     const botId = crypto.randomUUID();
-
-//     if (!cr) {
-//       const uid = crypto.randomUUID();
-//       setMessages(prev => dedupeById([...prev,
-//         { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false },
-//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-//       ]));
-//     } else {
-//       setMessages(prev => dedupeById([...prev,
-//         { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] },
-//       ]));
-//     }
-
-//     setActiveStreamText(""); setIsStreaming(true);
-//     abortControllerRef.current?.abort();
-//     const ctrl = new AbortController(); abortControllerRef.current = ctrl;
-
-//     const fd = new FormData();
-//     fd.append("prompt",           rawInput);
-    
-//     fd.append("client",           formatList(selectedClient));
-//     fd.append("serviceLines",    formatList(selectedServiceLines));
-//     fd.append("styles",           formatList(selectedStyles));
-//     fd.append("industries",       formatList(selectedIndustries));
-//     fd.append("business_unit",    formatList(selectedBU));
-//     fd.append("video_type",       formatList(selectedVideoType));
-//     fd.append("video_tone",       formatList(selectedVideoTone));
-//     fd.append("creativity_ratio", sliderValue / 100);
-//     if (selectedDuration) fd.append("duration",       selectedDuration);
-//     if (cri)              fd.append("research_id",    cri);
-//     if (cr)               fd.append("research_brief", JSON.stringify(cr));
-//     if (conversationId)   fd.append("conversation_id", conversationId);
-//     cf.forEach(f => fd.append("files", f));
-
-//     try {
-//       // const res     = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal });
-//       const res = await fetch(`${API_BASE_URL}/chat`, { method: "POST", body: fd, signal: ctrl.signal, headers: getAuthHeaders() });
-//       const reader  = res.body.getReader();
-//       const decoder = new TextDecoder("utf-8");
-//       let done = false, fullText = "", rcid = conversationId;
-
-//       while (!done) {
-//         const { value, done: d } = await reader.read();
-//         done = d; if (ctrl.signal.aborted) break;
-//         for (const line of decoder.decode(value || new Uint8Array(), { stream: true }).split("\n")) {
-//           if (line.startsWith("conversation_id:")) { rcid = line.replace("conversation_id:", "").trim(); const isNew = !conversationId; setConversationId(rcid); conversationIdRef.current = rcid; if (isNew) loadConversations(); continue; }
-//           if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
-//           if (line.startsWith("result:"))     { fullText = line.replace("result:", "").trim(); continue; }
-//           if (line.startsWith("error:"))      { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
-//           if (line.startsWith("<!-- debug:")) continue;
-//           if (line.trim() && fullText)        fullText += "\n" + line;
-//         }
-//         setActiveStreamText(fullText);
-//       }
-
-//       fullText = fullText.replace(/\\n/g, "\n"); lastOutputRef.current = fullText;
-//       setIsStreaming(false); setActiveStreamText(""); setPipelineStatus(null);
-//       updateLastMessage(rcid, fullText, rawInput);
-//       setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
-//       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
-//     } catch (err) {
-//       if (err.name === "AbortError") return;
-//       console.error("generateScript error:", err);
-//       setIsStreaming(false); setActiveStreamText("");
-//       setInput(rawInput); setFiles(cf); setEditedResearch(cr); setResearchId(cri);
-//       setMessages(prev => dedupeById(prev.map(m => m.id === botId ? { ...m, content: "⚠️ Server error", text: "⚠️ Server error" } : m)));
-//     }
-//   };
-
-//   const removeFile = (idx) => setFiles(files.filter((_, i) => i !== idx));
-
-//   const handleTranscript = useCallback((text) => {
-//   setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
-// }, []);
-
-//   // ── Derived disabled states ────────────────────────────────────
-//   const researchDisabled = isResearching || !input.trim();
-//   // FIX: also disable creative review when a review is already pending approval
-//   // const creativeReviewDisabled = narrativeLoading || isStreaming || !!narrativeReview || !input.trim();
-//   const creativeReviewDisabled = narrativeLoading || isStreaming || !input.trim();
-//   const sendDisabled = !input.trim() && !files.length && !editedResearch;
-
-//   // ── Creative review button label ───────────────────────────────
-//   const creativeReviewLabel = narrativeLoading
-//     ? "◈ Reviewing…"
-//     : narrativeReview
-//       ? "◈ Review Pending"
-//       // : "◈ Creative Review";
-//       : "◈ Human Review";
-
-
-//   return (
-//     <div className="chat-window">
-//       <FilePreviewModal previewFile={previewFile} onClose={closePreview} />
-//       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
-
-//       {isEmpty ? (
-//         <>
-//           <div className="empty-wrapper">
-//             <h2>How can I help you <span>today?</span></h2>
-//             <p className="subtitle">Your creative partner for scriptwriting, asset generation, and video planning.</p>
-//           </div>
-//           <div className="bottom-control-bar"><div className="glass-panel">
-//             <div className="dropdown-row">
-              
-//               <Clients onChange={setSelectedClient} />
-//               <Industrys onChange={setSelectedIndustries} />
-//               <ServiceLine onchange={setSelectedServiceLines} />
-//               {/* <Business_Unit onChange={setSelectedBU} /> */}
-//               <Videotype onChange={setSelectedVideoType} />
-//               <Styles onChange={setSelectedStyles} />
-//               <VideoTone onChange={setSelectedVideoTone} />
-//               <DURATION_OPTIONS onChange={setSelectedDuration} />
-//               <SliderSizes value={sliderValue} onChange={setSliderValue} />
-//             </div>
-//             <div className={`chat-input-area-og ${isDragging ? "drag-active" : ""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-//               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
-//               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
-//               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
-//               <div className="og-bottom-row">
-//                 <div className="og-bottom-left">
-//                   <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
-//                     <VoiceInputButton onTranscript={handleTranscript} />
-//                 </div>
-//                 <div className="og-bottom-right">
-//                   <EnhancePromptButton input={input} setInput={setInput} />
-//                   <button className="btn-research" onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
-//                     🔍 {isResearching ? "Researching…" : "Research"}
-//                   </button>
-//                   <button
-//                     onClick={runCreativeReview}
-//                     disabled={creativeReviewDisabled}
-//                     style={{
-//                       opacity: creativeReviewDisabled ? 0.4 : 1,
-//                       background: "rgba(139,92,246,.12)",
-//                       border: "1px solid rgba(139,92,246,.35)",
-//                       borderRadius: "9999px",
-//                       color: "rgba(200,160,255,.9)",
-//                       cursor: creativeReviewDisabled ? "not-allowed" : "pointer",
-//                       fontSize: "12px",
-//                       fontFamily: "'Inter', sans-serif",
-//                       padding: "6px 16px",
-//                     }}
-//                   >
-//                     {creativeReviewLabel}
-//                   </button>
-//                   <button className="btn-send" onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
-//                     {editedResearch ? "✦ Generate Script →" : "Send →"}
-//                   </button>
-//                 </div>
-//               </div>
-//             </div>
-//             {/* FIX: errors are in-flow, not fixed-position */}
-//             {researchError && <ErrorBanner message={researchError} />}
-//             {narrativeError && <ErrorBanner message={narrativeError} />}
-//           </div></div>
-//         </>
-//       ) : (
-//         <div className="chat-container">
-//           <div className="chat-history" ref={chatHistoryRef}>
-//             {loadingMessages && (
-//               <div style={{ textAlign: "center", padding: "12px", color: "rgba(255,255,255,.4)", fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>
-//                 Loading older messages…
-//               </div>
-//             )}
-
-//             {messages.map((msg) => (
-//               <div key={msg.id} className={`chat-bubble ${msg.sender}`}>
-//                 {msg.sender === "bot" ? (
-//                   <BotMessage msg={msg} onFeedback={sendFeedback} isLatestBot={msg.id === lastBotId} />
-//                 ) : (
-//                   <div>
-//                     {!msg.hideText && (msg.rawPrompt || msg.text) && (
-//                       <p style={{ margin: 0 }}>{msg.rawPrompt || msg.text}</p>
-//                     )}
-//                     {msg.files?.length > 0 && <FileChips fileList={msg.files} onPreview={openPreview} />}
-//                     {msg.researchPending && <ResearchingIndicator />}
-//                     {msg.reviewPending && <ReviewingIndicator />}
-//                     {msg.researchLoading && !msg.researchPending && (
-//                       <div style={{ fontSize: "12px", color: "rgba(255,255,255,.3)", fontFamily: "'Inter',sans-serif", marginTop: "6px" }}>Loading research…</div>
-//                     )}
-//                     {msg.researchData && (
-//                       <InlineResearchPanel research={msg.researchData} transcriptCount={msg.transcriptCount} onResearchChange={setEditedResearch} />
-//                     )}
-//                     {msg.narrativeReviewData && (
-//                       <InlineNarrativeReviewPanel
-//                         reviewData={msg.narrativeReviewData}
-//                         onGenerate={generateApprovedScript}
-//                         isGenerating={isStreaming}
-//                       />
-//                     )}
-//                   </div>
-//                 )}
-//               </div>
-//             ))}
-
-//             {isStreaming && (
-//               <div className="chat-bubble bot streaming">
-//                 <div className="feedback-row-rating">
-//                   <div
-//                     style={{ fontSize: "13px", color: "rgba(255,255,255,.7)", fontFamily: "'Inter',sans-serif", lineHeight: 1.7, wordBreak: "break-word" }}
-//                     dangerouslySetInnerHTML={{
-//                       __html: markdownToHtml(activeStreamText) +
-//                         `<span style="display:inline-block;width:2px;height:14px;background:rgba(255,255,255,.4);margin-left:2px;animation:blink 1s step-end infinite;vertical-align:text-bottom;"></span>`
-//                     }}
-//                   />
-//                 </div>
-//               </div>
-//             )}
-
-//             {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>}
-//             <ContextDebugBar conversationId={conversationId} isStreaming={isStreaming} />
-//             <div className="scroll-anchor" ref={chatEndRef} />
-//           </div>
-
-//           {/* FIX: NarrativeReviewPanel has constrained max-height to prevent pushing input off-screen */}
-
-//           {/* FIX: in-flow error banners, not fixed-position */}
-//           {(researchError || narrativeError) && (
-//             <div style={{ padding: "0 16px" }}>
-//               {researchError  && <ErrorBanner message={researchError} />}
-//               {narrativeError && <ErrorBanner message={narrativeError} />}
-//             </div>
-//           )}
-
-//           <div className={`chat-input-area ${isDragging ? "drag-active" : ""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
-//             <div className="chat-input-inner">
-//               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
-//               <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
-//               <VoiceInputButton onTranscript={handleTranscript} />
-//               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
-//               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
-//               <button onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
-//                 🔍 {isResearching ? "Researching…" : "Research"}
-//               </button>
-//               <button
-//                 onClick={runCreativeReview}
-//                 disabled={creativeReviewDisabled}
-//                 style={{
-//                   opacity: creativeReviewDisabled ? 0.4 : 1,
-//                   background: "rgba(139,92,246,.12)",
-//                   border: "1px solid rgba(139,92,246,.35)",
-//                   borderRadius: "9999px",
-//                   color: "rgba(200,160,255,.9)",
-//                   cursor: creativeReviewDisabled ? "not-allowed" : "pointer",
-//                   fontSize: "12px",
-//                   fontFamily: "'Inter', sans-serif",
-//                   padding: "6px 16px",
-//                 }}
-//               >
-//                 {creativeReviewLabel}
-//               </button>
-//               <button onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
-//                 {editedResearch ? "✦ Generate Script →" : "Send →"}
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default ChatWindow;
-
+const WavesBackground = () => (
+  <div
+    style={{
+      position: "absolute",
+      inset: 0,
+      zIndex: 0,
+      pointerEvents: "none",
+      opacity: 0.5,
+    }}
+  >
+    <LineWaves
+      speed={0.25}
+      innerLineCount={28}
+      outerLineCount={32}
+      warpIntensity={0.8}
+      rotation={-45}
+      edgeFadeWidth={0.15}
+      colorCycleSpeed={0.3}
+      brightness={0.12}
+      color1="#ffffff"
+      color2="#ffffff"
+      color3="#ffffff"
+      enableMouseInteraction={false}
+    />
+  </div>
+);
 
 
 // ── Main ChatWindow ────────────────────────────────────────────
 const isDraftId = (id) => typeof id === "string" && id.startsWith("draft-");
+
+// const PipelineReasoning = ({ isStreaming, log, duration }) => {
+//   const [open, setOpen] = useState(true);
+//   const wasStreamingRef = useRef(isStreaming);
+
+//   useEffect(() => {
+//     if (isStreaming) {
+//       setOpen(true);
+//     } else if (wasStreamingRef.current && !isStreaming) {
+//       const t = setTimeout(() => setOpen(false), 1200);
+//       return () => clearTimeout(t);
+//     }
+//     wasStreamingRef.current = isStreaming;
+//   }, [isStreaming]);
+
+//   if (!log?.length) return null;
+
+//   return (
+//     <div style={{ margin: "8px 0", maxWidth: "520px" }}>
+//       <button
+//         onClick={() => setOpen(v => !v)}
+//         style={{
+//           position: "relative", overflow: "hidden",
+//           display: "inline-flex", alignItems: "center", gap: "8px",
+//           background: "rgba(139,92,246,.10)",
+//           border: "1px solid rgba(139,92,246,.3)",
+//           borderRadius: "9999px", padding: "6px 14px", cursor: "pointer",
+//           fontFamily: "'Inter',sans-serif", fontSize: "12px",
+//           color: "rgba(200,180,255,.85)",
+//         }}
+//       >
+//         {isStreaming && (
+//           <span
+//             style={{
+//               position: "absolute", inset: 0,
+//               background: "linear-gradient(90deg, transparent, rgba(139,92,246,.35), transparent)",
+//               backgroundSize: "200% 100%",
+//               animation: "reasoningShimmer 1.6s linear infinite",
+//             }}
+//           />
+//         )}
+//         <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+//           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+//             <circle cx="6.5" cy="6.5" r="4" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" />
+//             <path d="M4 6.5h5M6.5 4v5" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" strokeLinecap="round" />
+//           </svg>
+//           {isStreaming ? "Thinking…" : `Thought for ${duration ?? 0}s`}
+//         </span>
+//         <svg
+//           width="10" height="10" viewBox="0 0 10 10" fill="none"
+//           style={{ position: "relative", zIndex: 1, transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+//         >
+//           <path d="M2 3.5L5 6.5L8 3.5" stroke="rgba(180,150,255,.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+//         </svg>
+//       </button>
+
+//       {open && (
+//         <div
+//           style={{
+//             marginTop: "6px",
+//             background: "rgba(19,19,19,.9)",
+//             border: "1px solid rgba(139,92,246,.2)",
+//             borderRadius: "12px",
+//             padding: "10px 14px",
+//             fontSize: "12px",
+//             fontFamily: "'Inter',sans-serif",
+//             color: "rgba(255,255,255,.55)",
+//             display: "flex",
+//             flexDirection: "column",
+//             gap: "5px",
+//             maxHeight: "220px",
+//             overflowY: "auto",
+//           }}
+//         >
+//           {log.map((s, i) => {
+//             const isLast = i === log.length - 1;
+//             return (
+//               <div key={i} style={{ opacity: isLast && isStreaming ? 1 : 0.55, transition: "opacity .2s" }}>
+//                 {isLast && isStreaming ? "› " : "✓ "}{s}
+//               </div>
+//             );
+//           })}
+//         </div>
+//       )}
+//     </div>
+//   );
+// };
+
+
+const STAGE_DEFINITIONS = [
+  { key: "research",  label: "Research",   match: ["Searching for internal inspirations", "Using approved creative direction"] },
+  { key: "distill",   label: "Distilling", match: ["Preparing semantic inspirations"] },
+  { key: "voiceover", label: "Voiceover",  match: ["Drafting voiceover script"] },
+  { key: "visuals",   label: "Visuals",    match: ["Planning visuals"] },
+  {
+    key: "polish",
+    label: "Polishing",
+    match: ["Refining and building table"],
+    subMessages: [
+      "Refining and building table…",
+      "Found a few things to tighten up…",
+      "Polishing final touches, please wait…",
+    ],
+    subInterval: 13000,
+  },
+];
+
+function computeStageState(log) {
+  let activeIndex = -1;
+  const completed = new Set();
+  for (const line of log) {
+    const idx = STAGE_DEFINITIONS.findIndex((s) => s.match.some((m) => line.includes(m)));
+    if (idx !== -1) {
+      if (activeIndex !== -1 && activeIndex !== idx) completed.add(activeIndex);
+      activeIndex = idx;
+    }
+  }
+  return { activeIndex, completed };
+}
+
+const ActiveSubMessage = ({ messages, interval }) => {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    if (!messages || messages.length <= 1) return;
+    const id = setInterval(() => {
+      setIdx((prev) => Math.min(prev + 1, messages.length - 1));
+    }, interval);
+    return () => clearInterval(id);
+  }, [messages, interval]);
+
+  if (!messages?.length) return null;
+
+  return (
+    <div
+      style={{
+        fontSize: "11.5px",
+        fontFamily: "'Inter',sans-serif",
+        color: "rgba(200,180,255,.7)",
+        textAlign: "center",
+        marginTop: "10px",
+      }}
+    >
+      {messages[idx]}
+    </div>
+  );
+};
+
+const PipelineStages = ({ isStreaming, log }) => {
+  if (!isStreaming && !log?.length) return null;
+
+  const { activeIndex, completed } = computeStageState(log || []);
+  const effectiveActive = activeIndex === -1 && isStreaming ? 0 : activeIndex;
+  const isDone = !isStreaming && activeIndex === STAGE_DEFINITIONS.length - 1;
+  const activeStage = effectiveActive !== -1 ? STAGE_DEFINITIONS[effectiveActive] : null;
+
+  return (
+    <div
+      style={{
+        padding: "14px 18px",
+        margin: "8px 0",
+        maxWidth: "560px",
+        background: "rgba(19,19,19,.9)",
+        border: "1px solid rgba(139,92,246,.2)",
+        borderRadius: "14px",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "0" }}>
+        {STAGE_DEFINITIONS.map((stage, i) => {
+          const isActive = i === effectiveActive && isStreaming;
+          const isCompleted = completed.has(i) || i < effectiveActive || isDone;
+          const isLast = i === STAGE_DEFINITIONS.length - 1;
+
+          return (
+            <div key={stage.key} style={{ display: "flex", alignItems: "center", flex: isLast ? "0 0 auto" : "1 1 auto" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "54px" }}>
+                <div
+                  style={{
+                    position: "relative",
+                    width: "22px",
+                    height: "22px",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "11px",
+                    fontFamily: "'Inter',sans-serif",
+                    fontWeight: 600,
+                    transition: "all .3s ease",
+                    background: isCompleted ? "rgba(139,92,246,.9)" : isActive ? "rgba(139,92,246,.18)" : "rgba(255,255,255,.05)",
+                    border: isCompleted ? "1px solid rgba(139,92,246,.9)" : isActive ? "1px solid rgba(139,92,246,.8)" : "1px solid rgba(255,255,255,.12)",
+                    color: isCompleted ? "#fff" : isActive ? "rgba(200,180,255,.95)" : "rgba(255,255,255,.3)",
+                  }}
+                >
+                  {isActive && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        inset: "-4px",
+                        borderRadius: "50%",
+                        border: "1.5px solid rgba(139,92,246,.6)",
+                        animation: "stagePulse 1.4s ease-out infinite",
+                      }}
+                    />
+                  )}
+                  {isCompleted ? "✓" : i + 1}
+                </div>
+                <span
+                  style={{
+                    fontSize: "10.5px",
+                    fontFamily: "'Inter',sans-serif",
+                    fontWeight: isActive ? 600 : 500,
+                    color: isCompleted ? "rgba(200,180,255,.85)" : isActive ? "rgba(220,200,255,.95)" : "rgba(255,255,255,.3)",
+                    whiteSpace: "nowrap",
+                    transition: "color .3s ease",
+                  }}
+                >
+                  {stage.label}
+                </span>
+              </div>
+              {!isLast && (
+                <div
+                  style={{
+                    flex: 1,
+                    height: "1.5px",
+                    marginTop: "-16px",
+                    background: isCompleted ? "rgba(139,92,246,.7)" : "rgba(255,255,255,.1)",
+                    transition: "background .4s ease",
+                    minWidth: "16px",
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {isStreaming && activeStage?.subMessages && (
+        <ActiveSubMessage key={activeStage.key} messages={activeStage.subMessages} interval={activeStage.subInterval} />
+      )}
+    </div>
+  );
+};
+
+
+const EditReasoning = ({ isStreaming, log, duration }) => {
+  const [open, setOpen] = useState(true);
+  const wasStreamingRef = useRef(isStreaming);
+
+  useEffect(() => {
+    if (isStreaming) {
+      setOpen(true);
+    } else if (wasStreamingRef.current && !isStreaming) {
+      const t = setTimeout(() => setOpen(false), 1000);
+      return () => clearTimeout(t);
+    }
+    wasStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  return (
+    <div style={{ margin: "8px 0", maxWidth: "520px" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          position: "relative", overflow: "hidden",
+          display: "inline-flex", alignItems: "center", gap: "8px",
+          background: "rgba(139,92,246,.10)",
+          border: "1px solid rgba(139,92,246,.3)",
+          borderRadius: "9999px", padding: "6px 14px", cursor: "pointer",
+          fontFamily: "'Inter',sans-serif", fontSize: "12px",
+          color: "rgba(200,180,255,.85)",
+        }}
+      >
+        {isStreaming && (
+          <span
+            style={{
+              position: "absolute", inset: 0,
+              background: "linear-gradient(90deg, transparent, rgba(139,92,246,.35), transparent)",
+              backgroundSize: "200% 100%",
+              animation: "reasoningShimmer 1.6s linear infinite",
+            }}
+          />
+        )}
+        <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: "6px" }}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="4" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" />
+            <path d="M4 6.5h5M6.5 4v5" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+          {isStreaming ? "Thinking…" : `Thought for ${duration ?? 0}s`}
+        </span>
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ position: "relative", zIndex: 1, transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
+          <path d="M2 3.5L5 6.5L8 3.5" stroke="rgba(180,150,255,.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && log?.length > 0 && (
+        <div
+          style={{
+            marginTop: "6px", background: "rgba(19,19,19,.9)", border: "1px solid rgba(139,92,246,.2)",
+            borderRadius: "12px", padding: "10px 14px", fontSize: "12px", fontFamily: "'Inter',sans-serif",
+            color: "rgba(255,255,255,.55)",
+          }}
+        >
+          {log[log.length - 1]}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+const GenerationProgress = ({ isStreaming, log, duration }) => {
+  const { activeIndex } = computeStageState(log || []);
+  const isPipelineMode = activeIndex !== -1;
+
+  if (!isStreaming) {
+    return isPipelineMode ? <PipelineStages isStreaming={false} log={log} /> : null;
+  }
+
+  if (isPipelineMode) return <PipelineStages isStreaming={true} log={log} />;
+
+  return <EditReasoning isStreaming={isStreaming} log={log} duration={duration} />;
+};
+
 
 function ChatWindow() {
   const {
@@ -2239,6 +1899,11 @@ function ChatWindow() {
   const [narrativeReview,   setNarrativeReview]  = useState(null);
   const [narrativeLoading,  setNarrativeLoading] = useState(false);
   const [narrativeError,    setNarrativeError]   = useState(null);
+  const [pipelineLogs, setPipelineLogs] = useState({});
+  const [pipelineDurations, setPipelineDurations] = useState({});
+  const pipelineStartRef = useRef(new Map());
+  const pipelineLog = (conversationId && pipelineLogs[conversationId]) || [];
+  const pipelineDuration = (conversationId && pipelineDurations[conversationId]) || 0;
 
   // Per-conversation abort controllers — never a single shared controller,
   // so switching chats doesn't kill background generation.
@@ -2262,6 +1927,7 @@ function ChatWindow() {
 
   const isEmpty   = messages.length === 0 && !loadingMessages;
   const lastBotId = [...messages].reverse().find(m => m.sender === "bot")?.id ?? null;
+
 
   // ── Creative Review ────────────────────────────────────────────
   const runCreativeReview = async () => {
@@ -2364,8 +2030,15 @@ function ChatWindow() {
     const botId = crypto.randomUUID();
     addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
 
+    // setStreamText(targetConvId, "");
+    // startGenerating(targetConvId);
+
+
+    // convAbortControllers.current.get(targetConvId)?.abort();
     setStreamText(targetConvId, "");
     startGenerating(targetConvId);
+    pipelineStartRef.current.set(targetConvId, Date.now());
+    setPipelineLogs(prev => ({ ...prev, [targetConvId]: [] }));
 
     convAbortControllers.current.get(targetConvId)?.abort();
     const ctrl = new AbortController();
@@ -2413,7 +2086,13 @@ function ChatWindow() {
             }
             continue;
           }
-          if (line.startsWith("status:")) { setPipelineStatus(targetConvId, line.replace("status:", "").trim()); continue; }
+          // if (line.startsWith("status:")) { setPipelineStatus(targetConvId, line.replace("status:", "").trim()); continue; }
+          if (line.startsWith("status:")) {
+            const s = line.replace("status:", "").trim();
+            setPipelineStatus(targetConvId, s);
+            setPipelineLogs(prev => ({ ...prev, [targetConvId]: [...(prev[targetConvId] || []), s] }));
+            continue;
+          }
           if (line.startsWith("result:")) { fullText = line.replace("result:", "").trim(); continue; }
           if (line.startsWith("error:"))  { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
           if (line.trim() && fullText)    fullText += "\n" + line;
@@ -2423,10 +2102,21 @@ function ChatWindow() {
 
       fullText = fullText.replace(/\\n/g, "\n");
       lastOutputRef.current = fullText;
-      stopGenerating(targetConvId);
+      // stopGenerating(targetConvId);
+      // clearStreamText(targetConvId);
+      // // setPipelineStatus(null);
+      // clearPipelineStatus(targetConvId);
+
+stopGenerating(targetConvId);
+      const started = pipelineStartRef.current.get(targetConvId);
+      if (started) {
+        setPipelineDurations(prev => ({ ...prev, [targetConvId]: Math.round((Date.now() - started) / 1000) }));
+        pipelineStartRef.current.delete(targetConvId);
+      }
       clearStreamText(targetConvId);
       // setPipelineStatus(null);
       clearPipelineStatus(targetConvId);
+
       updateLastMessage(targetConvId, fullText, rawInput);
       setMessagesForConversation(targetConvId, (prev) =>
         dedupeById(prev.map((m) => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m))
@@ -2651,10 +2341,21 @@ function ChatWindow() {
       addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
     }
 
-    setStreamText(targetConvId, "");
+//     setStreamText(targetConvId, "");
+//     startGenerating(targetConvId);
+//     pipelineStartRef.current.set(targetConvId, Date.now());
+// setPipelineLogs(prev => ({ ...prev, [targetConvId]: [] }));
+
+
+//     convAbortControllers.current.get(targetConvId)?.abort();
+
+setStreamText(targetConvId, "");
     startGenerating(targetConvId);
+    pipelineStartRef.current.set(targetConvId, Date.now());
+    setPipelineLogs(prev => ({ ...prev, [targetConvId]: [] }));
 
     convAbortControllers.current.get(targetConvId)?.abort();
+
     const ctrl = new AbortController();
     convAbortControllers.current.set(targetConvId, ctrl);
 
@@ -2697,7 +2398,13 @@ function ChatWindow() {
             continue;
           }
           // if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
-          if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(targetConvId, line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
+          // if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(targetConvId, line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
+          if (line.startsWith("status:") || line.startsWith("<!-- ")) {
+            const s = line.replace("status:", "").replace("<!--", "").replace("-->", "").trim();
+            setPipelineStatus(targetConvId, s);
+            setPipelineLogs(prev => ({ ...prev, [targetConvId]: [...(prev[targetConvId] || []), s] }));
+            continue;
+          }
           if (line.startsWith("result:"))     { fullText = line.replace("result:", "").trim(); continue; }
           if (line.startsWith("error:"))      { fullText = `⚠️ ${line.replace("error:", "").trim()}`; continue; }
           if (line.startsWith("<!-- debug:")) continue;
@@ -2707,10 +2414,21 @@ function ChatWindow() {
       }
 
       fullText = fullText.replace(/\\n/g, "\n"); lastOutputRef.current = fullText;
-      stopGenerating(targetConvId);
+      // stopGenerating(targetConvId);
+      // clearStreamText(targetConvId);
+      // // setPipelineStatus(null);
+      // clearPipelineStatus(targetConvId);
+
+stopGenerating(targetConvId);
+      const started = pipelineStartRef.current.get(targetConvId);
+      if (started) {
+        setPipelineDurations(prev => ({ ...prev, [targetConvId]: Math.round((Date.now() - started) / 1000) }));
+        pipelineStartRef.current.delete(targetConvId);
+      }
       clearStreamText(targetConvId);
       // setPipelineStatus(null);
       clearPipelineStatus(targetConvId);
+
       updateLastMessage(targetConvId, fullText, rawInput);
       setMessagesForConversation(targetConvId, (prev) => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
       try { localStorage.setItem(scriptKey(botId), fullText ? markdownToHtml(fullText) : ""); } catch {}
@@ -2745,14 +2463,23 @@ function ChatWindow() {
   return (
     <div className="chat-window">
       <FilePreviewModal previewFile={previewFile} onClose={closePreview} />
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style>
+      {/* <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style> */}
+      {/* <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}} @keyframes reasoningShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style> */}
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}} @keyframes reasoningShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes stagePulse{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}`}</style>
 
-      {isEmpty ? (
+      {/* {isEmpty ? (
         <>
           <div className="empty-wrapper">
             <h2>How can I help you <span>today?</span></h2>
             <p className="subtitle">Your creative partner for scriptwriting, asset generation, and video planning.</p>
-          </div>
+          </div> */}
+          {isEmpty ? (
+  <>
+    <div className="empty-wrapper">
+      <WavesBackground />
+      <h2 style={{ position: "relative", zIndex: 1 }}>How can I help you <span>today?</span></h2>
+      <p className="subtitle" style={{ position: "relative", zIndex: 1 }}>Your creative partner for scriptwriting, asset generation, and video planning.</p>
+    </div>
           <div className="bottom-control-bar"><div className="glass-panel">
             <div className="dropdown-row">
               <Clients onChange={setSelectedClient} />
@@ -2805,9 +2532,13 @@ function ChatWindow() {
             {narrativeError && <ErrorBanner message={narrativeError} />}
           </div></div>
         </>
+      // ) : (
+      //   <div className="chat-container">
+      //     <div className="chat-history" ref={chatHistoryRef}>
       ) : (
-        <div className="chat-container">
-          <div className="chat-history" ref={chatHistoryRef}>
+  <div className="chat-container">
+    <WavesBackground />
+    <div className="chat-history" ref={chatHistoryRef} style={{ position: "relative", zIndex: 1 }}>
             {loadingMessages && (
               <div style={{ textAlign: "center", padding: "12px", color: "rgba(255,255,255,.4)", fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>
                 Loading older messages…
@@ -2858,7 +2589,11 @@ function ChatWindow() {
               </div>
             )}
 
-            {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>}
+            {/* {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>} */}
+            {/* <PipelineReasoning isStreaming={streaming} log={pipelineLog} duration={pipelineDuration} /> */}
+            {/* <PipelineStages isStreaming={streaming} log={pipelineLog} /> */}
+            {/* <GenerationProgress isStreaming={streaming} log={pipelineLog} /> */}
+            <GenerationProgress isStreaming={streaming} log={pipelineLog} duration={pipelineDuration} />
             <ContextDebugBar conversationId={conversationId} isStreaming={streaming} />
             <div className="scroll-anchor" ref={chatEndRef} />
           </div>

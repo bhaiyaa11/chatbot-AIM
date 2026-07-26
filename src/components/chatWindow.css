@@ -70,6 +70,8 @@
 /* ── Empty / Landing State ──────────────────────────────────── */
 .empty-wrapper {
   position: relative;
+  overflow: hidden;
+  width: 100%;
   z-index: 1;
   height: 100%;
   display: flex;
@@ -425,6 +427,8 @@ transform:none;
 /* ── Active Chat ────────────────────────────────────────────── */
 .chat-container {
   position: relative;
+  overflow: hidden;
+  width: 100%;
   z-index: 1;
   flex: 1;
   display: flex;
@@ -438,6 +442,7 @@ transform:none;
 .chat-history {
   flex: 1;
   overflow-y: auto;
+  width: 100%;;
   padding: 8px 0 220px;
   display: flex;
   flex-direction: column;

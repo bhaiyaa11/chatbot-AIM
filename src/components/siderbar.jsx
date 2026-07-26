@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useChat } from "../contexts/ChatContext";
 import "./side-bar.css";
-
+import AnimatedList from "./AnimatedList";
 
 const HELP_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSew4lijG-WKDv-WNpASi30R2UJD2y6Urzk9vrJLeaS2b8IIhg/viewform?usp=publish-editor";
 
@@ -116,7 +116,7 @@ function Ssidebar() {
         </button>
 
         {/* History */}
-        {!collapsed && (
+        {/* {!collapsed && (
           <>
             <div className="sidebar-section-label">History</div>
 
@@ -141,7 +141,6 @@ function Ssidebar() {
     }}
 />
                   {confirmDeleteId === conv.id ? (
-                    /* Confirm delete bar */
                     <div className="confirm-delete-bar">
                       <span>Delete chat?</span>
                       <button
@@ -158,7 +157,7 @@ function Ssidebar() {
                       </button>
                     </div>
                   ) : (
-                    /* Normal chat row */
+
                     <div
                       className={`history-item ${
                         conv.id === conversationId ? "active-chat" : ""
@@ -185,7 +184,78 @@ function Ssidebar() {
               ))}
             </div>
           </>
-        )}
+        )} */}
+
+        {!collapsed && (
+  <>
+    <div className="sidebar-section-label">History</div>
+
+    {!conversations || conversations.length === 0 ? (
+      <div className="history-item">No conversations yet</div>
+    ) : (
+      <AnimatedList
+        items={[...conversations, { id: "__sentinel__", __sentinel: true }]}
+        containerRef={historyContainerRef}
+        showGradients={true}
+        enableArrowNavigation={true}
+        displayScrollbar={false}
+        className="sidebar-history-list"
+        onItemSelect={(item) => {
+          if (item.__sentinel) return;
+          handleSelectConversation(item.id);
+        }}
+        renderItem={(conv) => {
+          if (conv.__sentinel) {
+            return <div ref={loadMoreRef} style={{ height: "1px" }} />;
+          }
+          return (
+            <div
+              onMouseEnter={() => setHoveredConvId(conv.id)}
+              onMouseLeave={() => {
+                setHoveredConvId(null);
+                if (confirmDeleteId === conv.id) setConfirmDeleteId(null);
+              }}
+            >
+              {confirmDeleteId === conv.id ? (
+                <div className="confirm-delete-bar">
+                  <span>Delete chat?</span>
+                  <button
+                    className="confirm-delete-btn"
+                    onClick={(e) => handleConfirmDelete(e, conv.id)}
+                  >
+                    Delete
+                  </button>
+                  <button className="confirm-cancel-btn" onClick={handleCancelDelete}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className={`history-item ${conv.id === conversationId ? "active-chat" : ""}`}
+                  onClick={() => handleSelectConversation(conv.id)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <span className="history-item-title">
+                    {conv.title || "Untitled Conversation"}
+                  </span>
+                  {hoveredConvId === conv.id && (
+                    <button
+                      className="history-delete-btn"
+                      onClick={(e) => handleDeleteClick(e, conv.id)}
+                      title="Delete chat"
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        }}
+      />
+    )}
+  </>
+)}
 
         {/* Collapsed indicator */}
         {collapsed && (
