@@ -11,6 +11,7 @@ const DURATION_OPTIONS = [
   "5 minutes",
 ];
 
+
 function Duration({ onChange }) {
   const [selected, setSelected] = useState("");
 

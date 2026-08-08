@@ -3,11 +3,12 @@ import { useState, useRef, useEffect } from "react";
 import { useChat } from "../contexts/ChatContext";
 import "./side-bar.css";
 import AnimatedList from "./AnimatedList";
+// import NotificationBell from "./NotificationBell.jsx";
+import CanvasSidebar from "./canvas/CanvasSidebar.jsx";
 
 const HELP_FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLSew4lijG-WKDv-WNpASi30R2UJD2y6Urzk9vrJLeaS2b8IIhg/viewform?usp=publish-editor";
 
-
-function Ssidebar() {
+function Ssidebar({  onOpenChat, onOpenCanvas }) {
   const {
     conversationId,
     setConversationId,
@@ -61,6 +62,7 @@ function Ssidebar() {
   const handleSelectConversation = (id) => {
     setConversationId(id);
     localStorage.setItem("conversation_id", id);
+    onOpenChat();
   };
 
   const handleDeleteClick = (e, id) => {
@@ -107,13 +109,36 @@ function Ssidebar() {
       >
 
         {/* New Chat */}
-        <button
+        {/* <button
           className={`nav-item new-chat ${!conversationId ? "active" : ""}`}
           onClick={createNewChat}
-        >
+        > */}
+        <button
+            className={`nav-item new-chat ${!conversationId ? "active" : ""}`}
+            onClick={() => {
+              createNewChat();
+              onOpenChat();
+            }}
+          >
           <span className="nav-icon">✦</span>
           {!collapsed && "New Chat"}
         </button>
+
+        {/* Canvas */}
+          {/* <button
+            className="nav-item"
+            onClick={onCanvasClick}
+          >
+            <span className="nav-icon">▱</span>
+            {!collapsed && "Canvas"}
+          </button> */}
+          <button
+            className="nav-item"
+            onClick={onOpenCanvas}
+          >
+            <span className="nav-icon">▱</span>
+            {!collapsed && "Canvas"}
+          </button>
 
         {/* History */}
         {/* {!collapsed && (

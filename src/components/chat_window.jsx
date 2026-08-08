@@ -190,9 +190,59 @@ function markdownToHtml(md) {
   return out.join("");
 }
 
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ScriptFloatingMenu
 // ─────────────────────────────────────────────────────────────────────────────
+
+const VIDEO_TYPES = [
+  { value: "3d_animation",       label: "3D Animation" },
+  { value: "2d_animation",       label: "2D Animation" },
+  { value: "talking_head",       label: "Talking Head" },
+  { value: "live_action_motion", label: "Live Action + Motion Graphics" },
+];
+
+const VideoTypeModal = ({ onSelect, onClose }) => (
+  <div
+    style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.7)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center" }}
+    onClick={onClose}
+  >
+    <div
+      style={{ background: "#141414", border: "1px solid rgba(255,255,255,.1)", borderRadius: "1.2rem", padding: "22px", width: "320px", boxShadow: "0 24px 80px rgba(0,0,0,.8)" }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255,255,255,.85)", fontFamily: "'Manrope',sans-serif", marginBottom: "14px" }}>
+        What kind of video is this?
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {VIDEO_TYPES.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => onSelect(t.value)}
+            style={{
+              background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
+              borderRadius: "10px", color: "rgba(255,255,255,.85)", cursor: "pointer",
+              fontSize: "13px", fontFamily: "'Inter',sans-serif", padding: "10px 14px",
+              textAlign: "left", transition: "background .15s, border-color .15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(168, 85, 247, 0.12)"; e.currentTarget.style.borderColor = "rgba(168, 85, 247, 0.12)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.04)"; e.currentTarget.style.borderColor = "rgba(255,255,255,.08)"; }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <button
+        onClick={onClose}
+        style={{ marginTop: "14px", width: "100%", background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.4)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "6px 0" }}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+);
+
 const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
   const [askInput, setAskInput] = useState("");
   const menuRef = useRef(null);
@@ -523,6 +573,97 @@ const downloadVoiceOver = async () => {
   );
 };
 
+// const StoryboardPanel = ({ images, onClose }) => (
+//   <>
+//     <style>{`@keyframes sbIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }`}</style>
+//     <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
+//       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+//         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+//           <span style={{ fontSize: "14px" }}>🎬</span>
+//           <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>Storyboard</span>
+//         </div>
+//         <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", cursor: "pointer" }}>✕ Close</button>
+//       </div>
+//       {images.length === 0 ? (
+//         <div style={{ color: "rgba(255,255,255,.35)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "12px 4px" }}>No scenes returned.</div>
+//       ) : (
+//         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+//           {images.map((img, i) => (
+//             <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+//               {/* <img src={img.url} alt={img.caption || `Scene ${img.scene_number ?? i + 1}`}
+//                 style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} /> */}
+//                 <video src={img.url} controls muted loop playsInline
+//   style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} />
+//               <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.4)" }}>
+//                 {img.scene_number ? `Scene ${img.scene_number}` : `Frame ${i + 1}`}{img.caption ? ` — ${img.caption}` : ""}
+//               </span>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+//     </div>
+//   </>
+// );
+
+
+const StoryboardPanel = ({ images, finalVideo, totalScenes, status, onClose }) => (
+  <>
+    <style>{`@keyframes sbIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }`}</style>
+    <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "14px" }}>🎬</span>
+          <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>
+            Storyboard
+            {status && status !== "done" && totalScenes > 0 && (
+              <span style={{ marginLeft: "8px", color: "rgba(255,255,255,.4)", fontWeight: 500, textTransform: "none", letterSpacing: "normal" }}>
+                {status === "concatenating" ? "combining clips…" : `${images.length} / ${totalScenes} scenes`}
+              </span>
+            )}
+          </span>
+        </div>
+        <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", cursor: "pointer" }}>✕ Close</button>
+      </div>
+
+      {finalVideo && (
+        <div>
+          <div style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(96,165,250,.7)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: "6px" }}>
+            Combined Video
+          </div>
+          <video src={finalVideo} controls
+            style={{ width: "100%", aspectRatio: "16/9", borderRadius: "10px", border: "1px solid rgba(96,165,250,.3)" }} />
+        </div>
+      )}
+
+      {images.length === 0 ? (
+        <div style={{ color: "rgba(255,255,255,.35)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "12px 4px" }}>
+          {status === "running" ? "Generating scenes…" : "No scenes returned."}
+        </div>
+      ) : (
+        <div>
+          {finalVideo && (
+            <div style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: "6px" }}>
+              Individual Scenes
+            </div>
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+            {images.map((img, i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                <video src={img.url} controls muted loop playsInline
+                  style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} />
+                <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.4)" }}>
+                  {img.scene_number ? `Scene ${img.scene_number}` : `Frame ${i + 1}`}{img.caption ? ` — ${img.caption}` : ""}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  </>
+);
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // htmlToMarkdown
 // ─────────────────────────────────────────────────────────────────────────────
@@ -668,6 +809,12 @@ const ScriptCanvas = ({ content, msgId }) => {
   const [voiceGenerating, setVoiceGenerating] = useState(false);
   const [audioSrc,        setAudioSrc]        = useState(null);
   const [showPlayer,      setShowPlayer]      = useState(false);
+  const [visualizing,      setVisualizing]      = useState(false);
+  const [storyboardImages, setStoryboardImages] = useState([]);
+  const [showStoryboard,   setShowStoryboard]   = useState(false);
+  const [finalStoryboardVideo, setFinalStoryboardVideo] = useState(null);
+  const [storyboardStatus, setStoryboardStatus] = useState(null);
+  const [storyboardTotal, setStoryboardTotal] = useState(0);
 
   const refreshBtns = () => {
     setCanUndo(undoStack.current.length > 0);
@@ -723,6 +870,7 @@ const generateVoiceOver = async () => {
   }
 );
 
+
 const data = await response.json();
 
 setAudioSrc(
@@ -740,6 +888,126 @@ setVoiceGenerating(false);
     setVoiceGenerating(false);
   }
 };
+
+// const generateStoryboard = async () => {
+//   try {
+//     setVisualizing(true);
+
+//     const currentScript = rawMarkdownRef.current?.trim() ?? "";
+//     if (!currentScript) {
+//       setVisualizing(false);
+//       return;
+//     }
+
+//     const response = await fetch(`${API_BASE_URL}/generate-storyboard`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ script: currentScript }),
+//     });
+
+//     if (!response.ok) throw new Error(`Storyboard generation failed: ${response.status}`);
+
+//     const data = await response.json();
+//     const images = (data.images || []).map((img) => ({
+//       ...img,
+//       url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
+//     }));
+
+//     setStoryboardImages(images);
+//     setShowStoryboard(true);
+//   } catch (err) {
+//     console.error("Storyboard generation failed:", err);
+//   } finally {
+//     setVisualizing(false);
+//   }
+// };
+
+
+const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
+
+// const generateStoryboard = async (videoType) => {
+//   try {
+//     setVisualizing(true);
+
+//     const currentScript = rawMarkdownRef.current?.trim() ?? "";
+//     if (!currentScript) {
+//       setVisualizing(false);
+//       return;
+//     }
+
+//     const response = await fetch(`${API_BASE_URL}/generate-storyboard`, {
+//       method: "POST",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify({ script: currentScript, video_type: videoType }),
+//     });
+
+//     if (!response.ok) throw new Error(`Storyboard generation failed: ${response.status}`);
+
+//     const data = await response.json();
+//     const images = (data.images || []).map((img) => ({
+//       ...img,
+//       url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
+//     }));
+
+//     setStoryboardImages(images);
+//     setShowStoryboard(true);
+//   } catch (err) {
+//     console.error("Storyboard generation failed:", err);
+//   } finally {
+//     setVisualizing(false);
+//   }
+// };
+
+const generateStoryboard = async (videoType) => {
+  try {
+    setVisualizing(true);
+    const currentScript = rawMarkdownRef.current?.trim() ?? "";
+    if (!currentScript) { setVisualizing(false); return; }
+
+    const startRes = await fetch(`${API_BASE_URL}/generate-storyboard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ script: currentScript, video_type: videoType, quality: "fast" }),
+    });
+    if (!startRes.ok) throw new Error(`Failed to start: ${startRes.status}`);
+    const { job_id } = await startRes.json();
+
+    const poll = async () => {
+      const res = await fetch(`${API_BASE_URL}/generate-storyboard/${job_id}`);
+      const data = await res.json();
+
+      const clips = (data.clips || []).map((c) => ({
+        ...c,
+        url: c.url?.startsWith("http") ? c.url : `${API_BASE_URL}${c.url}`,
+      }));
+      setStoryboardImages(clips);
+      setStoryboardStatus(data.status);
+      setStoryboardTotal(data.total_scenes || 0);
+
+      // Show the panel as soon as the first clip lands — don't wait for the whole job
+      if (clips.length > 0) {
+        setShowStoryboard(true);
+      }
+
+      if (data.final_video) {
+        setFinalStoryboardVideo(`${API_BASE_URL}${data.final_video.url}`);
+      }
+
+      if (data.status === "done" || data.status === "error") {
+        setVisualizing(false);
+        if (data.status === "error") console.error("Storyboard job failed:", data.error);
+        return;
+      }
+      setTimeout(poll, 5000);
+    };
+
+    poll(); // fire and forget — poll() manages its own state updates
+  } catch (err) {
+    console.error("Storyboard generation failed:", err);
+    setVisualizing(false);
+  }
+};
+
 
   useEffect(() => {
     return () => {
@@ -864,22 +1132,6 @@ setVoiceGenerating(false);
     if (e.key === "Escape") setMenuPos(null);
   }, [undo, redo]);
 
-  // const onMouseUp = useCallback((e) => {
-  //   if (e.target.closest?.("[data-sfm]")) return;
-  //   const sel = window.getSelection();
-  //   const text = sel?.toString().trim();
-  //   if (!text) { setMenuPos(null); return; }
-  //   const range = sel.getRangeAt(0);
-  //   if (!canvasRef.current?.contains(range.commonAncestorContainer)) { setMenuPos(null); return; }
-  //   savedRange.current = range.cloneRange();
-  //   setSelText(text);
-  //   const rect = range.getBoundingClientRect();
-  //   const MENU_WIDTH = 350;
-  //   const SAFE_MARGIN = 8;
-  //   const clampedLeft = Math.min(Math.max(rect.left, SAFE_MARGIN), window.innerWidth - MENU_WIDTH - SAFE_MARGIN);
-  //   const clampedTop = Math.min(rect.bottom + 8, window.innerHeight - 160 - SAFE_MARGIN);
-  //   setMenuPos({ top: clampedTop, left: clampedLeft });
-  // }, []);
 
 
   const onMouseUp = useCallback((e) => {
@@ -1154,6 +1406,33 @@ setMenuPos({ top, left });
           {audioSrc && !showPlayer && !voiceGenerating && (
             <button onClick={() => setShowPlayer(true)} style={{ background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)", borderRadius: "9999px", color: "rgba(200,160,255,.9)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px" }}>▶ Show Player</button>
           )}
+{/* 
+          <button onClick={generateStoryboard} disabled={visualizing}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+            style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgb(255,255,255)", cursor: visualizing ? "not-allowed" : "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", opacity: visualizing ? 0.5 : 1 }}>
+            🎬 {visualizing ? "Visualising…" : "Visualise"}
+          </button> */}
+          <button onClick={() => setShowVideoTypePicker(true)} disabled={visualizing}
+  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
+  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+  style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgb(255,255,255)", cursor: visualizing ? "not-allowed" : "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", opacity: visualizing ? 0.5 : 1 }}>
+   {visualizing ? "Visualising…" : "Visualise"}
+</button>
+
+{showVideoTypePicker && (
+  <VideoTypeModal
+    onSelect={(videoType) => { setShowVideoTypePicker(false); generateStoryboard(videoType); }}
+    onClose={() => setShowVideoTypePicker(false)}
+  />
+)}
+
+          {/* {storyboardImages.length > 0 && !showStoryboard && !visualizing && (
+            <button onClick={() => setShowStoryboard(true)} style={{ background: "rgba(96,165,250,.12)", border: "1px solid rgba(96,165,250,.3)", borderRadius: "9999px", color: "rgba(160,200,255,.9)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px" }}>▤ Show Storyboard</button>
+          )} */}
+
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.2)" }}>{wordCount} words</span>
@@ -1177,9 +1456,29 @@ setMenuPos({ top, left });
       onAudioStarted={() => {
         setVoiceGenerating(false);
       }}
+
+      
     />
   </div>
 )}
+{/* {showStoryboard && storyboardImages.length > 0 && (
+        <div style={{ padding: "0 16px 16px" }}>
+          <StoryboardPanel images={storyboardImages} onClose={() => setShowStoryboard(false)} />
+        </div>
+      )} */}
+
+      {showStoryboard && (
+  <div style={{ padding: "0 16px 16px" }}>
+    <StoryboardPanel
+      images={storyboardImages}
+      finalVideo={finalStoryboardVideo}
+      totalScenes={storyboardTotal}
+      status={storyboardStatus}
+      onClose={() => setShowStoryboard(false)}
+    />
+  </div>
+)}
+
 
       <ScriptFloatingMenu position={menuPos} onAction={handleAction} onClose={() => setMenuPos(null)} isLoading={loading} />
 
