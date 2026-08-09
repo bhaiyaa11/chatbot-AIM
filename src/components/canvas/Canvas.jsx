@@ -15,10 +15,12 @@ import SharePanel from "./SharePanel.jsx";
 import CommentsPanel from "./CommentsPanel.jsx";
 import { showToast } from "./toast.js";
 
+
 import "./Canvas.css";
 
 // const API_BASE_URL = "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 
 /* ─────────────────────────────────────────────
    MARKDOWN TABLE PARSER
@@ -145,6 +147,7 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
   const [shareSettings, setShareSettings] = useState(null);
   const [members, setMembers] = useState([]);
   const [accessRequests, setAccessRequests] = useState([]);
+  const [pendingInvites, setPendingInvites] = useState([]);
   const [shareUrl, setShareUrl] = useState(null);
   const [copyStatus, setCopyStatus] = useState("");
 
@@ -196,7 +199,17 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
   };
 
   const editor = useEditor({
-    editable,
+    // IMPORTANT: this is bound to canComment, not editable.
+    // ProseMirror's `editable` flag governs whether mouse-drag
+    // selection + onSelectionUpdate fire reliably — relying on it
+    // to ALSO gate content mutation is fragile across versions/
+    // browsers. So: keep the view interactive for anyone who can
+    // select text to comment (owner/editor/commenter), and block
+    // actual content changes explicitly in editorProps below.
+    // The real security boundary is server-side regardless (see
+    // update_canvas_content in canvas_manager.py) — this is UX,
+    // not the authorization check.
+    editable: canComment,
     extensions: [
       StarterKit,
       Table.configure({
@@ -215,7 +228,34 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     content: "<p></p>",
 
     editorProps: {
+      handleKeyDown(view, event) {
+        if (editable) return false;
+
+        // Viewer/commenter: allow navigation, selection, and copy —
+        // block anything that would mutate the document.
+        const navigationKeys = new Set([
+          "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+          "Home", "End", "PageUp", "PageDown", "Tab", "Escape", "Shift",
+        ]);
+        const isCopy = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
+        const isSelectAll = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a";
+
+        if (navigationKeys.has(event.key) || isCopy || isSelectAll) return false;
+
+        event.preventDefault();
+        return true;
+      },
+
+      handleTextInput() {
+        return !editable;
+      },
+
       handlePaste(view, event) {
+        if (!editable) {
+          event.preventDefault();
+          return true;
+        }
+
         const clipboardText = event.clipboardData?.getData("text/plain");
         if (!clipboardText) return false;
 
@@ -226,11 +266,39 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
         editor?.chain().focus().insertContent(tableJSON).run();
         return true;
       },
+
+      handleDrop(view, event) {
+        if (!editable) {
+          event.preventDefault();
+          return true;
+        }
+        return false;
+      },
+
+      handleDOMEvents: {
+        cut(view, event) {
+          if (!editable) {
+            event.preventDefault();
+            return true;
+          }
+          return false;
+        },
+        beforeinput(view, event) {
+          if (!editable) {
+            event.preventDefault();
+            return true;
+          }
+          return false;
+        },
+      },
     },
 
     onUpdate({ editor: ed }) {
       // Non-editors never persist doc mutations (their comment-highlight
       // marks are re-derived from stored anchors on load instead).
+      // The input handlers above should already prevent this from
+      // firing for real edits, but the save call itself is gated on
+      // `editable` too — belt and suspenders.
       if (!editable) return;
       setSaveStatus("Unsaved changes");
       if (contentSaveTimer.current) clearTimeout(contentSaveTimer.current);
@@ -352,9 +420,13 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     try {
       const res = await fetch(`${API_BASE_URL}/canvas/${canvasId}/comments`, { headers });
       const data = await res.json();
-      if (res.ok) setComments(data.comments || []);
+      if (!res.ok) {
+        throw new Error(data?.detail || `Failed to load comments (HTTP ${res.status})`);
+      }
+      setComments(data.comments || []);
     } catch (err) {
       console.error("Failed to load comments:", err);
+      showToast(err.message || "Failed to load comments");
     } finally {
       setCommentsLoaded(true);
     }
@@ -550,17 +622,21 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       setShareSettings(settingsData.share);
 
       if (settingsData.share.visibility === "restricted") {
-        const [membersRes, requestsRes] = await Promise.all([
+        const [membersRes, requestsRes, invitesRes] = await Promise.all([
           fetch(`${API_BASE_URL}/canvas/${canvasId}/members`, { headers }),
           fetch(`${API_BASE_URL}/canvas/${canvasId}/access-requests`, { headers }),
+          fetch(`${API_BASE_URL}/canvas/${canvasId}/invites`, { headers }),
         ]);
         const membersData = await membersRes.json();
         const requestsData = await requestsRes.json();
+        const invitesData = await invitesRes.json();
         if (membersRes.ok) setMembers(membersData.members || []);
         if (requestsRes.ok) setAccessRequests(requestsData.requests || []);
+        if (invitesRes.ok) setPendingInvites(invitesData.invites || []);
       }
     } catch (err) {
       console.error("Failed to load share data:", err);
+      showToast(err.message || "Failed to load share settings");
     } finally {
       setShareLoading(false);
     }
@@ -771,6 +847,28 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     }
   };
 
+  const revokeInvite = async (inviteId) => {
+    const headers = authHeaders();
+    if (!canvasId || !headers) return;
+    try {
+      setShareLoading(true);
+      const res = await fetch(`${API_BASE_URL}/canvas/${canvasId}/invites/${inviteId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.detail || "Failed to revoke invite");
+      }
+      setPendingInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Failed to revoke invite");
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   const copyShareUrl = async () => {
     if (!shareUrl) return;
     try {
@@ -831,9 +929,11 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
 
               {shareOpen && (
                 <SharePanel
+                  canvasId={canvasId}
                   shareSettings={shareSettings}
                   members={members}
                   accessRequests={accessRequests}
+                  pendingInvites={pendingInvites}
                   loading={shareLoading}
                   onClose={() => setShareOpen(false)}
                   onCreateOrRegenerateLink={createOrRegenerateLink}
@@ -845,6 +945,7 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
                   onRemoveMember={removeMember}
                   onApproveRequest={approveRequest}
                   onDenyRequest={denyRequest}
+                  onRevokeInvite={revokeInvite}
                   shareUrl={shareUrl}
                   copyStatus={copyStatus}
                   onCopyShareUrl={copyShareUrl}

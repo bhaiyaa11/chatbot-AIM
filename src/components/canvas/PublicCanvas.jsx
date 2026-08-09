@@ -14,8 +14,10 @@ import ToastHost from "./ToastHost.jsx";
 import { showToast } from "./toast.js";
 import "./Canvas.css";
 
+
 // const API_BASE_URL = "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 const GUEST_NAME_KEY = "canvas_guest_name";
 
 /*
@@ -48,7 +50,12 @@ function PublicCanvas({ token }) {
   const canComment = permission === "commenter" || permission === "editor";
 
   const editor = useEditor({
-    editable,
+    // Same reasoning as Canvas.jsx: bind ProseMirror's editable flag
+    // to canComment (not editable) so selection tracking is reliable
+    // for commenter-permission links, and block real mutation via
+    // input handlers instead. Server is still the actual boundary —
+    // see update_public_canvas_content's link_permission check.
+    editable: canComment,
     extensions: [
       StarterKit,
       Table.configure({ resizable: false, HTMLAttributes: { class: "canvas-table" } }),
@@ -63,6 +70,61 @@ function PublicCanvas({ token }) {
       }),
     ],
     content: "<p></p>",
+
+    editorProps: {
+      handleKeyDown(view, event) {
+        if (editable) return false;
+
+        const navigationKeys = new Set([
+          "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+          "Home", "End", "PageUp", "PageDown", "Tab", "Escape", "Shift",
+        ]);
+        const isCopy = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "c";
+        const isSelectAll = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a";
+
+        if (navigationKeys.has(event.key) || isCopy || isSelectAll) return false;
+
+        event.preventDefault();
+        return true;
+      },
+
+      handleTextInput() {
+        return !editable;
+      },
+
+      handlePaste(view, event) {
+        if (!editable) {
+          event.preventDefault();
+          return true;
+        }
+        return false;
+      },
+
+      handleDrop(view, event) {
+        if (!editable) {
+          event.preventDefault();
+          return true;
+        }
+        return false;
+      },
+
+      handleDOMEvents: {
+        cut(view, event) {
+          if (!editable) {
+            event.preventDefault();
+            return true;
+          }
+          return false;
+        },
+        beforeinput(view, event) {
+          if (!editable) {
+            event.preventDefault();
+            return true;
+          }
+          return false;
+        },
+      },
+    },
 
     onUpdate({ editor: ed }) {
       if (!editable) return;
@@ -159,9 +221,13 @@ function PublicCanvas({ token }) {
     try {
       const res = await fetch(`${API_BASE_URL}/shared/canvas/${token}/comments`);
       const data = await res.json();
-      if (res.ok) setComments(data.comments || []);
+      if (!res.ok) {
+        throw new Error(data?.detail || `Failed to load comments (HTTP ${res.status})`);
+      }
+      setComments(data.comments || []);
     } catch (err) {
       console.error("Failed to load comments:", err);
+      showToast(err.message || "Failed to load comments");
     } finally {
       setCommentsLoaded(true);
     }

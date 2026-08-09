@@ -2,10 +2,9 @@ import { useState } from "react";
 
 /*
  * Props:
- * - canvasId, authHeaders (fn -> headers|null), apiBase
- * - shareSettings, members, accessRequests (state owned by parent Canvas.jsx)
+ * - canvasId
+ * - shareSettings, members, accessRequests, pendingInvites (state owned by parent Canvas.jsx)
  * - loading, onClose
- * - onRefreshShare, onRefreshMembers, onRefreshRequests (refetchers)
  * - onCreateOrRegenerateLink(permission)
  * - onToggleLinkAccess(enabled)
  * - onChangeLinkPermission(permission)
@@ -15,12 +14,15 @@ import { useState } from "react";
  * - onRemoveMember(memberId)
  * - onApproveRequest(requestId, permission)
  * - onDenyRequest(requestId)
+ * - onRevokeInvite(inviteId)
  * - shareUrl, copyStatus, onCopyShareUrl
  */
 function SharePanel({
+  canvasId,
   shareSettings,
   members,
   accessRequests,
+  pendingInvites,
   loading,
   onClose,
   onCreateOrRegenerateLink,
@@ -32,6 +34,7 @@ function SharePanel({
   onRemoveMember,
   onApproveRequest,
   onDenyRequest,
+  onRevokeInvite,
   shareUrl,
   copyStatus,
   onCopyShareUrl,
@@ -39,8 +42,28 @@ function SharePanel({
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePermission, setInvitePermission] = useState("viewer");
   const [approvePermission, setApprovePermission] = useState({});
+  const [restrictedCopyStatus, setRestrictedCopyStatus] = useState("");
 
   const visibility = shareSettings?.visibility || "restricted";
+
+  // Unlike the "anyone" mode's token link, this URL has nothing secret
+  // in it — access is gated by the email-OTP-verify + invite-list
+  // check on the backend, not by the URL being hard to guess. So it's
+  // just derived locally, no server round-trip needed to "generate" it.
+  const restrictedLink = canvasId
+    ? `${window.location.origin}/canvas-access/${canvasId}`
+    : "";
+
+  const copyRestrictedLink = async () => {
+    if (!restrictedLink) return;
+    try {
+      await navigator.clipboard.writeText(restrictedLink);
+      setRestrictedCopyStatus("Copied!");
+      setTimeout(() => setRestrictedCopyStatus(""), 1500);
+    } catch {
+      setRestrictedCopyStatus("Copy failed");
+    }
+  };
 
   const submitInvite = (e) => {
     e.preventDefault();
@@ -134,6 +157,50 @@ function SharePanel({
             </>
           ) : (
             <>
+              {/* ── Shareable link ────────────────────────────── */}
+              <div className="canvas-share-url-row">
+                <input
+                  type="text"
+                  readOnly
+                  value={restrictedLink}
+                  onFocus={(e) => e.target.select()}
+                />
+                <button type="button" onClick={copyRestrictedLink}>
+                  {restrictedCopyStatus || "Copy"}
+                </button>
+              </div>
+              <p className="canvas-share-hint">
+                Anyone can open this link, but they'll need to verify an
+                invited email (with a one-time code) before they see anything.
+              </p>
+
+              {/* ── Pending invites (not yet redeemed) ───────────── */}
+              {pendingInvites && pendingInvites.length > 0 && (
+                <div className="canvas-share-section">
+                  <div className="canvas-share-section-title">
+                    Invited, not yet joined ({pendingInvites.length})
+                  </div>
+                  {pendingInvites.map((inv) => (
+                    <div key={inv.id} className="canvas-share-person-row">
+                      <span className="canvas-share-person-name">
+                        {inv.email}
+                      </span>
+                      <span className="canvas-share-invite-permission">
+                        {inv.permission}
+                      </span>
+                      <button
+                        type="button"
+                        className="canvas-share-deny"
+                        onClick={() => onRevokeInvite(inv.id)}
+                        disabled={loading}
+                      >
+                        Revoke
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* ── Pending requests ─────────────────────────── */}
               {accessRequests && accessRequests.length > 0 && (
                 <div className="canvas-share-section">
@@ -244,7 +311,8 @@ function SharePanel({
               )}
 
               {(!members || members.length === 0) &&
-                (!accessRequests || accessRequests.length === 0) && (
+                (!accessRequests || accessRequests.length === 0) &&
+                (!pendingInvites || pendingInvites.length === 0) && (
                   <p className="canvas-share-hint">
                     Only you can access this canvas right now. Invite people
                     by email, or switch to "Anyone with the link".
