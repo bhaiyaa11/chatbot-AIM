@@ -3,8 +3,6 @@ import "./chatWindow.css";
 import { useChat } from "../contexts/ChatContext";
 import ChatResponse from "./chat_message.jsx";
 import Clients from "./dropdown/clients.jsx";
-import LineWaves from "./LineWaves";
-// import Business_Unit from "./dropdown/BU.jsx";
 import Industrys from "./dropdown/industry.jsx"; 
 import ServiceLine from "./dropdown/serviceLine.jsx";
 import Videotype from "./dropdown/videoType.jsx";
@@ -86,15 +84,29 @@ function parseMarkdownTable(tableLines) {
   const trRows = bodyRows.map((line, ri) => {
     const cells = parseRow(line);
     const tdCells = cells.map((cell, ci) => {
-      const isLabel = ci === 0;
-      return `<td style="padding:10px 14px;font-size:13px;line-height:1.65;
-        vertical-align:top;border-bottom:1px solid rgba(255,255,255,.04);
-        color:${isLabel ? "rgba(255,255,255,.75)" : "rgba(255,255,255,.82)"};
-        font-weight:${isLabel ? "600" : "400"};
-        font-family:'Inter',sans-serif;">${inlineFormat(cell)}</td>`;
-    }).join("");
+  const isLabel = ci === 0;
+
+  const headerName = (headers[ci] || "").trim().toLowerCase();
+
+  const isNarration =
+    headerName === "voice over" ||
+    headerName === "voiceover" ||
+    headerName === "narration" ||
+    headerName === "voice";
+
+  return `<td
+    data-tts-narration="${isNarration ? "true" : "false"}"
+    style="padding:10px 14px;font-size:13px;line-height:1.65;
+    vertical-align:top;border-bottom:1px solid rgba(255,255,255,.04);
+    color:${isLabel ? "rgba(255,255,255,.75)" : "rgba(255,255,255,.82)"};
+    font-weight:${isLabel ? "600" : "400"};
+    font-family:'Inter',sans-serif;"
+  >${inlineFormat(cell)}</td>`;
+}).join("");
+
     const rowBg = ri % 2 === 0 ? "rgba(255,255,255,.015)" : "transparent";
-    return `<tr style="background:${rowBg};">${tdCells}</tr>`;
+    return `<tr
+  data-tts-scene="${ri}"style="background:${rowBg};">${tdCells}</tr>`;
   }).join("");
 
   return `
@@ -309,7 +321,7 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // AudioPlayer
 // ─────────────────────────────────────────────────────────────────────────────
-const AudioPlayer = ({ src, onClose, onAudioStarted, filename }) => {
+const AudioPlayer = ({ src, onClose, onAudioStarted, wordTimings, sceneSegments, onTimeUpdate, filename }) => {
   const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -484,6 +496,13 @@ const downloadVoiceOver = async () => {
 
   const progress = duration > 0 ? currentTime / duration : 0;
 
+  const seekToScene = (scene) => {
+  if (!audioRef.current) return;
+
+  audioRef.current.currentTime = scene.start;
+  setCurrentTime(scene.start);
+};
+
   return (
     <>
       <style>{`
@@ -498,11 +517,11 @@ const downloadVoiceOver = async () => {
         .ap-ctrl-btn:active { transform:scale(.9); }
         .ap-close-btn:hover { background:rgba(255,80,80,.12) !important; color:rgba(255,100,100,.8) !important; }
       `}</style>
-      {/* <audio ref={audioRef} src={src} preload="auto" style={{ display: "none" }} /> */}
       <audio
   ref={audioRef}
   src={src}
   preload="metadata"
+    onTimeUpdate={() => {onTimeUpdate?.(audioRef.current?.currentTime ?? 0);}}
   controls={false}
 />
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(168,85,247,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(168,85,247,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "apIn .2s ease" }}>
@@ -544,10 +563,59 @@ const downloadVoiceOver = async () => {
 </div>
 
         </div>
-        <div className="ap-seek" onClick={handleSeek} style={{ position: "relative", height: "20px", display: "flex", alignItems: "center", cursor: "pointer", userSelect: "none" }}>
-          <div style={{ position: "absolute", width: "100%", height: "3px", background: "rgba(255,255,255,.08)", borderRadius: "9999px" }} />
-          <div className="ap-seek-fill" style={{ position: "absolute", height: "3px", borderRadius: "9999px", background: "rgba(168,85,247,.85)", width: `${progress * 100}%`, transition: "background .15s", pointerEvents: "none" }} />
-          <div className="ap-seek-thumb" style={{ position: "absolute", left: `calc(${progress * 100}% - 6px)`, width: "12px", height: "12px", borderRadius: "50%", background: "#fff", boxShadow: "0 0 6px rgba(168,85,247,.6)", opacity: playing ? 1 : 0.6, transition: "opacity .15s", pointerEvents: "none" }} />
+
+        <div
+  className="ap-seek"
+  onClick={handleSeek}
+  style={{
+    position: "relative",
+    height: "24px",
+    display: "flex",
+    alignItems: "center",
+    cursor: "pointer",
+    userSelect: "none",
+  }}
+>
+  {/* Base timeline */}
+  <div
+    style={{
+      position: "absolute",
+      width: "100%",
+      height: "4px",
+      background: "rgba(255,255,255,.08)",
+      borderRadius: "9999px",
+    }}
+  />
+
+  {/* Played portion */}
+  <div
+    className="ap-seek-fill"
+    style={{
+      position: "absolute",
+      height: "4px",
+      borderRadius: "9999px",
+      background: "rgba(168,85,247,.85)",
+      width: `${progress * 100}%`,
+      transition: "background .15s",
+      pointerEvents: "none",
+    }}
+  />
+
+  {/* Scene chapter markers */}
+  {duration > 0 &&
+    sceneSegments?.map((scene) => {
+      const position = (scene.start / duration) * 100;
+
+      return (
+        <button
+          key={scene.scene}
+          onClick={(e) => {
+            e.stopPropagation();
+            seekToScene(scene);}}
+          title={`Scene ${scene.scene}`}style={{position: "absolute",left: `${position}%`,top: "50%",transform: "translate(-50%, -50%)",width: "3px",height: "12px",padding: 0,border: "none",borderRadius: "2px",background: "rgba(255,255,255,.75)",cursor: "pointer",zIndex: 3,}}/>);
+       })}
+        <div
+          className="ap-seek-thumb" style={{position: "absolute",left: `calc(${progress * 100}% - 6px)`,width: "12px",height: "12px",borderRadius: "50%",background: "#fff",boxShadow: "0 0 6px rgba(168,85,247,.6)",opacity: playing ? 1 : 0.6,transition: "opacity .15s",pointerEvents: "none",zIndex: 4,}} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <button className="ap-ctrl-btn" onClick={() => { if (audioRef.current) { audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); setCurrentTime(audioRef.current.currentTime); } }} title="Rewind 10s" style={{ color: "rgba(255,255,255,.5)" }}>
@@ -573,95 +641,112 @@ const downloadVoiceOver = async () => {
   );
 };
 
-// const StoryboardPanel = ({ images, onClose }) => (
-//   <>
-//     <style>{`@keyframes sbIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }`}</style>
-//     <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
-//       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-//         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-//           <span style={{ fontSize: "14px" }}>🎬</span>
-//           <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>Storyboard</span>
-//         </div>
-//         <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", cursor: "pointer" }}>✕ Close</button>
-//       </div>
-//       {images.length === 0 ? (
-//         <div style={{ color: "rgba(255,255,255,.35)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "12px 4px" }}>No scenes returned.</div>
-//       ) : (
-//         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
-//           {images.map((img, i) => (
-//             <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-//               {/* <img src={img.url} alt={img.caption || `Scene ${img.scene_number ?? i + 1}`}
-//                 style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} /> */}
-//                 <video src={img.url} controls muted loop playsInline
-//   style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} />
-//               <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.4)" }}>
-//                 {img.scene_number ? `Scene ${img.scene_number}` : `Frame ${i + 1}`}{img.caption ? ` — ${img.caption}` : ""}
-//               </span>
-//             </div>
-//           ))}
-//         </div>
-//       )}
-//     </div>
-//   </>
-// );
+const StoryboardPanel = ({ images, totalScenes, status, onClose }) => {
+  const [expandedIndex, setExpandedIndex] = useState(null);
 
+  useEffect(() => {
+    if (expandedIndex === null) return;
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setExpandedIndex(null);
+      if (e.key === "ArrowRight") setExpandedIndex((i) => Math.min(i + 1, images.length - 1));
+      if (e.key === "ArrowLeft") setExpandedIndex((i) => Math.max(i - 1, 0));
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [expandedIndex, images.length]);
 
-const StoryboardPanel = ({ images, finalVideo, totalScenes, status, onClose }) => (
-  <>
-    <style>{`@keyframes sbIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }`}</style>
-    <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontSize: "14px" }}>🎬</span>
-          <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>
-            Storyboard
-            {status && status !== "done" && totalScenes > 0 && (
-              <span style={{ marginLeft: "8px", color: "rgba(255,255,255,.4)", fontWeight: 500, textTransform: "none", letterSpacing: "normal" }}>
-                {status === "concatenating" ? "combining clips…" : `${images.length} / ${totalScenes} scenes`}
-              </span>
-            )}
-          </span>
-        </div>
-        <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", cursor: "pointer" }}>✕ Close</button>
-      </div>
+  const expanded = expandedIndex !== null ? images[expandedIndex] : null;
 
-      {finalVideo && (
-        <div>
-          <div style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(96,165,250,.7)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: "6px" }}>
-            Combined Video
+  return (
+    <>
+      <style>{`
+        @keyframes sbIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes sbLightboxIn { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
+        .sb-thumb { cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+        .sb-thumb:hover { transform:scale(1.02); border-color:rgba(96,165,250,.5)!important; }
+      `}</style>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "14px" }}>🎬</span>
+            <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>
+              Storyboard
+              {status && status !== "done" && totalScenes > 0 && (
+                <span style={{ marginLeft: "8px", color: "rgba(255,255,255,.4)", fontWeight: 500, textTransform: "none", letterSpacing: "normal" }}>
+                  {`${images.length} / ${totalScenes} scenes`}
+                </span>
+              )}
+            </span>
           </div>
-          <video src={finalVideo} controls
-            style={{ width: "100%", aspectRatio: "16/9", borderRadius: "10px", border: "1px solid rgba(96,165,250,.3)" }} />
+          <button onClick={onClose} style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.3)", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 10px", cursor: "pointer" }}>✕ Close</button>
         </div>
-      )}
 
-      {images.length === 0 ? (
-        <div style={{ color: "rgba(255,255,255,.35)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "12px 4px" }}>
-          {status === "running" ? "Generating scenes…" : "No scenes returned."}
-        </div>
-      ) : (
-        <div>
-          {finalVideo && (
-            <div style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.35)", textTransform: "uppercase", letterSpacing: ".6px", marginBottom: "6px" }}>
-              Individual Scenes
-            </div>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "12px" }}>
+        {images.length === 0 ? (
+          <div style={{ color: "rgba(255,255,255,.35)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "12px 4px" }}>
+            {status === "running" ? "Generating scenes…" : "No scenes returned."}
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "16px" }}>
             {images.map((img, i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                <video src={img.url} controls muted loop playsInline
-                  style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }} />
+                <img
+                  className="sb-thumb"
+                  src={img.url}
+                  alt={img.caption || `Scene ${img.scene_number}`}
+                  onClick={() => setExpandedIndex(i)}
+                  style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: "10px", border: "1px solid rgba(255,255,255,.08)" }}
+                />
                 <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.4)" }}>
                   {img.scene_number ? `Scene ${img.scene_number}` : `Frame ${i + 1}`}{img.caption ? ` — ${img.caption}` : ""}
                 </span>
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {expanded && (
+        <div
+          onClick={() => setExpandedIndex(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "min(90vw, 1000px)", width: "100%", display: "flex", flexDirection: "column", gap: "12px", animation: "sbLightboxIn .15s ease" }}
+          >
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <span style={{ fontSize: "12px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.6)" }}>
+                {expanded.scene_number ? `Scene ${expanded.scene_number}` : `Frame ${expandedIndex + 1}`} of {images.length}
+              </span>
+              <button onClick={() => setExpandedIndex(null)} style={{ background: "none", border: "1px solid rgba(255,255,255,.15)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "5px 12px", cursor: "pointer" }}>✕ Close</button>
+            </div>
+
+            <div style={{ position: "relative" }}>
+              {expandedIndex > 0 && (
+                <button
+                  onClick={() => setExpandedIndex((i) => i - 1)}
+                  style={{ position: "absolute", left: "8px", top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,.6)", border: "1px solid rgba(255,255,255,.15)", borderRadius: "50%", width: "36px", height: "36px", color: "#fff", fontSize: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >‹</button>
+              )}
+              <img src={expanded.url} alt={expanded.caption} style={{ width: "100%", borderRadius: "12px", border: "1px solid rgba(255,255,255,.1)", display: "block" }} />
+              {expandedIndex < images.length - 1 && (
+                <button
+                  onClick={() => setExpandedIndex((i) => i + 1)}
+                  style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,.6)", border: "1px solid rgba(255,255,255,.15)", borderRadius: "50%", width: "36px", height: "36px", color: "#fff", fontSize: "16px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                >›</button>
+              )}
+            </div>
+
+            {expanded.caption && (
+              <p style={{ fontSize: "13px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.7)", margin: 0, lineHeight: 1.6 }}>{expanded.caption}</p>
+            )}
+          </div>
         </div>
       )}
-    </div>
-  </>
-);
+    </>
+  );
+};
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -710,7 +795,9 @@ const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
   { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
-  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
+
+
+ { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
   { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
   { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
   { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
@@ -770,6 +857,7 @@ const VOICES = [
   {value:"DARCY_BRIT_MID_N_SM", label:"🇬🇧 Darcy", accent:"british", tone: ["social_media","advertising"], age:"mid",gender:"neutral"},
   {value:"MARSHAL_BRIT_MID_N_CONVO", label:"🇬🇧 Marshal", accent:"british", tone: ["conversational", "social_media"], age:"mid",gender:"neutral"},
   {value:"EVELYN_BRIT_YOUNG_N_CONVO", label:"🇬🇧 Evelyn", accent:"british", tone:["conversational","social_media"], age:"young",gender:"neutral"},
+
 ];
 
 const DEFAULT_accent = "british";
@@ -812,9 +900,17 @@ const ScriptCanvas = ({ content, msgId }) => {
   const [visualizing,      setVisualizing]      = useState(false);
   const [storyboardImages, setStoryboardImages] = useState([]);
   const [showStoryboard,   setShowStoryboard]   = useState(false);
-  const [finalStoryboardVideo, setFinalStoryboardVideo] = useState(null);
+  // const [finalStoryboardVideo, setFinalStoryboardVideo] = useState(null);
   const [storyboardStatus, setStoryboardStatus] = useState(null);
   const [storyboardTotal, setStoryboardTotal] = useState(0);
+  const [wordTimings, setWordTimings] = useState([]);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [activeWordIndex, setActiveWordIndex] = useState(-1);
+  const [activeNarrationWordIndex, setActiveNarrationWordIndex] = useState(-1);
+  const [sceneSegments, setSceneSegments] = useState([]);
+  const [activeSceneIndex, setActiveSceneIndex] = useState(-1);
+
+  
 
   const refreshBtns = () => {
     setCanUndo(undoStack.current.length > 0);
@@ -836,13 +932,141 @@ const ScriptCanvas = ({ content, msgId }) => {
 };
 
 
+useEffect(() => {
+  if (!wordTimings.length) {
+    setActiveWordIndex(-1);
+    setActiveNarrationWordIndex(-1);
+    return;
+  }
+
+  const index = wordTimings.findIndex(
+    ({ start, end }) =>
+      currentTime >= start && currentTime < end
+  );
+
+  setActiveWordIndex(index);
+  setActiveNarrationWordIndex(index);
+}, [currentTime, wordTimings]);
+
+useEffect(() => {
+  if (!sceneSegments.length) {
+    setActiveSceneIndex(-1);
+    return;
+  }
+
+  const sceneIndex = sceneSegments.findIndex(
+    (segment) =>
+      currentTime >= segment.start &&
+      currentTime < segment.end
+  );
+
+  setActiveSceneIndex(sceneIndex);
+}, [currentTime, sceneSegments]);
+
+useEffect(() => {
+  if (!canvasRef.current) return;
+
+  const rows = canvasRef.current.querySelectorAll(
+    "tr[data-tts-scene]"
+  );
+
+  rows.forEach((row, index) => {
+    const isActive = index === activeSceneIndex;
+
+    row.style.transition = "background 0.15s ease";
+
+    row.style.background = isActive
+      ? "rgba(168, 85, 247, 0.16)"
+      : index % 2 === 0
+        ? "rgba(255,255,255,.015)"
+        : "transparent";
+
+    row.style.boxShadow = isActive
+      ? "inset 3px 0 0 rgba(168,85,247,.8)"
+      : "none";
+  });
+}, [activeSceneIndex]);
+
+
+const buildSceneSegments = useCallback((timings) => {
+
+  if (!canvasRef.current) {
+    console.log("❌ STOP: canvasRef.current missing");
+    return [];
+  }
+
+  if (!timings?.length) {
+    console.log("❌ STOP: timings empty");
+    return [];
+  }
+
+  const rows = canvasRef.current.querySelectorAll(
+    "tr[data-tts-scene]"
+  );
+
+  const narrationCells = canvasRef.current.querySelectorAll(
+    'td[data-tts-narration="true"]'
+  );
+
+  const segments = [];
+  let globalWordIndex = 0;
+
+  rows.forEach((row, rowIndex) => {
+    const narrationCell = row.querySelector(
+      '[data-tts-narration="true"]'
+    );
+
+    if (!narrationCell) {
+      console.log("❌ No narration cell");
+      return;
+    }
+
+    const rowText = narrationCell.textContent || "";
+
+
+    const rowWords = rowText.match(/\S+/g) || [];
+
+    if (!rowWords.length) {
+      console.log("❌ No words in row");
+      return;
+    }
+
+    const startTiming = timings[globalWordIndex];
+
+    const endTiming =
+      timings[
+        globalWordIndex + rowWords.length - 1
+      ];
+
+    if (!startTiming || !endTiming) {
+      globalWordIndex += rowWords.length;
+      return;
+    }
+
+    const segment = {
+      scene: rowIndex + 1,
+      start: startTiming.start,
+      end: endTiming.end,
+      duration: endTiming.end - startTiming.start,
+      wordStartIndex: globalWordIndex,
+      wordEndIndex:
+        globalWordIndex + rowWords.length - 1,
+    };
+
+    segments.push(segment);
+
+    globalWordIndex += rowWords.length;
+  });
+
+  return segments;
+}, []);
 
 const generateVoiceOver = async () => {
   try {
     setVoiceGenerating(true);
 
-    const currentScript =
-      rawMarkdownRef.current?.trim() ?? "";
+    const currentScript = htmlToMarkdown(canvasRef.current).trim();
+    rawMarkdownRef.current = currentScript;
 
     if (!currentScript) {
       setVoiceGenerating(false);
@@ -854,8 +1078,6 @@ const generateVoiceOver = async () => {
       voice_type: selectedVoice,
     });
 
-    // const streamUrl =
-    //   `${API_BASE_URL}/audio-stream?${params.toString()}`;
     const response = await fetch(
   `${API_BASE_URL}/generate-voice`,
   {
@@ -873,14 +1095,26 @@ const generateVoiceOver = async () => {
 
 const data = await response.json();
 
-setAudioSrc(
-  `${API_BASE_URL}${data.audio_url}`
-);
+const timings = data.word_timings || [];
+
+
+
+setWordTimings(timings);
+
+// Build scene segmentation using the timings
+// returned directly from the backend.
+const segments = buildSceneSegments(timings);
+
+setSceneSegments(segments);
+
+setAudioSrc(`${API_BASE_URL}${data.audio_url}`);
 
 setShowPlayer(true);
 setVoiceGenerating(false);
 
-    setAudioSrc(streamUrl);
+setAudioSrc(
+  `${API_BASE_URL}${data.audio_url}`
+);
     setShowPlayer(true);
 
   } catch (err) {
@@ -889,71 +1123,55 @@ setVoiceGenerating(false);
   }
 };
 
-// const generateStoryboard = async () => {
-//   try {
-//     setVisualizing(true);
-
-//     const currentScript = rawMarkdownRef.current?.trim() ?? "";
-//     if (!currentScript) {
-//       setVisualizing(false);
-//       return;
-//     }
-
-//     const response = await fetch(`${API_BASE_URL}/generate-storyboard`, {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ script: currentScript }),
-//     });
-
-//     if (!response.ok) throw new Error(`Storyboard generation failed: ${response.status}`);
-
-//     const data = await response.json();
-//     const images = (data.images || []).map((img) => ({
-//       ...img,
-//       url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
-//     }));
-
-//     setStoryboardImages(images);
-//     setShowStoryboard(true);
-//   } catch (err) {
-//     console.error("Storyboard generation failed:", err);
-//   } finally {
-//     setVisualizing(false);
-//   }
-// };
-
-
 const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
+
 
 // const generateStoryboard = async (videoType) => {
 //   try {
 //     setVisualizing(true);
-
 //     const currentScript = rawMarkdownRef.current?.trim() ?? "";
-//     if (!currentScript) {
-//       setVisualizing(false);
-//       return;
-//     }
+//     if (!currentScript) { setVisualizing(false); return; }
 
-//     const response = await fetch(`${API_BASE_URL}/generate-storyboard`, {
+//     const startRes = await fetch(`${API_BASE_URL}/generate-storyboard`, {
 //       method: "POST",
 //       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({ script: currentScript, video_type: videoType }),
+//       body: JSON.stringify({ script: currentScript, video_type: videoType, quality: "fast" }),
 //     });
+//     if (!startRes.ok) throw new Error(`Failed to start: ${startRes.status}`);
+//     const { job_id } = await startRes.json();
 
-//     if (!response.ok) throw new Error(`Storyboard generation failed: ${response.status}`);
+//     const poll = async () => {
+//       const res = await fetch(`${API_BASE_URL}/generate-storyboard/${job_id}`);
+//       const data = await res.json();
 
-//     const data = await response.json();
-//     const images = (data.images || []).map((img) => ({
-//       ...img,
-//       url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
-//     }));
+//       const clips = (data.clips || []).map((c) => ({
+//         ...c,
+//         url: c.url?.startsWith("http") ? c.url : `${API_BASE_URL}${c.url}`,
+//       }));
+//       setStoryboardImages(clips);
+//       setStoryboardStatus(data.status);
+//       setStoryboardTotal(data.total_scenes || 0);
 
-//     setStoryboardImages(images);
-//     setShowStoryboard(true);
+//       // Show the panel as soon as the first clip lands — don't wait for the whole job
+//       if (clips.length > 0) {
+//         setShowStoryboard(true);
+//       }
+
+//       if (data.final_video) {
+//         setFinalStoryboardVideo(`${API_BASE_URL}${data.final_video.url}`);
+//       }
+
+//       if (data.status === "done" || data.status === "error") {
+//         setVisualizing(false);
+//         if (data.status === "error") console.error("Storyboard job failed:", data.error);
+//         return;
+//       }
+//       setTimeout(poll, 5000);
+//     };
+
+//     poll(); // fire and forget — poll() manages its own state updates
 //   } catch (err) {
 //     console.error("Storyboard generation failed:", err);
-//   } finally {
 //     setVisualizing(false);
 //   }
 // };
@@ -967,7 +1185,7 @@ const generateStoryboard = async (videoType) => {
     const startRes = await fetch(`${API_BASE_URL}/generate-storyboard`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ script: currentScript, video_type: videoType, quality: "fast" }),
+      body: JSON.stringify({ script: currentScript, video_type: videoType, quality: "quality" }),
     });
     if (!startRes.ok) throw new Error(`Failed to start: ${startRes.status}`);
     const { job_id } = await startRes.json();
@@ -976,21 +1194,17 @@ const generateStoryboard = async (videoType) => {
       const res = await fetch(`${API_BASE_URL}/generate-storyboard/${job_id}`);
       const data = await res.json();
 
-      const clips = (data.clips || []).map((c) => ({
-        ...c,
-        url: c.url?.startsWith("http") ? c.url : `${API_BASE_URL}${c.url}`,
+      const images = (data.images || []).map((img) => ({
+        ...img,
+        url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
       }));
-      setStoryboardImages(clips);
+      setStoryboardImages(images);
       setStoryboardStatus(data.status);
       setStoryboardTotal(data.total_scenes || 0);
 
-      // Show the panel as soon as the first clip lands — don't wait for the whole job
-      if (clips.length > 0) {
+      // Show the panel as soon as the first image lands — don't wait for the whole job
+      if (images.length > 0) {
         setShowStoryboard(true);
-      }
-
-      if (data.final_video) {
-        setFinalStoryboardVideo(`${API_BASE_URL}${data.final_video.url}`);
       }
 
       if (data.status === "done" || data.status === "error") {
@@ -1019,6 +1233,73 @@ const generateStoryboard = async (videoType) => {
 
   useEffect(() => { if (content) rawMarkdownRef.current = content; }, [content]);
 
+
+  const clearWordHighlight = () => {
+  if (!canvasRef.current) return;
+
+  const highlighted = canvasRef.current.querySelectorAll(
+    '[data-tts-highlight="true"]'
+  );
+
+  highlighted.forEach((el) => {
+    const parent = el.parentNode;
+    if (!parent) return;
+
+    parent.replaceChild(
+      document.createTextNode(el.textContent || ""),
+      el
+    );
+
+    parent.normalize();
+  });
+};
+
+
+
+const ensureTtsMetadata = () => {
+  if (!canvasRef.current) return;
+
+  const tables = canvasRef.current.querySelectorAll("table");
+
+  tables.forEach((table) => {
+    const headerCells = table.querySelectorAll("thead th");
+
+    let narrationColumnIndex = -1;
+
+    headerCells.forEach((th, index) => {
+      const header = (th.textContent || "").trim().toLowerCase();
+
+      if (
+        header === "voice over" ||
+        header === "voiceover" ||
+        header === "narration" ||
+        header === "voice"
+      ) {
+        narrationColumnIndex = index;
+      }
+    });
+
+    if (narrationColumnIndex === -1) return;
+
+    const rows = table.querySelectorAll("tbody tr");
+
+    rows.forEach((row, rowIndex) => {
+      // Mark this as a TTS scene
+      row.setAttribute("data-tts-scene", String(rowIndex));
+
+      const cells = row.querySelectorAll("td");
+
+      cells.forEach((cell, cellIndex) => {
+        cell.setAttribute(
+          "data-tts-narration",
+          cellIndex === narrationColumnIndex ? "true" : "false"
+        );
+      });
+    });
+  });
+};
+
+
   const persistContent = useCallback(() => {
     if (!msgId || !canvasRef.current) return;
     clearTimeout(persistTimer.current);
@@ -1034,10 +1315,98 @@ const generateStoryboard = async (videoType) => {
     if (isUserEditing.current) return;
     let saved = null;
     try { saved = msgId ? localStorage.getItem(scriptKey(msgId)) : null; } catch {}
-    if (saved) { canvasRef.current.innerHTML = saved; }
-    else if (content) { canvasRef.current.innerHTML = markdownToHtml(content); }
-    countWords();
+    // if (saved) { canvasRef.current.innerHTML = saved; }
+    // else if (content) { canvasRef.current.innerHTML = markdownToHtml(content); }
+    // countWords();
+    if (saved) {
+  canvasRef.current.innerHTML = saved;
+
+  // Restore TTS metadata on previously saved HTML
+  ensureTtsMetadata();
+}
+else if (content) {
+  canvasRef.current.innerHTML = markdownToHtml(content);
+}
+
+countWords();
   }, [content, msgId]); // eslint-disable-line
+
+useEffect(() => {
+  if (!canvasRef.current) return;
+
+  if (activeNarrationWordIndex < 0 || !wordTimings.length) {
+    clearWordHighlight();
+    return;
+  }
+
+  clearWordHighlight();
+
+  const narrationCells = canvasRef.current.querySelectorAll(
+    '[data-tts-narration="true"]'
+  );
+
+  if (!narrationCells.length) return;
+
+  const walker = document.createTreeWalker(
+    canvasRef.current,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode(node) {
+        return node.parentElement?.closest(
+          '[data-tts-narration="true"]'
+        )
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
+    }
+  );
+
+  let node;
+  let wordIndex = 0;
+
+  while ((node = walker.nextNode())) {
+    const text = node.textContent || "";
+
+    /*
+     * Match complete words while preserving their
+     * exact positions inside the text node.
+     */
+    const wordRegex = /\S+/g;
+    let match;
+
+    while ((match = wordRegex.exec(text)) !== null) {
+      const currentIndex = wordIndex;
+      wordIndex++;
+
+      if (currentIndex !== activeNarrationWordIndex) {
+        continue;
+      }
+
+      const range = document.createRange();
+
+      range.setStart(node, match.index);
+      range.setEnd(
+        node,
+        match.index + match[0].length
+      );
+
+      const span = document.createElement("span");
+
+      span.dataset.ttsHighlight = "true";
+      span.style.background = "rgba(168, 85, 247, 0.35)";
+      span.style.borderRadius = "3px";
+      span.style.padding = "1px 2px";
+
+      range.surroundContents(span);
+
+      return;
+    }
+  }
+}, [
+  activeNarrationWordIndex,
+  wordTimings,
+]);
+
 
   useEffect(() => {
     const el = canvasRef.current; if (!el) return;
@@ -1053,10 +1422,7 @@ const generateStoryboard = async (videoType) => {
     if (!stillValid && filtered.length > 0) setSelectedVoice(filtered[0].value);
   }, [accent, tone, age, gender]); // eslint-disable-line
 
-  // const countWords = () => {
-  //   const el = canvasRef.current; if (!el) return;
-  //   setWordCount(el.innerText.trim().split(/\s+/).filter(Boolean).length);
-  // };
+
 
   const countWords = () => {
   const el = canvasRef.current;
@@ -1166,47 +1532,7 @@ const generateStoryboard = async (videoType) => {
       setMenuPos(null);
       return;
     }
-
-    // Save a copy of the exact selected range for AI editing later
-    // savedRange.current = range.cloneRange();
-    // setSelText(selectedText);
-
-    // const rect = range.getBoundingClientRect();
-
-    // // If the selection has no visible rect, do not show the menu
-    // if (!rect || (rect.width === 0 && rect.height === 0)) {
-    //   setMenuPos(null);
-    //   return;
-    // }
-
-    // const MENU_WIDTH = 350;
-    // const MENU_HEIGHT = 160;
-    // const SAFE_MARGIN = 12;
-
-    // let left = rect.left;
-    // let top = rect.bottom + 8;
-
-    // // Keep floating menu inside the screen
-    // if (left + MENU_WIDTH > window.innerWidth - SAFE_MARGIN) {
-    //   left = window.innerWidth - MENU_WIDTH - SAFE_MARGIN;
-    // }
-
-    // if (left < SAFE_MARGIN) {
-    //   left = SAFE_MARGIN;
-    // }
-
-    // // If not enough room below selected text, show menu above it
-    // if (top + MENU_HEIGHT > window.innerHeight - SAFE_MARGIN) {
-    //   top = rect.top - MENU_HEIGHT - 8;
-    // }
-
-    // if (top < SAFE_MARGIN) {
-    //   top = SAFE_MARGIN;
-    // }
-
-    // setMenuPos({ top, left });
-
-
+    const saved = range.cloneRange();
     savedRange.current = range.cloneRange();
 setSelText(selectedText);
 
@@ -1242,6 +1568,20 @@ if (top < SAFE_MARGIN) {
 }
 
 setMenuPos({ top, left });
+// React state updates can cause the native selection to disappear.
+// Restore the saved selection after the render completes.
+requestAnimationFrame(() => {
+  const currentSelection = window.getSelection();
+
+  if (
+    savedRange.current &&
+    currentSelection &&
+    canvasRef.current
+  ) {
+    currentSelection.removeAllRanges();
+    currentSelection.addRange(savedRange.current);
+  }
+});
   });
 }, []);
 
@@ -1263,7 +1603,7 @@ setMenuPos({ top, left });
     const after = document.createRange();
     after.setStartAfter(span); after.collapse(true);
     sel.removeAllRanges(); sel.addRange(after);
-    savedRange.current = null; setMenuPos(null); setSelText(""); countWords(); persistContent();
+    savedRange.current = null; setMenuPos(null); setSelText(""); isUserEditing.current = true; rawMarkdownRef.current = htmlToMarkdown(canvasRef.current); countWords(); persistContent();
     clearTimeout(aiHighlightTimer.current);
     aiHighlightTimer.current = setTimeout(() => {
       span.classList.add("ai-highlight-fade");
@@ -1286,15 +1626,6 @@ setMenuPos({ top, left });
     } catch (err) { console.error("Canvas edit failed:", err); }
     finally { setLoading(false); }
   }, [selText, applyEdit]);
-
-  // const copy = useCallback(async () => {
-  //   try {
-  //     await safeWriteClipboard(canvasRef.current?.innerText ?? "");
-  //     setCopied(true);
-  //     setTimeout(() => setCopied(false), 2000);
-  //   } catch (err) { console.warn("Clipboard write failed:", err); }
-  // }, []);
-
 
   const copy = useCallback(async () => {
   try {
@@ -1406,14 +1737,6 @@ setMenuPos({ top, left });
           {audioSrc && !showPlayer && !voiceGenerating && (
             <button onClick={() => setShowPlayer(true)} style={{ background: "rgba(168,85,247,.12)", border: "1px solid rgba(168,85,247,.3)", borderRadius: "9999px", color: "rgba(200,160,255,.9)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px" }}>▶ Show Player</button>
           )}
-{/* 
-          <button onClick={generateStoryboard} disabled={visualizing}
-            onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
-            onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
-            style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgb(255,255,255)", cursor: visualizing ? "not-allowed" : "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px", opacity: visualizing ? 0.5 : 1 }}>
-            🎬 {visualizing ? "Visualising…" : "Visualise"}
-          </button> */}
           <button onClick={() => setShowVideoTypePicker(true)} disabled={visualizing}
   onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.92)")}
   onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
@@ -1428,10 +1751,6 @@ setMenuPos({ top, left });
     onClose={() => setShowVideoTypePicker(false)}
   />
 )}
-
-          {/* {storyboardImages.length > 0 && !showStoryboard && !visualizing && (
-            <button onClick={() => setShowStoryboard(true)} style={{ background: "rgba(96,165,250,.12)", border: "1px solid rgba(96,165,250,.3)", borderRadius: "9999px", color: "rgba(160,200,255,.9)", cursor: "pointer", fontSize: "11px", fontFamily: "'Inter',sans-serif", padding: "4px 12px" }}>▤ Show Storyboard</button>
-          )} */}
 
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -1452,26 +1771,21 @@ setMenuPos({ top, left });
     <AudioPlayer
       src={audioSrc}
       filename={buildVoiceoverFilename()}
+      wordTimings={wordTimings}
+      sceneSegments={sceneSegments}
+      onTimeUpdate={setCurrentTime}
       onClose={() => setShowPlayer(false)}
       onAudioStarted={() => {
         setVoiceGenerating(false);
       }}
-
-      
     />
   </div>
 )}
-{/* {showStoryboard && storyboardImages.length > 0 && (
-        <div style={{ padding: "0 16px 16px" }}>
-          <StoryboardPanel images={storyboardImages} onClose={() => setShowStoryboard(false)} />
-        </div>
-      )} */}
-
       {showStoryboard && (
   <div style={{ padding: "0 16px 16px" }}>
     <StoryboardPanel
       images={storyboardImages}
-      finalVideo={finalStoryboardVideo}
+      // finalVideo={finalStoryboardVideo}
       totalScenes={storyboardTotal}
       status={storyboardStatus}
       onClose={() => setShowStoryboard(false)}
@@ -1540,11 +1854,6 @@ const BotMessage = ({ msg, onFeedback, isLatestBot }) => {
       >🛢️</button>
           {/* Every bot message — old or new — gets the full ScriptCanvas UI */}
       <ScriptCanvas content={msg.content} msgId={msg.id} />
-      {/* {!isLatestBot && <CopyButton editableRef={editableRef} />}
-      {isLatestBot
-        ? <ScriptCanvas content={msg.content} msgId={msg.id} />
-        : <ChatResponse ref={editableRef} reply={msg.content} />
-      } */}
     </div>
   );
 };
@@ -1803,123 +2112,10 @@ const ErrorBanner = ({ message }) => (
   </div>
 );
 
-const WavesBackground = () => (
-  <div
-    style={{
-      position: "absolute",
-      inset: 0,
-      zIndex: 0,
-      pointerEvents: "none",
-      opacity: 0.5,
-    }}
-  >
-    <LineWaves
-      speed={0.25}
-      innerLineCount={28}
-      outerLineCount={32}
-      warpIntensity={0.8}
-      rotation={-45}
-      edgeFadeWidth={0.15}
-      colorCycleSpeed={0.3}
-      brightness={0.12}
-      color1="#ffffff"
-      color2="#ffffff"
-      color3="#ffffff"
-      enableMouseInteraction={false}
-    />
-  </div>
-);
-
 
 // ── Main ChatWindow ────────────────────────────────────────────
 const isDraftId = (id) => typeof id === "string" && id.startsWith("draft-");
 
-// const PipelineReasoning = ({ isStreaming, log, duration }) => {
-//   const [open, setOpen] = useState(true);
-//   const wasStreamingRef = useRef(isStreaming);
-
-//   useEffect(() => {
-//     if (isStreaming) {
-//       setOpen(true);
-//     } else if (wasStreamingRef.current && !isStreaming) {
-//       const t = setTimeout(() => setOpen(false), 1200);
-//       return () => clearTimeout(t);
-//     }
-//     wasStreamingRef.current = isStreaming;
-//   }, [isStreaming]);
-
-//   if (!log?.length) return null;
-
-//   return (
-//     <div style={{ margin: "8px 0", maxWidth: "520px" }}>
-//       <button
-//         onClick={() => setOpen(v => !v)}
-//         style={{
-//           position: "relative", overflow: "hidden",
-//           display: "inline-flex", alignItems: "center", gap: "8px",
-//           background: "rgba(139,92,246,.10)",
-//           border: "1px solid rgba(139,92,246,.3)",
-//           borderRadius: "9999px", padding: "6px 14px", cursor: "pointer",
-//           fontFamily: "'Inter',sans-serif", fontSize: "12px",
-//           color: "rgba(200,180,255,.85)",
-//         }}
-//       >
-//         {isStreaming && (
-//           <span
-//             style={{
-//               position: "absolute", inset: 0,
-//               background: "linear-gradient(90deg, transparent, rgba(139,92,246,.35), transparent)",
-//               backgroundSize: "200% 100%",
-//               animation: "reasoningShimmer 1.6s linear infinite",
-//             }}
-//           />
-//         )}
-//         <span style={{ position: "relative", zIndex: 1, display: "inline-flex", alignItems: "center", gap: "6px" }}>
-//           <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-//             <circle cx="6.5" cy="6.5" r="4" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" />
-//             <path d="M4 6.5h5M6.5 4v5" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" strokeLinecap="round" />
-//           </svg>
-//           {isStreaming ? "Thinking…" : `Thought for ${duration ?? 0}s`}
-//         </span>
-//         <svg
-//           width="10" height="10" viewBox="0 0 10 10" fill="none"
-//           style={{ position: "relative", zIndex: 1, transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-//         >
-//           <path d="M2 3.5L5 6.5L8 3.5" stroke="rgba(180,150,255,.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-//         </svg>
-//       </button>
-
-//       {open && (
-//         <div
-//           style={{
-//             marginTop: "6px",
-//             background: "rgba(19,19,19,.9)",
-//             border: "1px solid rgba(139,92,246,.2)",
-//             borderRadius: "12px",
-//             padding: "10px 14px",
-//             fontSize: "12px",
-//             fontFamily: "'Inter',sans-serif",
-//             color: "rgba(255,255,255,.55)",
-//             display: "flex",
-//             flexDirection: "column",
-//             gap: "5px",
-//             maxHeight: "220px",
-//             overflowY: "auto",
-//           }}
-//         >
-//           {log.map((s, i) => {
-//             const isLast = i === log.length - 1;
-//             return (
-//               <div key={i} style={{ opacity: isLast && isStreaming ? 1 : 0.55, transition: "opacity .2s" }}>
-//                 {isLast && isStreaming ? "› " : "✓ "}{s}
-//               </div>
-//             );
-//           })}
-//         </div>
-//       )}
-//     </div>
-//   );
-// };
 
 
 const STAGE_DEFINITIONS = [
@@ -2143,20 +2339,17 @@ const EditReasoning = ({ isStreaming, log, duration }) => {
   );
 };
 
-
-const GenerationProgress = ({ isStreaming, log, duration }) => {
-  const { activeIndex } = computeStageState(log || []);
-  const isPipelineMode = activeIndex !== -1;
-
-  if (!isStreaming) {
-    return isPipelineMode ? <PipelineStages isStreaming={false} log={log} /> : null;
+const GenerationProgress = ({ isStreaming, log }) => {
+  if (isStreaming) {
+    return <PipelineStages isStreaming={true} log={log} />;
   }
 
-  if (isPipelineMode) return <PipelineStages isStreaming={true} log={log} />;
+  if (log?.length > 0) {
+    return <PipelineStages isStreaming={false} log={log} />;
+  }
 
-  return <EditReasoning isStreaming={isStreaming} log={log} duration={duration} />;
+  return null;
 };
-
 
 function ChatWindow() {
   const {
@@ -2329,11 +2522,6 @@ function ChatWindow() {
     const botId = crypto.randomUUID();
     addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
 
-    // setStreamText(targetConvId, "");
-    // startGenerating(targetConvId);
-
-
-    // convAbortControllers.current.get(targetConvId)?.abort();
     setStreamText(targetConvId, "");
     startGenerating(targetConvId);
     pipelineStartRef.current.set(targetConvId, Date.now());
@@ -2401,10 +2589,6 @@ function ChatWindow() {
 
       fullText = fullText.replace(/\\n/g, "\n");
       lastOutputRef.current = fullText;
-      // stopGenerating(targetConvId);
-      // clearStreamText(targetConvId);
-      // // setPipelineStatus(null);
-      // clearPipelineStatus(targetConvId);
 
 stopGenerating(targetConvId);
       const started = pipelineStartRef.current.get(targetConvId);
@@ -2482,15 +2666,6 @@ stopGenerating(targetConvId);
     finally { setLoadingMessages(false); loadingRef.current = false; }
   }, [hydrateResearchMessages, setMessagesForConversation]);
 
-  // useEffect(() => {
-  //   setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchError(null);
-  //   if (!conversationId || isDraftId(conversationId)) return;
-  //   if (loadedConvs.current.has(conversationId)) {
-  //     requestAnimationFrame(() => requestAnimationFrame(() => chatEndRef.current?.scrollIntoView({ behavior: "auto" })));
-  //     return;
-  //   }
-  //   fetchMessages(conversationId, 1);
-  // }, [conversationId]); // eslint-disable-line
 
   useEffect(() => {
   setInput(""); setFiles([]); setEditedResearch(null); setResearchId(null); setResearchError(null);
@@ -2635,18 +2810,7 @@ stopGenerating(targetConvId);
     if (!cr) {
       const uid = crypto.randomUUID();
       addMessage(targetConvId, { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false });
-      addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
-    } else {
-      addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
     }
-
-//     setStreamText(targetConvId, "");
-//     startGenerating(targetConvId);
-//     pipelineStartRef.current.set(targetConvId, Date.now());
-// setPipelineLogs(prev => ({ ...prev, [targetConvId]: [] }));
-
-
-//     convAbortControllers.current.get(targetConvId)?.abort();
 
 setStreamText(targetConvId, "");
     startGenerating(targetConvId);
@@ -2713,10 +2877,6 @@ setStreamText(targetConvId, "");
       }
 
       fullText = fullText.replace(/\\n/g, "\n"); lastOutputRef.current = fullText;
-      // stopGenerating(targetConvId);
-      // clearStreamText(targetConvId);
-      // // setPipelineStatus(null);
-      // clearPipelineStatus(targetConvId);
 
 stopGenerating(targetConvId);
       const started = pipelineStartRef.current.get(targetConvId);
@@ -2725,8 +2885,8 @@ stopGenerating(targetConvId);
         pipelineStartRef.current.delete(targetConvId);
       }
       clearStreamText(targetConvId);
-      // setPipelineStatus(null);
       clearPipelineStatus(targetConvId);
+      addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
 
       updateLastMessage(targetConvId, fullText, rawInput);
       setMessagesForConversation(targetConvId, (prev) => dedupeById(prev.map(m => m.id === botId ? { ...m, content: fullText, text: fullText, prompt: rawInput } : m)));
@@ -2762,20 +2922,12 @@ stopGenerating(targetConvId);
   return (
     <div className="chat-window">
       <FilePreviewModal previewFile={previewFile} onClose={closePreview} />
-      {/* <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}`}</style> */}
-      {/* <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}} @keyframes reasoningShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}`}</style> */}
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes blink{0%,100%{opacity:1}50%{opacity:0}} @keyframes reasoningShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} @keyframes stagePulse{0%{opacity:.8;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}`}</style>
 
-      {/* {isEmpty ? (
-        <>
-          <div className="empty-wrapper">
-            <h2>How can I help you <span>today?</span></h2>
-            <p className="subtitle">Your creative partner for scriptwriting, asset generation, and video planning.</p>
-          </div> */}
           {isEmpty ? (
   <>
     <div className="empty-wrapper">
-      <WavesBackground />
+      {/* <WavesBackground /> */}
       <h2 style={{ position: "relative", zIndex: 1 }}>How can I help you <span>today?</span></h2>
       <p className="subtitle" style={{ position: "relative", zIndex: 1 }}>Your creative partner for scriptwriting, asset generation, and video planning.</p>
     </div>
@@ -2831,12 +2983,8 @@ stopGenerating(targetConvId);
             {narrativeError && <ErrorBanner message={narrativeError} />}
           </div></div>
         </>
-      // ) : (
-      //   <div className="chat-container">
-      //     <div className="chat-history" ref={chatHistoryRef}>
       ) : (
   <div className="chat-container">
-    <WavesBackground />
     <div className="chat-history" ref={chatHistoryRef} style={{ position: "relative", zIndex: 1 }}>
             {loadingMessages && (
               <div style={{ textAlign: "center", padding: "12px", color: "rgba(255,255,255,.4)", fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>
@@ -2873,25 +3021,6 @@ stopGenerating(targetConvId);
                 )}
               </div>
             ))}
-
-            {streaming && (
-              <div className="chat-bubble bot streaming">
-                <div className="feedback-row-rating">
-                  <div
-                    style={{ fontSize: "13px", color: "rgba(255,255,255,.7)", fontFamily: "'Inter',sans-serif", lineHeight: 1.7, wordBreak: "break-word" }}
-                    dangerouslySetInnerHTML={{
-                      __html: markdownToHtml(activeStreamText) +
-                        `<span style="display:inline-block;width:2px;height:14px;background:rgba(255,255,255,.4);margin-left:2px;animation:blink 1s step-end infinite;vertical-align:text-bottom;"></span>`
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* {pipelineStatus && <div className="pipeline-status">⚙️ {pipelineStatus}</div>} */}
-            {/* <PipelineReasoning isStreaming={streaming} log={pipelineLog} duration={pipelineDuration} /> */}
-            {/* <PipelineStages isStreaming={streaming} log={pipelineLog} /> */}
-            {/* <GenerationProgress isStreaming={streaming} log={pipelineLog} /> */}
             <GenerationProgress isStreaming={streaming} log={pipelineLog} duration={pipelineDuration} />
             <ContextDebugBar conversationId={conversationId} isStreaming={streaming} />
             <div className="scroll-anchor" ref={chatEndRef} />
@@ -2943,6 +3072,8 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
+
+
 
 
 

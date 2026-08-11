@@ -12,13 +12,13 @@ import CommentMark from "./CommentMark.js";
 import CommentsPanel from "./CommentsPanel.jsx";
 import ToastHost from "./ToastHost.jsx";
 import { showToast } from "./toast.js";
+
 import "./Canvas.css";
 
+const GUEST_NAME_KEY = "canvas_guest_name";
 
 // const API_BASE_URL = "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-
-const GUEST_NAME_KEY = "canvas_guest_name";
 
 /*
  * Renders /shared/canvas/{token} — no login required.
@@ -49,6 +49,24 @@ function PublicCanvas({ token }) {
   const editable = permission === "editor";
   const canComment = permission === "commenter" || permission === "editor";
 
+  // editorProps handlers (handleKeyDown, handlePaste, etc.) are bound
+  // once when the editor is first created and are NOT reactively
+  // re-synced by Tiptap on every render the way onUpdate/
+  // onSelectionUpdate are — so reading `editable`/`canComment` directly
+  // inside them means seeing whatever they were on the very first
+  // render (permission's default "viewer"), forever, even after the
+  // real permission loads in. Refs sidestep that entirely.
+  const editableRef = useRef(editable);
+  const canCommentRef = useRef(canComment);
+
+  useEffect(() => {
+    editableRef.current = editable;
+  }, [editable]);
+
+  useEffect(() => {
+    canCommentRef.current = canComment;
+  }, [canComment]);
+
   const editor = useEditor({
     // Same reasoning as Canvas.jsx: bind ProseMirror's editable flag
     // to canComment (not editable) so selection tracking is reliable
@@ -73,7 +91,7 @@ function PublicCanvas({ token }) {
 
     editorProps: {
       handleKeyDown(view, event) {
-        if (editable) return false;
+        if (editableRef.current) return false;
 
         const navigationKeys = new Set([
           "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
@@ -89,11 +107,11 @@ function PublicCanvas({ token }) {
       },
 
       handleTextInput() {
-        return !editable;
+        return !editableRef.current;
       },
 
       handlePaste(view, event) {
-        if (!editable) {
+        if (!editableRef.current) {
           event.preventDefault();
           return true;
         }
@@ -101,7 +119,7 @@ function PublicCanvas({ token }) {
       },
 
       handleDrop(view, event) {
-        if (!editable) {
+        if (!editableRef.current) {
           event.preventDefault();
           return true;
         }
@@ -110,14 +128,14 @@ function PublicCanvas({ token }) {
 
       handleDOMEvents: {
         cut(view, event) {
-          if (!editable) {
+          if (!editableRef.current) {
             event.preventDefault();
             return true;
           }
           return false;
         },
         beforeinput(view, event) {
-          if (!editable) {
+          if (!editableRef.current) {
             event.preventDefault();
             return true;
           }
@@ -127,14 +145,14 @@ function PublicCanvas({ token }) {
     },
 
     onUpdate({ editor: ed }) {
-      if (!editable) return;
+      if (!editableRef.current) return;
       setSaveStatus("Unsaved changes");
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => saveContent(ed.getJSON()), 800);
     },
 
     onSelectionUpdate({ editor: ed }) {
-      if (!canComment) return;
+      if (!canCommentRef.current) return;
       const { from, to } = ed.state.selection;
 
       if (from === to) {
@@ -398,8 +416,8 @@ function PublicCanvas({ token }) {
 
       {!canComment && (
         <div className="canvas-public-banner">
-          You're viewing a shared canvas.{" "}
-          {permission === "viewer" ? "Sign in for edit access." : ""}
+          This link is view-only. Ask the canvas owner for comment or edit
+          access if you need it.
         </div>
       )}
 

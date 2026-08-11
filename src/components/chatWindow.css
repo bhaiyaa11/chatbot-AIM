@@ -39,7 +39,8 @@
   display: flex;
   flex-direction: column;
   font-family: var(--font-body);
-  background: var(--surface);
+  /* background: var(--surface); */
+  /* background: transparent; */
   color: var(--on-surface);
   overflow: hidden;
   position: relative;
@@ -57,14 +58,15 @@
 .chat-window::before {
   top: -20%; right: -15%;
   width: 600px; height: 600px;
-  background: rgba(255,255,255,0.03);
-  filter: blur(120px);
+  /* background: transparent;  */
+  /* filter: blur(120px); */
 }
 .chat-window::after {
   bottom: -15%; left: -10%;
   width: 500px; height: 500px;
-  background: rgba(255,255,255,0.02);
-  filter: blur(100px);
+  /* background: rgba(255,255,255,0.02); */
+  /* background: transparent; */
+  /* filter: blur(100px); */
 }
 
 /* ── Empty / Landing State ──────────────────────────────────── */
@@ -79,7 +81,8 @@
   align-items: center;
   justify-content: center;
   padding: 96px 40px 300px;
-  background: var(--surface);
+  /* background: var(--surface); */
+
 }
 
 .empty-wrapper h2 {
@@ -127,8 +130,8 @@
 
 .glass-panel {
   background: rgba(38, 38, 38, 0.55);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  /* backdrop-filter: blur(24px); */
+  /* -webkit-backdrop-filter: blur(24px); */
   border: var(--border-subtle);
   border-radius: var(--radius-xl);
   padding: 20px 24px;
@@ -433,7 +436,7 @@ transform:none;
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  /* background: var(--surface); */
   padding: 28px 40px;
   height: 100vh;
   box-sizing: border-box;
@@ -502,8 +505,8 @@ transform:none;
 
 .chat-input-inner {
   background: rgba(38,38,38,0.55);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  /* backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px); */
   border: var(--border-subtle);
   border-radius: var(--radius-xl);
   padding: 12px 14px;
@@ -654,7 +657,7 @@ transform:none;
   z-index: 999;
   border: var(--border-subtle);
   box-shadow: var(--shadow-xl);
-  backdrop-filter: blur(16px);
+  /* backdrop-filter: blur(16px); */
 }
 
 .floating-menu button {
