@@ -1,4 +1,4 @@
-.canvas-page {
+/* .canvas-page {
   flex: 1;
   min-width: 0;
   height: 100vh;
@@ -7,7 +7,26 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+} */
+
+
+
+.canvas-page {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 100vh;
+
+  background: #111111;
+  color: #e5e5e5;
+
+  display: flex;
+  flex-direction: column;
+
+  overflow: hidden;
+  box-sizing: border-box;
 }
+
 
 /* ─────────────────────────────────────────
    TOP BAR
@@ -262,22 +281,53 @@
    BODY (document + comments sidebar)
 ───────────────────────────────────────── */
 
-.canvas-body {
+/* .canvas-body {
   flex: 1;
   display: flex;
   min-height: 0;
   overflow: hidden;
+} */
+
+.canvas-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
+  width: 100%;
+
+  display: flex;
+  flex-direction: row;
+
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* ─────────────────────────────────────────
    DOCUMENT AREA
 ───────────────────────────────────────── */
 
-.canvas-document-area {
+/* .canvas-document-area {
   flex: 1;
   overflow-y: auto;
   padding: 50px 30px 100px;
   background: #111111;
+} */
+
+.canvas-document-area {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+
+  width: 100%;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  padding: 50px 40px 100px;
+
+  background: #111111;
+
+  box-sizing: border-box;
 }
 
 .canvas-document-area::-webkit-scrollbar {
@@ -297,7 +347,7 @@
    DOCUMENT
 ───────────────────────────────────────── */
 
-.canvas-document {
+/* .canvas-document {
   position: relative;
 
   width: min(1000px, 100%);
@@ -312,6 +362,27 @@
   border-radius: 8px;
 
   padding: 70px 80px;
+
+  box-sizing: border-box;
+} */
+
+
+.canvas-document {
+  position: relative;
+
+  width: min(1000px, 100%);
+  max-width: 1000px;
+
+  min-height: calc(100vh - 220px);
+
+  margin: 0 auto;
+
+  background: #171717;
+
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+
+  padding: 60px 70px;
 
   box-sizing: border-box;
 }
@@ -791,7 +862,9 @@
 ───────────────────────────────────────── */
 
 .canvas-sidebar {
-  width: 260px;
+  width: 280px;
+  min-width: 80px;
+  max-width: 280px;
   flex-shrink: 0;
   height: 100vh;
 
@@ -1011,17 +1084,45 @@
    WORKSPACE (sidebar + gated canvas, no router)
 ───────────────────────────────────────── */
 
-.canvas-workspace {
+/* .canvas-workspace {
   display: flex;
   height: 100vh;
   overflow: hidden;
   width: 100%;
-}
+} */
 
+.canvas-workspace {
+  display: flex;
+
+  width: 100%;
+  height: 100vh;
+
+  min-width: 0;
+  min-height: 0;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+/* 
 .canvas-workspace-main {
   flex: 1;
   min-width: 0;
   height: 100vh;
+} */
+
+.canvas-workspace-main {
+  flex: 1 1 auto;
+
+  width: 0;
+  min-width: 0;
+  min-height: 0;
+
+  height: 100vh;
+
+  overflow: hidden;
+
+  box-sizing: border-box;
 }
 
 .canvas-workspace-empty {
@@ -1141,6 +1242,8 @@
     height: auto;
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 280px;
+    max-width: 280px;
   }
 }
 
@@ -1204,4 +1307,27 @@
 
 .canvas-sidebar:not(.collapsed) {
   width: 280px;
+}
+
+
+/* =========================================================
+   LAYOUT SAFETY
+   ========================================================= */
+
+.canvas-page *,
+.canvas-page *::before,
+.canvas-page *::after {
+  box-sizing: border-box;
+}
+
+.canvas-body > * {
+  min-width: 0;
+}
+
+.canvas-document-area {
+  flex: 1 1 0%;
+}
+
+.canvas-document-area > * {
+  max-width: 100%;
 }

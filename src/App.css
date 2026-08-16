@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  
 }
 
 .app {
@@ -9,17 +10,20 @@
   flex-direction: row;    
   height: 100%;
   width: 100%;
+  
 }
 
 .main-section {
   display: flex;
   flex-direction: column;
   flex: 1;
+  
 }
 
 .content {
   flex-direction: row;
   flex: 1;
+  
 }
 
 .app-container {
@@ -27,6 +31,7 @@
   flex-direction: row;
   height: 100vh;
   width: 100%;
+  
 }
 
 .app-layout {
@@ -45,6 +50,7 @@
 .workspace-background {
   position: absolute;
   inset: 0;
+  /* background-color: black; */
 
   width: 100%;
   height: 100%;

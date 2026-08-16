@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import Image from "@tiptap/extension-image";
+import AudioEmbed from "./AudioEmbed.js";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
@@ -12,6 +14,9 @@ import CommentMark from "./CommentMark.js";
 import CommentsPanel from "./CommentsPanel.jsx";
 import ToastHost from "./ToastHost.jsx";
 import { showToast } from "./toast.js";
+
+
+
 
 import "./Canvas.css";
 
@@ -74,19 +79,40 @@ function PublicCanvas({ token }) {
     // input handlers instead. Server is still the actual boundary —
     // see update_public_canvas_content's link_permission check.
     editable: canComment,
+    // extensions: [
+    //   StarterKit,
+    //   Table.configure({ resizable: false, HTMLAttributes: { class: "canvas-table" } }),
+    //   TableRow,
+    //   TableHeader,
+    //   TableCell,
+    //   CommentMark,
+    //   Placeholder.configure({
+        // placeholder: editable
+        //   ? "Start writing or paste your script here..."
+        //   : "This canvas is empty.",
+    //   }),
+    // ],
+    
+
     extensions: [
       StarterKit,
-      Table.configure({ resizable: false, HTMLAttributes: { class: "canvas-table" } }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: "canvas-table" },
+      }),
       TableRow,
       TableHeader,
       TableCell,
       CommentMark,
+      Image,
+      AudioEmbed,
       Placeholder.configure({
         placeholder: editable
           ? "Start writing or paste your script here..."
           : "This canvas is empty.",
       }),
     ],
+
     content: "<p></p>",
 
     editorProps: {

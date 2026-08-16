@@ -11,23 +11,20 @@ import "./Canvas.css";
  * param and onSelect/onCreated for navigate() — CanvasSidebar and
  * CanvasAccessGate don't need to change either way.
  */
-function CanvasWorkspace() {
-  const [selectedCanvasId, setSelectedCanvasId] = useState(null);
 
+function CanvasWorkspace({ activeCanvasId, onSelect, onCreated, onDeleted }) {
   return (
     <div className="canvas-workspace">
       <CanvasSidebar
-        activeCanvasId={selectedCanvasId}
-        onSelect={setSelectedCanvasId}
-        onCreated={setSelectedCanvasId}
-        onDeleted={(id) => {
-          if (id === selectedCanvasId) setSelectedCanvasId(null);
-        }}
+        activeCanvasId={activeCanvasId}
+        onSelect={onSelect}
+        onCreated={onCreated}
+        onDeleted={onDeleted}
       />
 
       <div className="canvas-workspace-main">
-        {selectedCanvasId ? (
-          <CanvasAccessGate canvasId={selectedCanvasId} />
+        {activeCanvasId ? (
+          <CanvasAccessGate canvasId={activeCanvasId} />
         ) : (
           <div className="canvas-workspace-empty">
             <p>Select a canvas from the sidebar, or create a new one.</p>

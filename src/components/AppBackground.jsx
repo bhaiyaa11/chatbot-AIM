@@ -10,30 +10,30 @@ const AppBackground = () => (
       pointerEvents: "none",
     }}
   >
-    <Grainient
-      color1="#1a1c26"
-      color2="#24126b"
-      color3="#3a135e"
-      timeSpeed={0.3}
-      colorBalance={0.35}
-      warpStrength={1.05}
-      warpFrequency={0}
-      warpSpeed={0.2}
-      warpAmplitude={5}
-      blendAngle={-180}
-      blendSoftness={0.21}
-      rotationAmount={0}
-      noiseScale={0}
-      grainAmount={0.1}
-      grainScale={1.3}
-      grainAnimated={false}
-      contrast={1.8}
-      gamma={1.0}
-      saturation={1.0}
-      centerX={0.38}
-      centerY={0.0}
-      zoom={2.65}
-    />
+<Grainient
+  color1="#0c0a14"
+  color2="#1c1a46"
+  color3="#2f2ba3"
+  timeSpeed={0}
+  colorBalance={0}
+  warpStrength={1.05}
+  warpFrequency={0}
+  warpSpeed={0.1}
+  warpAmplitude={5}
+  blendAngle={-180}
+  blendSoftness={0.21}
+  rotationAmount={0}
+  noiseScale={0}
+  grainAmount={0.05}
+  grainScale={1.5}
+  grainAnimated={false}
+  contrast={1.3}
+  gamma={1.0}
+  saturation={0.9}
+  centerX={0}
+  centerY={0}
+  zoom={1}
+/>
   </div>
 );
 

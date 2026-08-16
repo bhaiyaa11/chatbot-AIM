@@ -17,18 +17,13 @@ function App() {
   const { session, loading } = useAuth();
 
   const [activeWorkspace, setActiveWorkspace] = useState("chat");
+  const [selectedCanvasId, setSelectedCanvasId] = useState(null);
 
-  // Public share links ("anyone with the link") must work for people
-  // without an account — this has to be checked before the login gate
-  // below, or every shared link just bounces to the login screen.
   if (window.location.pathname.startsWith("/shared/canvas/")) {
     const token = window.location.pathname.split("/shared/canvas/")[1];
     return <PublicCanvas token={token} />;
   }
 
-  // Restricted-canvas invite links: a lightweight email + one-time-code
-  // gate instead of the full Login flow — the client may not have (or
-  // want) a full account. Also has to be checked before the login gate.
   if (window.location.pathname.startsWith("/canvas-access/")) {
     const canvasId = window.location.pathname.split("/canvas-access/")[1];
     return <CanvasEntry canvasId={canvasId} />;
@@ -46,30 +41,33 @@ function App() {
         <div className="app-layout">
         {/* ONE SHARED BACKGROUND */}
         <div className="workspace-background">
-          <Grainient
-            color1="#393d4f"
-            color2="#6446de"
-            color3="#907ba3"
-            timeSpeed={0.3}
-            colorBalance={-0.1}
-            warpStrength={0.65}
-            warpFrequency={0}
-            warpSpeed={0.2}
-            warpAmplitude={5}
-            blendAngle={-180}
-            blendSoftness={0.18}
-            rotationAmount={0}
-            noiseScale={0}
-            grainAmount={0}
-            grainScale={0.3}
-            grainAnimated={false}
-            contrast={1.8}
-            gamma={1.0}
-            saturation={1.05}
-            centerX={0.38}
-            centerY={-0.02}
-            zoom={0.8}
-          />
+
+<Grainient
+  color1="#12122d"
+  color2="#3c2f5f"
+  color3="#2c1a5d"
+  timeSpeed={0.15}
+  colorBalance={0}
+  warpStrength={0}
+  warpFrequency={0}
+  warpSpeed={0.1}
+  warpAmplitude={5}
+  blendAngle={90}
+  blendSoftness={0.21}
+  rotationAmount={0}
+  noiseScale={0}
+  grainAmount={0.05}
+  grainScale={1.5}
+  grainAnimated={false}
+  contrast={1.3}
+  gamma={1.0}
+  saturation={0.9}
+  centerX={0}
+  centerY={0}
+  zoom={1}
+/>
+
+
         </div>
 
           <Ssidebar
@@ -78,11 +76,23 @@ function App() {
           />
 
           {activeWorkspace === "chat" && (
-            <ChatWindow />
+            <ChatWindow
+              onShareToCanvas={(canvasId) => {
+                setSelectedCanvasId(canvasId);
+                setActiveWorkspace("canvas");
+              }}
+            />
           )}
 
           {activeWorkspace === "canvas" && (
-            <CanvasWorkspace />
+            <CanvasWorkspace
+              activeCanvasId={selectedCanvasId}
+              onSelect={setSelectedCanvasId}
+              onCreated={setSelectedCanvasId}
+              onDeleted={(id) => {
+                if (id === selectedCanvasId) setSelectedCanvasId(null);
+              }}
+            />
           )}
 
         </div>

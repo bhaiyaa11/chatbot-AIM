@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-
+import Image from "@tiptap/extension-image";
+import AudioEmbed from "./AudioEmbed.js";
 import { Table } from "@tiptap/extension-table";
 import { TableRow } from "@tiptap/extension-table-row";
 import { TableCell } from "@tiptap/extension-table-cell";
@@ -14,10 +15,17 @@ import CommentMark from "./CommentMark.js";
 import SharePanel from "./SharePanel.jsx";
 import CommentsPanel from "./CommentsPanel.jsx";
 import { showToast } from "./toast.js";
-
+import StoryboardCanvas from "./storyboard/StoryboardCanvas.jsx";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import CanvasToolbar from "./CanvasToolbar.jsx";
 
 import "./Canvas.css";
-
 
 // const API_BASE_URL = "http://127.0.0.1:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -90,24 +98,6 @@ function markdownTableToTiptap(text) {
 }
 
 /* ─────────────────────────────────────────────
-   TOOLBAR BUTTON
-───────────────────────────────────────────── */
-
-function ToolbarButton({ onClick, active, children, title }) {
-  return (
-    <button
-      type="button"
-      className={`canvas-toolbar-button ${active ? "active" : ""}`}
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      title={title}
-    >
-      {children}
-    </button>
-  );
-}
-
-/* ─────────────────────────────────────────────
    CANVAS
 ───────────────────────────────────────────── */
 
@@ -156,6 +146,10 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
   const contentSaveTimer = useRef(null);
   const titleSaveTimer = useRef(null);
   const editorContainerRef = useRef(null);
+
+  const [activeTab, setActiveTab] = useState("script"); // "script" | "storyboard"
+  const [storyboardData, setStoryboardData] = useState(null);
+  const [storyboardComments, setStoryboardComments] = useState([]);
 
   useEffect(() => {
     canvasIdRef.current = canvasId;
@@ -209,7 +203,6 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     // The real security boundary is server-side regardless (see
     // update_canvas_content in canvas_manager.py) — this is UX,
     // not the authorization check.
-    editable: canComment,
     extensions: [
       StarterKit,
       Table.configure({
@@ -220,6 +213,19 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       TableHeader,
       TableCell,
       CommentMark,
+      Image,
+      AudioEmbed,
+      Underline,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        HTMLAttributes: { class: "canvas-link", rel: "noopener noreferrer" },
+      }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
       Placeholder.configure({
         placeholder: "Start writing or paste your script here...",
       }),
@@ -367,6 +373,10 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       if (editor && hasRealContent) {
         editor.commands.setContent(canvas.content, false);
       }
+
+      setStoryboardData(
+        canvas.storyboard || { version: 1, viewMode: "linear", frames: [], nodes: [] }
+      );
     };
 
     const init = async () => {
@@ -497,6 +507,31 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     }
   };
 
+  const handleJumpToScene = useCallback((sceneData) => {
+    setActiveTab("script");
+
+    // The Tiptap editor's DOM (including the AudioEmbed node's <audio>
+    // tag) only exists while the script tab is mounted — give React a
+    // beat to switch tabs and remount it before querying for the element.
+    setTimeout(() => {
+      const audioEl = editorContainerRef.current?.querySelector("audio");
+      if (!audioEl) {
+        showToast("No voiceover audio found in this script");
+        return;
+      }
+
+      if (typeof sceneData?.audioStart === "number") {
+        audioEl.currentTime = sceneData.audioStart;
+      }
+
+      audioEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      audioEl.play().catch(() => {
+        // Autoplay can be blocked by the browser — the seek + scroll
+        // still happened, user just needs to hit play manually.
+      });
+    }, 50);
+  }, []);
+
   const submitComment = async () => {
     const headers = authHeaders();
     if (!pendingAnchor || !composerText.trim() || !canvasId || !headers) return;
@@ -569,6 +604,76 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       setComments((prev) => prev.filter((c) => c.id !== commentId));
     } catch (err) {
       console.error("Failed to delete comment:", err);
+    }
+  };
+
+  const loadStoryboardComments = async () => {
+    const headers = authHeaders();
+    if (!canvasId || !headers) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/canvas/${canvasId}/storyboard-comments`, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || "Failed to load storyboard comments");
+      setStoryboardComments(data.comments || []);
+    } catch (err) {
+      console.error("Failed to load storyboard comments:", err);
+    }
+  };
+
+  useEffect(() => {
+    if (loaded && canvasId) loadStoryboardComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, canvasId]);
+
+  const createStoryboardComment = async ({ pin_x, pin_y, content, node_id }) => {
+    const headers = authHeaders();
+    if (!canvasId || !headers) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/canvas/${canvasId}/storyboard-comments`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ pin_x, pin_y, content, node_id: node_id || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || "Failed to add comment");
+      setStoryboardComments((prev) => [...prev, data.comment]);
+    } catch (err) {
+      console.error("Failed to create storyboard comment:", err);
+      showToast(err.message || "Failed to add comment");
+    }
+  };
+
+  const resolveStoryboardComment = async (commentId, resolved) => {
+    const headers = authHeaders();
+    if (!canvasId || !headers) return;
+    try {
+      const res = await fetch(
+        `${API_BASE_URL}/canvas/${canvasId}/storyboard-comments/${commentId}/resolve`,
+        { method: "PATCH", headers, body: JSON.stringify({ resolved }) }
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.detail || "Failed to update comment");
+      setStoryboardComments((prev) => prev.map((c) => (c.id === commentId ? data.comment : c)));
+    } catch (err) {
+      console.error("Failed to resolve storyboard comment:", err);
+    }
+  };
+
+  const deleteStoryboardComment = async (commentId) => {
+    const headers = authHeaders();
+    if (!canvasId || !headers) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/canvas/${canvasId}/storyboard-comments/${commentId}`, {
+        method: "DELETE",
+        headers,
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.detail || "Failed to delete comment");
+      }
+      setStoryboardComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (err) {
+      console.error("Failed to delete storyboard comment:", err);
     }
   };
 
@@ -907,6 +1012,28 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
         </div>
 
         <div className="canvas-actions">
+          <div style={{ display: "flex", gap: "4px", marginRight: "8px" }}>
+            {["script", "storyboard"].map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                style={{
+                  background: activeTab === tab ? "rgba(255,255,255,.1)" : "transparent",
+                  border: "1px solid rgba(255,255,255,.1)",
+                  borderRadius: "9999px",
+                  color: activeTab === tab ? "rgba(255,255,255,.9)" : "rgba(255,255,255,.5)",
+                  fontSize: "11px",
+                  fontFamily: "'Inter',sans-serif",
+                  padding: "5px 14px",
+                  cursor: "pointer",
+                }}
+              >
+                {tab === "script" ? "Script" : "Storyboard"}
+              </button>
+            ))}
+          </div>
+
           <span className="canvas-save-status">{statusLabel}</span>
 
           <button
@@ -957,112 +1084,68 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
         </div>
       </div>
 
-      {/* ───────────────────── FORMATTING TOOLBAR ───────────────────── */}
-      {editable && (
-        <div className="canvas-format-toolbar">
-          <ToolbarButton
-            title="Bold"
-            active={editor.isActive("bold")}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-          >
-            <strong>B</strong>
-          </ToolbarButton>
+      {activeTab === "script" && editable && <CanvasToolbar editor={editor} />}
 
-          <ToolbarButton
-            title="Italic"
-            active={editor.isActive("italic")}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <em>I</em>
-          </ToolbarButton>
-
-          <ToolbarButton
-            title="Heading 1"
-            active={editor.isActive("heading", { level: 1 })}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          >
-            H1
-          </ToolbarButton>
-
-          <ToolbarButton
-            title="Heading 2"
-            active={editor.isActive("heading", { level: 2 })}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            H2
-          </ToolbarButton>
-
-          <div className="canvas-toolbar-divider" />
-
-          <ToolbarButton
-            title="Bullet list"
-            active={editor.isActive("bulletList")}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            • List
-          </ToolbarButton>
-
-          <ToolbarButton
-            title="Numbered list"
-            active={editor.isActive("orderedList")}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            1. List
-          </ToolbarButton>
-
-          <div className="canvas-toolbar-divider" />
-
-          <ToolbarButton title="Undo" onClick={() => editor.chain().focus().undo().run()}>
-            ↶
-          </ToolbarButton>
-
-          <ToolbarButton title="Redo" onClick={() => editor.chain().focus().redo().run()}>
-            ↷
-          </ToolbarButton>
-        </div>
-      )}
-
-      {/* ───────────────────────── DOCUMENT ───────────────────────── */}
+      {/* ───────────────────────── BODY (document/storyboard + comments) ───────────────────────── */}
       <div className="canvas-body">
-        <div className="canvas-document-area">
-          <div className="canvas-document" ref={editorContainerRef}>
-            <EditorContent editor={editor} className="canvas-editor" />
+        {activeTab === "script" && (
+          <div className="canvas-document-area">
+            <div className="canvas-document" ref={editorContainerRef}>
+              <EditorContent editor={editor} className="canvas-editor" />
 
-            {selectionRect && pendingAnchor && (
-              <div
-                className="canvas-comment-composer"
-                style={{ top: selectionRect.top, left: selectionRect.left }}
-              >
-                <textarea
-                  autoFocus
-                  placeholder="Leave a comment…"
-                  value={composerText}
-                  onChange={(e) => setComposerText(e.target.value)}
-                />
-                <div className="canvas-comment-composer-actions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSelectionRect(null);
-                      setPendingAnchor(null);
-                      setComposerText("");
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="canvas-comment-submit"
-                    onClick={submitComment}
-                    disabled={!composerText.trim()}
-                  >
-                    Comment
-                  </button>
+              {selectionRect && pendingAnchor && (
+                <div
+                  className="canvas-comment-composer"
+                  style={{ top: selectionRect.top, left: selectionRect.left }}
+                >
+                  <textarea
+                    autoFocus
+                    placeholder="Leave a comment…"
+                    value={composerText}
+                    onChange={(e) => setComposerText(e.target.value)}
+                  />
+                  <div className="canvas-comment-composer-actions">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectionRect(null);
+                        setPendingAnchor(null);
+                        setComposerText("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="canvas-comment-submit"
+                      onClick={submitComment}
+                      disabled={!composerText.trim()}
+                    >
+                      Comment
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === "storyboard" && loaded && (
+          <div style={{ height: "100%", width: "100%" }}>
+            <StoryboardCanvas
+              canvasId={canvasId}
+              authHeaders={authHeaders}
+              initialStoryboard={storyboardData}
+              editable={editable}
+              comments={storyboardComments}
+              currentUserId={currentUserId}
+              onCreateComment={createStoryboardComment}
+              onResolveComment={resolveStoryboardComment}
+              onDeleteComment={deleteStoryboardComment}
+              onJumpToScene={handleJumpToScene}
+            />
+          </div>
+        )}
 
         {commentsOpen && (
           <CommentsPanel
