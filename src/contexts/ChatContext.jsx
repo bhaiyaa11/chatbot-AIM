@@ -6,6 +6,7 @@ const ChatContext = createContext();
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
+
 const CONVERSATIONS_PAGE_SIZE = 20;
 
 export const ChatProvider = ({ children }) => {

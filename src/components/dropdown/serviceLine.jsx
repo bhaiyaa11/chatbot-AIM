@@ -145,10 +145,10 @@ function ServiceLine({ onChange }) {
 
   const displayLabel =
     selectedServiceLines.length === 0
-      ? "Service Line"
+      ? "Services"
       : selectedServiceLines.length === 1
       ? selectedServiceLines[0].label
-      : `${selectedServiceLines.length} Service Lines`;
+      : `${selectedServiceLines.length} Services`;
 
   return (
     <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
@@ -180,7 +180,7 @@ function ServiceLine({ onChange }) {
             <input
               autoFocus
               type="text"
-              placeholder="Search service lines..."
+              placeholder="Search services..."
               value={searchText}
               className="dropdown-search"
               onChange={(e) => {
@@ -203,7 +203,7 @@ function ServiceLine({ onChange }) {
           )} */}
           {filteredServiceLines.length === 0 && (
             <div className="dropdown-empty">
-              No service lines found.
+              No services found.
             </div>
           )}
 

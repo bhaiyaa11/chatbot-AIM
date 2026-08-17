@@ -27,8 +27,8 @@ import RedoRoundedIcon from "@mui/icons-material/RedoRounded";
 import IosShareRoundedIcon from "@mui/icons-material/IosShareRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-
-
+import LinearProgress from '@mui/material/LinearProgress';
+import Box from "@mui/material/Box";
 
 
 // const API_BASE_URL = "http://localhost:8000";
@@ -36,6 +36,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Storage key for persisting script canvas content per bot message
 const scriptKey = (msgId) => `script_content_${msgId}`;
+const storyboardKey = (msgId) => `storyboard_job_${msgId}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // safeWriteClipboard — clipboard helper with execCommand fallback
@@ -626,7 +627,27 @@ const downloadVoiceOver = async () => {
           onClick={(e) => {
             e.stopPropagation();
             seekToScene(scene);}}
-          title={`Scene ${scene.scene}`}style={{position: "absolute",left: `${position}%`,top: "50%",transform: "translate(-50%, -50%)",width: "3px",height: "12px",padding: 0,border: "none",borderRadius: "2px",background: "rgba(255,255,255,.75)",cursor: "pointer",zIndex: 3,}}/>);
+          title={`Scene ${scene.scene}`}
+          style={{
+  position: "absolute",
+  left: `${position}%`,
+  top: "50%",
+  transform: "translate(-50%, -50%)",
+
+  width: "12px",
+  height: "4px",
+
+  padding: 0,
+  border: "none",
+  borderRadius: "0px",
+
+  background: "#18181d",
+
+  cursor: "pointer",
+  zIndex: 3,
+}}
+          />
+        );
        })}
         <div
           className="ap-seek-thumb" style={{position: "absolute",left: `calc(${progress * 100}% - 6px)`,width: "12px",height: "12px",borderRadius: "50%",background: "#fff",boxShadow: "0 0 6px rgba(168,85,247,.6)",opacity: playing ? 1 : 0.6,transition: "opacity .15s",pointerEvents: "none",zIndex: 4,}} />
@@ -655,8 +676,15 @@ const downloadVoiceOver = async () => {
   );
 };
 
-const StoryboardPanel = ({ images, totalScenes, status, onClose }) => {
+const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateScene }) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
+  const [editPrompt, setEditPrompt] = useState("");
+  const [editMode, setEditMode] = useState("edit"); // "edit" | "regenerate"
+
+    // reset the box whenever you move to a different scene
+  useEffect(() => {
+    setEditPrompt("");
+  }, [expandedIndex]);
 
   useEffect(() => {
     if (expandedIndex === null) return;
@@ -670,6 +698,13 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose }) => {
   }, [expandedIndex, images.length]);
 
   const expanded = expandedIndex !== null ? images[expandedIndex] : null;
+    const isGenerating = expanded?.scene_status === "generating";
+
+  const submitEdit = () => {
+    if (!expanded || !editPrompt.trim() || isGenerating) return;
+    onRegenerateScene?.(expanded.scene_number, editPrompt, editMode);
+    setEditPrompt("");
+  };
 
   return (
     <>
@@ -752,13 +787,174 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose }) => {
               )}
             </div>
 
+
             {expanded.caption && (
-              <p style={{ fontSize: "13px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.7)", margin: 0, lineHeight: 1.6 }}>{expanded.caption}</p>
-            )}
+  <p style={{ fontSize: "13px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.7)", margin: 0, lineHeight: 1.6 }}>{expanded.caption}</p>
+)}
+
+{/* ── Regenerate / Edit box ── */}
+<div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "12px", padding: "12px" }}>
+  <div style={{ display: "flex", gap: "6px" }}>
+    {[["edit", "✎ Edit this image"], ["regenerate", "🔄 Regenerate fresh"]].map(([val, label]) => (
+      <button
+        key={val}
+        onClick={() => setEditMode(val)}
+        style={{
+          background: editMode === val ? "rgba(96,165,250,.18)" : "transparent",
+          border: `1px solid ${editMode === val ? "rgba(96,165,250,.5)" : "rgba(255,255,255,.1)"}`,
+          borderRadius: "9999px",
+          color: editMode === val ? "rgba(150,190,255,.95)" : "rgba(255,255,255,.5)",
+          cursor: "pointer",
+          fontSize: "11px",
+          fontFamily: "'Inter',sans-serif",
+          padding: "5px 12px",
+        }}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+
+  <div style={{ display: "flex", gap: "8px" }}>
+    <input
+      type="text"
+      value={editPrompt}
+      onChange={(e) => setEditPrompt(e.target.value)}
+      onKeyDown={(e) => { if (e.key === "Enter") submitEdit(); }}
+      disabled={isGenerating}
+      placeholder={editMode === "edit" ? "e.g. make the lighting warmer, remove the laptop…" : "Describe the new image from scratch…"}
+      style={{
+        flex: 1,
+        background: "rgba(255,255,255,.05)",
+        border: "1px solid rgba(255,255,255,.1)",
+        borderRadius: "9999px",
+        color: "rgba(255,255,255,.85)",
+        fontSize: "12px",
+        fontFamily: "'Inter',sans-serif",
+        padding: "8px 14px",
+        outline: "none",
+        opacity: isGenerating ? 0.5 : 1,
+      }}
+    />
+    <button
+      onClick={submitEdit}
+      disabled={isGenerating || !editPrompt.trim()}
+      style={{
+        background: "rgba(255,255,255,.92)",
+        border: "none",
+        borderRadius: "9999px",
+        color: "#0d0d0d",
+        cursor: isGenerating || !editPrompt.trim() ? "not-allowed" : "pointer",
+        fontSize: "12px",
+        fontWeight: 600,
+        fontFamily: "'Inter',sans-serif",
+        padding: "8px 16px",
+        opacity: isGenerating || !editPrompt.trim() ? 0.5 : 1,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {isGenerating ? (
+        <span style={{ display: "inline-block", width: "12px", height: "12px", border: "1.5px solid rgba(0,0,0,.2)", borderTopColor: "#0d0d0d", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+      ) : (
+        "Apply"
+      )}
+    </button>
+  </div>
+</div>
+
+
           </div>
         </div>
       )}
     </>
+  );
+};
+
+
+
+
+const MediaGenerationProgress = ({ value, label, buffer = 100 }) => {
+  return (
+    <div
+      style={{
+        padding: "10px 14px 12px",
+        background: "#111",
+        borderTop: "1px solid rgba(255,255,255,.06)",
+        borderBottom: "1px solid rgba(255,255,255,.06)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "7px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "10px",
+            fontFamily: "'Inter',sans-serif",
+            color: "rgba(255,255,255,.45)",
+            textTransform: "uppercase",
+            letterSpacing: ".06em",
+          }}
+        >
+          {label}
+        </span>
+
+        <span
+          style={{
+            fontSize: "10px",
+            fontFamily: "'Inter',sans-serif",
+            color: "rgba(255,255,255,.35)",
+          }}
+        >
+          {Math.round(value)}%
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "4px",
+          borderRadius: "999px",
+          background: "rgba(255,255,255,.08)",
+          overflow: "hidden",
+        }}
+      >
+        {/* Buffer */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: "100%",
+            width: `${Math.min(buffer, 100)}%`,
+            borderRadius: "999px",
+            background: "rgba(0, 0, 1, 0.85)",
+            
+            transition: "width .3s ease",
+          }}
+        />
+
+        {/* Actual progress */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            height: "100%",
+            width: `${Math.min(value, 100)}%`,
+            borderRadius: "999px",
+            background: "rgba(246, 245, 247, 0.85)",
+            transition: "width .3s ease",
+          }}
+        />
+      </div>
+    </div>
   );
 };
 
@@ -809,7 +1005,8 @@ const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
   { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
-{ value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
+
+  { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
   { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"], age: "mid", gender: "female" },
   { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
   { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
@@ -866,6 +1063,7 @@ const VOICES = [
  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
   { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
   { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
+
   { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
   { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"], age: "young", gender: "female" },
   { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"], age: "young", gender: "male" },
@@ -882,7 +1080,19 @@ const DEFAULT_VOICE  = VOICES.find(v => v.accent === DEFAULT_accent && v.tone.in
 // ─────────────────────────────────────────────────────────────────────────────
 const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const { session } = useAuth();     
-  const canvasRef         = useRef(null);
+  const getAuthHeaders = useCallback(() => {
+    const token = session?.access_token;
+
+    if (!token) {
+      throw new Error("Authentication required");
+    }
+
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }, [session]);
+
+  const canvasRef = useRef(null);
   const savedRange        = useRef(null);
   const undoStack         = useRef([]);
   const redoStack         = useRef([]);
@@ -910,8 +1120,13 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [audioSrc,        setAudioSrc]        = useState(null);
   const [showPlayer,      setShowPlayer]      = useState(false);
   const [visualizing,      setVisualizing]      = useState(false);
+  // const [generationProgress, setGenerationProgress] = useState(0);
+  const [voiceProgress, setVoiceProgress] = useState(0);
+  const [visualProgress, setVisualProgress] = useState(0);
   const [storyboardImages, setStoryboardImages] = useState([]);
   const [showStoryboard,   setShowStoryboard]   = useState(false);
+  const [storyboardJobId, setStoryboardJobId] = useState(null);
+  const [storyboardVideoType, setStoryboardVideoType] = useState(null);
   // const [finalStoryboardVideo, setFinalStoryboardVideo] = useState(null);
   const [storyboardStatus, setStoryboardStatus] = useState(null);
   const [storyboardTotal, setStoryboardTotal] = useState(0);
@@ -1074,116 +1289,464 @@ const buildSceneSegments = useCallback((timings) => {
   return segments;
 }, []);
 
+
+
 const generateVoiceOver = async () => {
+  let progressTimer;
+
   try {
     setVoiceGenerating(true);
+    setVoiceProgress(5);
+
+    progressTimer = setInterval(() => {
+      setVoiceProgress((prev) => {
+        if (prev >= 90) return prev;
+
+        const increment =
+          prev < 30 ? 4 :
+          prev < 60 ? 2 :
+          prev < 80 ? 1 :
+          0.5;
+
+        return Math.min(prev + increment, 90);
+      });
+    }, 400);
 
     const currentScript = htmlToMarkdown(canvasRef.current).trim();
     rawMarkdownRef.current = currentScript;
 
     if (!currentScript) {
+      clearInterval(progressTimer);
       setVoiceGenerating(false);
+      setGenerationProgress(0);
       return;
     }
 
-    const params = new URLSearchParams({
-      script: currentScript,
-      voice_type: selectedVoice,
-    });
-
     const response = await fetch(
-  `${API_BASE_URL}/generate-voice`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      script: currentScript,
-      voice_type: selectedVoice
-    })
-  }
-);
+      `${API_BASE_URL}/generate-voice`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          script: currentScript,
+          voice_type: selectedVoice,
+        }),
+      }
+    );
 
+    if (!response.ok) {
+      throw new Error(`Voice generation failed: ${response.status}`);
+    }
 
-const data = await response.json();
+    const data = await response.json();
 
-const timings = data.word_timings || [];
+    const timings = data.word_timings || [];
 
+    setWordTimings(timings);
 
+    const segments = buildSceneSegments(timings);
 
-setWordTimings(timings);
+    setSceneSegments(segments);
 
-// Build scene segmentation using the timings
-// returned directly from the backend.
-const segments = buildSceneSegments(timings);
-
-setSceneSegments(segments);
-
-setAudioSrc(`${API_BASE_URL}${data.audio_url}`);
-
-setShowPlayer(true);
-setVoiceGenerating(false);
-
-setAudioSrc(
-  `${API_BASE_URL}${data.audio_url}`
-);
+    setAudioSrc(`${API_BASE_URL}${data.audio_url}`);
     setShowPlayer(true);
+    clearInterval(progressTimer);
+
+    setVoiceProgress(100);
+
+    setTimeout(() => {
+      setVoiceGenerating(false);
+      setVoiceProgress(0);
+    }, 400);
+
+    clearInterval(progressTimer);
+
+    // Actual completion
+    setGenerationProgress(100);
+
+    // Let the user see 100% briefly
+    setTimeout(() => {
+      setVoiceGenerating(false);
+      setGenerationProgress(0);
+    }, 400);
 
   } catch (err) {
-    console.error(err);
+    console.error("Voice generation failed:", err);
+
+    if (progressTimer) {
+      clearInterval(progressTimer);
+    }
+
     setVoiceGenerating(false);
+    setVoiceProgress(0);
   }
 };
 
 const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
 
-const generateStoryboard = async (videoType) => {
+
+const restoreStoryboard = useCallback(async () => {
+  if (!msgId) return;
+
+  let saved = null;
+
   try {
-    setVisualizing(true);
-    const currentScript = rawMarkdownRef.current?.trim() ?? "";
-    if (!currentScript) { setVisualizing(false); return; }
+    const raw = localStorage.getItem(
+      storyboardKey(msgId)
+    );
 
-    const startRes = await fetch(`${API_BASE_URL}/generate-storyboard`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ script: currentScript, video_type: videoType, quality: "quality" }),
-    });
-    if (!startRes.ok) throw new Error(`Failed to start: ${startRes.status}`);
-    const { job_id } = await startRes.json();
+    if (!raw) return;
 
-    const poll = async () => {
-      const res = await fetch(`${API_BASE_URL}/generate-storyboard/${job_id}`);
-      const data = await res.json();
+    saved = JSON.parse(raw);
+  } catch (err) {
+    console.warn(
+      "Could not read saved storyboard job:",
+      err
+    );
+    return;
+  }
 
+  if (!saved?.jobId) return;
+
+  try {
+    const authHeaders = getAuthHeaders();
+
+    const fetchStatus = async () => {
+      const res = await fetch(
+        `${API_BASE_URL}/generate-storyboard/${saved.jobId}`,
+        {
+          headers: authHeaders,
+        }
+      );
+
+      if (!res.ok) {
+        throw new Error(
+          `Storyboard restore failed: ${res.status}`
+        );
+      }
+
+      return await res.json();
+    };
+
+    const applyStatus = (data) => {
       const images = (data.images || []).map((img) => ({
         ...img,
-        url: img.url?.startsWith("http") ? img.url : `${API_BASE_URL}${img.url}`,
+        url:
+          img.url?.startsWith("http") ||
+          img.url?.startsWith("data:")
+            ? img.url
+            : `${API_BASE_URL}${img.url}`,
       }));
+
+      setStoryboardJobId(saved.jobId);
+      setStoryboardVideoType(
+        saved.videoType || null
+      );
       setStoryboardImages(images);
       setStoryboardStatus(data.status);
-      setStoryboardTotal(data.total_scenes || 0);
+      setStoryboardTotal(
+        data.total_scenes || 0
+      );
 
-      // Show the panel as soon as the first image lands — don't wait for the whole job
       if (images.length > 0) {
         setShowStoryboard(true);
       }
 
-      if (data.status === "done" || data.status === "error") {
-        setVisualizing(false);
-        if (data.status === "error") console.error("Storyboard job failed:", data.error);
-        return;
-      }
-      setTimeout(poll, 5000);
+      return data;
     };
 
-    poll(); // fire and forget — poll() manages its own state updates
+    const data = await fetchStatus();
+
+    applyStatus(data);
+
+    // --------------------------------------------------
+    // Already completed
+    // --------------------------------------------------
+
+    if (
+      data.status === "done" ||
+      data.status === "error"
+    ) {
+      setVisualizing(false);
+      setVisualProgress(
+        data.status === "done" ? 100 : 0
+      );
+
+      if (data.status === "error") {
+        console.error(
+          "Saved storyboard failed:",
+          data.error
+        );
+      }
+
+      return;
+    }
+
+    // --------------------------------------------------
+    // Still running
+    // --------------------------------------------------
+
+    setVisualizing(true);
+
+    const poll = async () => {
+      try {
+        const latest = await fetchStatus();
+
+        applyStatus(latest);
+
+        const total =
+          latest.total_scenes || 0;
+
+        const completed =
+          (latest.images || []).length;
+
+        if (total > 0) {
+          setVisualProgress(
+            Math.min(
+              (completed / total) * 100,
+              99
+            )
+          );
+        }
+
+        if (
+          latest.status === "done" ||
+          latest.status === "error"
+        ) {
+          if (latest.status === "done") {
+            setVisualProgress(100);
+
+            setTimeout(() => {
+              setVisualizing(false);
+              setVisualProgress(0);
+            }, 400);
+          } else {
+            setVisualizing(false);
+            setVisualProgress(0);
+
+            console.error(
+              "Storyboard job failed:",
+              latest.error
+            );
+          }
+
+          return;
+        }
+
+        setTimeout(poll, 5000);
+
+      } catch (err) {
+        console.error(
+          "Storyboard restore polling failed:",
+          err
+        );
+
+        setVisualizing(false);
+        setVisualProgress(0);
+      }
+    };
+
+    setTimeout(poll, 5000);
+
   } catch (err) {
-    console.error("Storyboard generation failed:", err);
+    console.error(
+      "Failed to restore storyboard:",
+      err
+    );
+
+    // The saved job may have been deleted.
+    // Remove only the local pointer, not the DB data.
+    try {
+      localStorage.removeItem(
+        storyboardKey(msgId)
+      );
+    } catch {}
+
+    setStoryboardJobId(null);
+    setStoryboardImages([]);
+    setStoryboardStatus(null);
+    setStoryboardTotal(0);
     setVisualizing(false);
+    setVisualProgress(0);
+  }
+}, [msgId, getAuthHeaders]);
+
+
+const generateStoryboard = async (videoType) => {
+  try {
+    setVisualizing(true);
+    setVisualProgress(5);
+
+    const currentScript = rawMarkdownRef.current?.trim() ?? "";
+
+    if (!currentScript) {
+      setVisualizing(false);
+      setVisualProgress(0);
+      return;
+    }
+
+    // Get the current user's Supabase access token
+    const authHeaders = getAuthHeaders();
+
+    // --------------------------------------------------
+    // Start storyboard generation
+    // --------------------------------------------------
+
+    const startRes = await fetch(
+      `${API_BASE_URL}/generate-storyboard`,
+      {
+        method: "POST",
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          script: currentScript,
+          video_type: videoType,
+          quality: "quality",
+        }),
+      }
+    );
+
+    if (!startRes.ok) {
+      const errorData = await startRes.json().catch(() => ({}));
+
+      throw new Error(
+        errorData.error ||
+        errorData.detail ||
+        `Failed to start storyboard: ${startRes.status}`
+      );
+    }
+
+    const { job_id } = await startRes.json();
+
+    setStoryboardJobId(job_id);
+    setStoryboardVideoType(videoType);
+    try {
+    localStorage.setItem(
+      storyboardKey(msgId),
+      JSON.stringify({
+        jobId: job_id,
+        videoType,
+      })
+    );
+  } catch (err) {
+    console.warn("Could not persist storyboard job:", err);
+  }
+
+    // --------------------------------------------------
+    // Poll storyboard status
+    // --------------------------------------------------
+
+    const poll = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/generate-storyboard/${job_id}`,
+          {
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error(
+            `Storyboard status failed: ${res.status}`
+          );
+        }
+
+        const data = await res.json();
+
+        const images = (data.images || []).map((img) => ({
+          ...img,
+          url: img.url?.startsWith("http")||
+          img.url?.startsWith("data:") 
+            ? img.url
+            : `${API_BASE_URL}${img.url}`,
+        }));
+
+        setStoryboardImages(images);
+        setStoryboardStatus(data.status);
+        setStoryboardTotal(data.total_scenes || 0);
+
+        // Show storyboard as soon as an image is available
+        if (images.length > 0) {
+          setShowStoryboard(true);
+        }
+
+        // ------------------------------------------------
+        // Update progress
+        // ------------------------------------------------
+
+        const totalScenes = data.total_scenes || 0;
+        const completedScenes = images.length;
+
+        if (totalScenes > 0) {
+          setVisualProgress(
+            Math.min(
+              (completedScenes / totalScenes) * 100,
+              99
+            )
+          );
+        }
+
+        // ------------------------------------------------
+        // Job finished
+        // ------------------------------------------------
+
+        if (
+          data.status === "done" ||
+          data.status === "error"
+        ) {
+          if (data.status === "done") {
+            setVisualProgress(100);
+
+            setTimeout(() => {
+              setVisualizing(false);
+              setVisualProgress(0);
+            }, 400);
+          } else {
+            setVisualizing(false);
+            setVisualProgress(0);
+
+            console.error(
+              "Storyboard job failed:",
+              data.error
+            );
+          }
+
+          return;
+        }
+
+        // ------------------------------------------------
+        // Continue polling
+        // ------------------------------------------------
+
+        setTimeout(poll, 5000);
+
+      } catch (err) {
+        console.error(
+          "Storyboard polling failed:",
+          err
+        );
+
+        setVisualizing(false);
+        setVisualProgress(0);
+      }
+    };
+
+    poll();
+
+  } catch (err) {
+    console.error(
+      "Storyboard generation failed:",
+      err
+    );
+
+    setVisualizing(false);
+    setVisualProgress(0);
   }
 };
-
 
   useEffect(() => {
     return () => {
@@ -1192,6 +1755,10 @@ const generateStoryboard = async (videoType) => {
       clearTimeout(aiHighlightTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+  restoreStoryboard();
+}, [restoreStoryboard]);
 
   useEffect(() => { if (content) rawMarkdownRef.current = content; }, [content]);
 
@@ -1217,6 +1784,153 @@ const generateStoryboard = async (videoType) => {
 };
 
 
+const regenerateScene = async (
+  sceneNumber,
+  prompt,
+  mode
+) => {
+  if (!storyboardJobId || !prompt?.trim()) {
+    return;
+  }
+
+  // Immediately show the scene as generating
+  setStoryboardImages((prev) =>
+    prev.map((img) =>
+      img.scene_number === sceneNumber
+        ? {
+            ...img,
+            scene_status: "generating",
+          }
+        : img
+    )
+  );
+
+  try {
+    const authHeaders = getAuthHeaders();
+
+    // --------------------------------------------------
+    // Start scene edit / regeneration
+    // --------------------------------------------------
+
+    const res = await fetch(
+      `${API_BASE_URL}/generate-storyboard/${storyboardJobId}/scenes/${sceneNumber}`,
+      {
+        method: "POST",
+        headers: {
+          ...authHeaders,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          mode,
+          video_type: storyboardVideoType || "",
+          quality: "quality",
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+
+      throw new Error(
+        errorData.error ||
+        errorData.detail ||
+        `Scene regeneration failed: ${res.status}`
+      );
+    }
+
+    // --------------------------------------------------
+    // Poll for the updated scene
+    // --------------------------------------------------
+
+    const poll = async () => {
+      try {
+        const statusRes = await fetch(
+          `${API_BASE_URL}/generate-storyboard/${storyboardJobId}`,
+          {
+            headers: getAuthHeaders(),
+          }
+        );
+
+        if (!statusRes.ok) {
+          throw new Error(
+            `Storyboard status failed: ${statusRes.status}`
+          );
+        }
+
+        const data = await statusRes.json();
+
+        const updatedScene = (data.images || []).find(
+          (img) =>
+            img.scene_number === sceneNumber
+        );
+
+        // Still generating
+        if (
+          !updatedScene ||
+          updatedScene.scene_status === "generating"
+        ) {
+          setTimeout(poll, 2500);
+          return;
+        }
+
+        // ------------------------------------------------
+        // Replace the scene with the updated version
+        // ------------------------------------------------
+
+        setStoryboardImages((prev) =>
+          prev.map((img) =>
+            img.scene_number === sceneNumber
+              ? {
+                  ...updatedScene,
+                  url: updatedScene.url?.startsWith("http") ||
+                  updatedScene.url?.startsWith("data:")
+                    ? updatedScene.url
+                    : `${API_BASE_URL}${updatedScene.url}`,
+                }
+              : img
+          )
+        );
+
+      } catch (err) {
+        console.error(
+          `Scene ${sceneNumber} polling failed:`,
+          err
+        );
+
+        setStoryboardImages((prev) =>
+          prev.map((img) =>
+            img.scene_number === sceneNumber
+              ? {
+                  ...img,
+                  scene_status: "error",
+                }
+              : img
+          )
+        );
+      }
+    };
+
+    poll();
+
+  } catch (err) {
+    console.error(
+      `Scene ${sceneNumber} regeneration failed:`,
+      err
+    );
+
+    setStoryboardImages((prev) =>
+      prev.map((img) =>
+        img.scene_number === sceneNumber
+          ? {
+              ...img,
+              scene_status: "error",
+            }
+          : img
+      )
+    );
+  }
+};
 
 const ensureTtsMetadata = () => {
   if (!canvasRef.current) return;
@@ -1277,9 +1991,6 @@ const ensureTtsMetadata = () => {
     if (isUserEditing.current) return;
     let saved = null;
     try { saved = msgId ? localStorage.getItem(scriptKey(msgId)) : null; } catch {}
-    // if (saved) { canvasRef.current.innerHTML = saved; }
-    // else if (content) { canvasRef.current.innerHTML = markdownToHtml(content); }
-    // countWords();
     if (saved) {
   canvasRef.current.innerHTML = saved;
 
@@ -1845,12 +2556,36 @@ const primaryFilled = (disabled = false) => ({
 
 
 return (
-    <div style={{ display: "flex", flexDirection: "column", position: "relative", border: "1px solid rgba(255,255,255,.08)", borderRadius: "1rem", overflow: "hidden", background: "#0d0d0d", marginTop: "4px", width: "100%" }}>
-      {voiceGenerating && (
-        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "2px", overflow: "hidden", zIndex: 20, background: "rgba(168,85,247,.08)" }}>
-          <div style={{ position: "relative", top: 0, left: "-35%", width: "35%", height: "100%", borderRadius: "999px", background: "linear-gradient(90deg, transparent, rgba(168,85,247,1), transparent)", boxShadow: "0 0 18px rgba(168,85,247,.95)", animation: "voiceLoading 1s linear infinite" }} />
-        </div>
-      )}
+  
+  <div
+    style={{
+      display: "flex",
+      flexDirection: "column",
+      position: "relative",
+      border: "1px solid rgba(255,255,255,.08)",
+      borderRadius: "1rem",
+      overflow: "hidden",
+      background: "#0d0d0d",
+      marginTop: "4px",
+      width: "100%",
+    }}
+  >
+
+        {voiceGenerating && (
+  <MediaGenerationProgress
+    value={voiceProgress}
+    label="Generating Voice Over"
+  />
+)}
+
+{visualizing && (
+  <MediaGenerationProgress
+    value={visualProgress}
+    label="Generating Visuals"
+  />
+)}
+
+    {/* rest of your existing canvas */}
 
       {/* ===== TOP TOOLBAR (non-voice actions) ===== */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 14px", borderBottom: "1px solid rgba(255,255,255,.06)", background: "#111", gap: "10px", flexWrap: "wrap" }}>
@@ -1865,6 +2600,7 @@ return (
           <button
             onClick={() => setShowVideoTypePicker(true)}
             disabled={visualizing}
+            // disabled={visualizing || voiceGenerating}
             style={primaryPill(visualizing)}
           >
             <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
@@ -1888,16 +2624,6 @@ return (
           </button>
           
           <div style={{ width: "1px", height: "16px", background: "rgba(255,255,255,.08)", flexShrink: 0 }} />
-
-            {/* <button
-              onClick={() => {} }
-              disabled={true}
-              title="Coming soon"
-              style={primaryFilled(true)}
-            >
-              <IosShareRoundedIcon sx={{ fontSize: 15 }} />
-              Share to Canvas
-            </button> */}
 
             <button
   onClick={shareToCanvas}
@@ -1981,7 +2707,8 @@ return (
 
             <button
               onClick={generateVoiceOver}
-              disabled={voiceGenerating}
+              // disabled={voiceGenerating}
+              // disabled={voiceGenerating || visualizing}
               onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
               onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
               onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
@@ -2021,6 +2748,7 @@ return (
             totalScenes={storyboardTotal}
             status={storyboardStatus}
             onClose={() => setShowStoryboard(false)}
+            onRegenerateScene={regenerateScene}
           />
         </div>
       )}
@@ -3333,5 +4061,3 @@ export default ChatWindow;
 
 
 
-
-  
