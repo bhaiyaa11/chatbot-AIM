@@ -36,7 +36,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Storage key for persisting script canvas content per bot message
 const scriptKey = (msgId) => `script_content_${msgId}`;
-const storyboardKey = (msgId) => `storyboard_job_${msgId}`;
+// const storyboardKey = (msgId) => `storyboard_job_${msgId}`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // safeWriteClipboard — clipboard helper with execCommand fallback
@@ -1064,6 +1064,7 @@ const VOICES = [
   { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
   { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
 
+
   { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
   { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"], age: "young", gender: "female" },
   { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"], age: "young", gender: "male" },
@@ -1386,184 +1387,84 @@ const generateVoiceOver = async () => {
 
 const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
 
-
 const restoreStoryboard = useCallback(async () => {
   if (!msgId) return;
 
-  let saved = null;
-
-  try {
-    const raw = localStorage.getItem(
-      storyboardKey(msgId)
-    );
-
-    if (!raw) return;
-
-    saved = JSON.parse(raw);
-  } catch (err) {
-    console.warn(
-      "Could not read saved storyboard job:",
-      err
-    );
-    return;
-  }
-
-  if (!saved?.jobId) return;
-
   try {
     const authHeaders = getAuthHeaders();
+    const res = await fetch(`${API_BASE_URL}/messages/${msgId}/storyboard`, {
+      headers: authHeaders,
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.job_id) return;
 
-    const fetchStatus = async () => {
-      const res = await fetch(
-        `${API_BASE_URL}/generate-storyboard/${saved.jobId}`,
-        {
-          headers: authHeaders,
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error(
-          `Storyboard restore failed: ${res.status}`
-        );
-      }
-
-      return await res.json();
-    };
-
-    const applyStatus = (data) => {
-      const images = (data.images || []).map((img) => ({
+    const applyImages = (imgs) =>
+      imgs.map((img) => ({
         ...img,
-        url:
-          img.url?.startsWith("http") ||
-          img.url?.startsWith("data:")
-            ? img.url
-            : `${API_BASE_URL}${img.url}`,
+        url: img.url?.startsWith("http") || img.url?.startsWith("data:")
+          ? img.url
+          : `${API_BASE_URL}${img.url}`,
       }));
 
-      setStoryboardJobId(saved.jobId);
-      setStoryboardVideoType(
-        saved.videoType || null
-      );
-      setStoryboardImages(images);
-      setStoryboardStatus(data.status);
-      setStoryboardTotal(
-        data.total_scenes || 0
-      );
+    setStoryboardJobId(data.job_id);
+    setStoryboardVideoType(data.video_type || null);
+    setStoryboardImages(applyImages(data.images || []));
+    setStoryboardStatus(data.status);
+    setStoryboardTotal(data.total_scenes || 0);
+    if ((data.images || []).length > 0) setShowStoryboard(true);
 
-      if (images.length > 0) {
-        setShowStoryboard(true);
-      }
-
-      return data;
-    };
-
-    const data = await fetchStatus();
-
-    applyStatus(data);
-
-    // --------------------------------------------------
-    // Already completed
-    // --------------------------------------------------
-
-    if (
-      data.status === "done" ||
-      data.status === "error"
-    ) {
+    if (data.status === "done" || data.status === "error") {
       setVisualizing(false);
-      setVisualProgress(
-        data.status === "done" ? 100 : 0
-      );
-
+      setVisualProgress(data.status === "done" ? 100 : 0);
       if (data.status === "error") {
-        console.error(
-          "Saved storyboard failed:",
-          data.error
-        );
+        console.error("Saved storyboard failed:", data.error);
       }
-
       return;
     }
 
-    // --------------------------------------------------
-    // Still running
-    // --------------------------------------------------
-
+    // Still running — poll the existing job-status endpoint
     setVisualizing(true);
 
     const poll = async () => {
       try {
-        const latest = await fetchStatus();
+        const r = await fetch(`${API_BASE_URL}/generate-storyboard/${data.job_id}`, {
+          headers: getAuthHeaders(),
+        });
+        if (!r.ok) throw new Error(`Storyboard restore failed: ${r.status}`);
+        const latest = await r.json();
 
-        applyStatus(latest);
+        setStoryboardImages(applyImages(latest.images || []));
+        setStoryboardStatus(latest.status);
+        setStoryboardTotal(latest.total_scenes || 0);
+        if ((latest.images || []).length > 0) setShowStoryboard(true);
 
-        const total =
-          latest.total_scenes || 0;
+        const total = latest.total_scenes || 0;
+        const completed = (latest.images || []).length;
+        if (total > 0) setVisualProgress(Math.min((completed / total) * 100, 99));
 
-        const completed =
-          (latest.images || []).length;
-
-        if (total > 0) {
-          setVisualProgress(
-            Math.min(
-              (completed / total) * 100,
-              99
-            )
-          );
-        }
-
-        if (
-          latest.status === "done" ||
-          latest.status === "error"
-        ) {
+        if (latest.status === "done" || latest.status === "error") {
           if (latest.status === "done") {
             setVisualProgress(100);
-
-            setTimeout(() => {
-              setVisualizing(false);
-              setVisualProgress(0);
-            }, 400);
+            setTimeout(() => { setVisualizing(false); setVisualProgress(0); }, 400);
           } else {
             setVisualizing(false);
             setVisualProgress(0);
-
-            console.error(
-              "Storyboard job failed:",
-              latest.error
-            );
+            console.error("Storyboard job failed:", latest.error);
           }
-
           return;
         }
-
         setTimeout(poll, 5000);
-
       } catch (err) {
-        console.error(
-          "Storyboard restore polling failed:",
-          err
-        );
-
+        console.error("Storyboard restore polling failed:", err);
         setVisualizing(false);
         setVisualProgress(0);
       }
     };
 
     setTimeout(poll, 5000);
-
   } catch (err) {
-    console.error(
-      "Failed to restore storyboard:",
-      err
-    );
-
-    // The saved job may have been deleted.
-    // Remove only the local pointer, not the DB data.
-    try {
-      localStorage.removeItem(
-        storyboardKey(msgId)
-      );
-    } catch {}
-
+    console.error("Failed to restore storyboard:", err);
     setStoryboardJobId(null);
     setStoryboardImages([]);
     setStoryboardStatus(null);
@@ -1572,7 +1473,6 @@ const restoreStoryboard = useCallback(async () => {
     setVisualProgress(0);
   }
 }, [msgId, getAuthHeaders]);
-
 
 const generateStoryboard = async (videoType) => {
   try {
@@ -1606,6 +1506,7 @@ const generateStoryboard = async (videoType) => {
           script: currentScript,
           video_type: videoType,
           quality: "quality",
+          message_id: msgId,
         }),
       }
     );
@@ -1622,19 +1523,21 @@ const generateStoryboard = async (videoType) => {
 
     const { job_id } = await startRes.json();
 
-    setStoryboardJobId(job_id);
+  //   setStoryboardJobId(job_id);
+  //   setStoryboardVideoType(videoType);
+  //   try {
+  //   localStorage.setItem(
+  //     storyboardKey(msgId),
+  //     JSON.stringify({
+  //       jobId: job_id,
+  //       videoType,
+  //     })
+  //   );
+  // } catch (err) {
+  //   console.warn("Could not persist storyboard job:", err);
+  // }
+      setStoryboardJobId(job_id);
     setStoryboardVideoType(videoType);
-    try {
-    localStorage.setItem(
-      storyboardKey(msgId),
-      JSON.stringify({
-        jobId: job_id,
-        videoType,
-      })
-    );
-  } catch (err) {
-    console.warn("Could not persist storyboard job:", err);
-  }
 
     // --------------------------------------------------
     // Poll storyboard status
@@ -2398,11 +2301,11 @@ const primaryFilled = (disabled = false) => ({
   padding: "7px 16px",
 });
 
+    const SUPABASE_STORAGE_ORIGIN = "https://goichkqcbkpyxxreslms.supabase.co/storage/v1/object/public/storyboard-assets/";
 
-  // Only assets we actually generated ourselves are allowed into
-  // the shared canvas — never an arbitrary/attacker-influenced URL.
   const isAllowedAssetUrl = (url) =>
-    typeof url === "string" && url.startsWith(API_BASE_URL);
+    typeof url === "string" &&
+    (url.startsWith(API_BASE_URL) || url.startsWith(SUPABASE_STORAGE_ORIGIN));
 
   const buildCanvasContentDoc = () => {
     const scriptText = (rawMarkdownRef.current || "").trim();
@@ -2510,15 +2413,6 @@ const primaryFilled = (disabled = false) => ({
       });
       if (!createRes.ok) throw new Error(`Failed to create canvas (${createRes.status})`);
       const { canvas } = await createRes.json();
-
-      // const contentRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/content`, {
-      //   method: "PATCH",
-      //   headers,
-      //   body: JSON.stringify({ content: buildCanvasContentDoc() }),
-      // });
-      // if (!contentRes.ok) throw new Error(`Failed to save canvas content (${contentRes.status})`);
-
-      // onShareToCanvas?.(canvas.id);
 
       const contentRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/content`, {
         method: "PATCH",
@@ -3479,7 +3373,8 @@ function ChatWindow({onShareToCanvas}) {
       setConversationId(targetConvId);
     }
 
-    const botId = crypto.randomUUID();
+    // const botId = crypto.randomUUID();
+    let botId = crypto.randomUUID();
     addMessage(targetConvId, { id: botId, sender: "bot", text: "", content: "", prompt: "", files: [] });
 
     setStreamText(targetConvId, "");
@@ -3531,6 +3426,11 @@ function ChatWindow({onShareToCanvas}) {
               targetConvId = realId;
               if (isNewChat) loadConversations();
             }
+            continue;
+          }
+          if (line.startsWith("message_id:")) {
+            const realMsgId = line.replace("message_id:", "").trim();
+            if (realMsgId) botId = realMsgId;
             continue;
           }
           // if (line.startsWith("status:")) { setPipelineStatus(targetConvId, line.replace("status:", "").trim()); continue; }
@@ -3765,7 +3665,8 @@ stopGenerating(targetConvId);
     let targetConvId = conversationId || `draft-${crypto.randomUUID()}`;
     if (isNewChat) setConversationId(targetConvId);
 
-    const botId = crypto.randomUUID();
+    // const botId = crypto.randomUUID();
+    let botId = crypto.randomUUID();
 
     if (!cr) {
       const uid = crypto.randomUUID();
@@ -3817,6 +3718,16 @@ setStreamText(targetConvId, "");
               if (c) { convAbortControllers.current.set(realId, c); convAbortControllers.current.delete(targetConvId); }
               targetConvId = realId;
               if (isNewChat) loadConversations();
+            }
+            continue;
+          }
+                    if (line.startsWith("message_id:")) {
+            const realMsgId = line.replace("message_id:", "").trim();
+            if (realMsgId && realMsgId !== botId) {
+              setMessagesForConversation(targetConvId, (prev) =>
+                prev.map((m) => (m.id === botId ? { ...m, id: realMsgId } : m))
+              );
+              botId = realMsgId;
             }
             continue;
           }

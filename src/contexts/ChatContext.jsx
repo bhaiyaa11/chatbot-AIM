@@ -112,15 +112,6 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // const loadMoreConversations = async () => {
-  //   if (loadingMoreConversations || !hasMoreConversations) return;
-  //   setLoadingMoreConversations(true);
-  //   try {
-  //     const res = await fetch(
-  //       `${API_BASE_URL}/conversations?limit=${CONVERSATIONS_PAGE_SIZE}&offset=${conversationsOffset}`,
-  //       { headers: getAuthHeaders() }
-  //     );
-  //     if (res.status === 401) { setHasMoreConversations(false); return; }
   const loadMoreConversations = async () => {
     if (loadingMoreConversations || !hasMoreConversations) return;
     setLoadingMoreConversations(true);
