@@ -234,7 +234,7 @@
 
 .canvas-format-toolbar {
   height: 48px;
-  min-height: 48px;
+  min-height: 80px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1330,4 +1330,503 @@
 
 .canvas-document-area > * {
   max-width: 100%;
+}
+
+
+
+
+
+
+/* .canvas-editor .canvas-table img {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  max-height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin: 0 auto;
+} */
+
+/* =========================================================
+   Storyboard images inside Script table
+   ========================================================= */
+
+   /* =========================================================
+   Script table = fixed grid
+   ========================================================= */
+
+.canvas-editor table.canvas-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Time column */
+.canvas-editor table.canvas-table th:nth-child(1),
+.canvas-editor table.canvas-table td:nth-child(1) {
+  width: 70px;
+}
+
+/* Voice Over */
+.canvas-editor table.canvas-table th:nth-child(2),
+.canvas-editor table.canvas-table td:nth-child(2) {
+  width: 28%;
+}
+
+/* Visuals */
+.canvas-editor table.canvas-table th:nth-child(3),
+.canvas-editor table.canvas-table td:nth-child(3) {
+  width: 28%;
+}
+
+/* Storyboard */
+.canvas-editor table.canvas-table th:nth-child(4),
+.canvas-editor table.canvas-table td:nth-child(4) {
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  vertical-align: middle;
+}
+
+/* =========================================================
+   Storyboard image = fixed thumbnail
+   ========================================================= */
+
+.canvas-storyboard-image {
+  display: block !important;
+
+  width: 140px !important;
+  height: 90px !important;
+
+  max-width: 140px !important;
+  max-height: 90px !important;
+
+  min-width: 140px !important;
+  min-height: 90px !important;
+
+  object-fit: contain !important;
+
+  margin: 0 auto !important;
+
+  border-radius: 6px;
+  background: #111;
+}
+
+
+/* =========================================================
+   SCRIPT TABLE STORYBOARD IMAGE
+   ========================================================= */
+
+.canvas-editor table.canvas-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+/* Time column */
+.canvas-editor table.canvas-table th:nth-child(1),
+.canvas-editor table.canvas-table td:nth-child(1) {
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+}
+
+/* Voice Over */
+.canvas-editor table.canvas-table th:nth-child(2),
+.canvas-editor table.canvas-table td:nth-child(2) {
+  width: 28%;
+}
+
+/* Visuals */
+.canvas-editor table.canvas-table th:nth-child(3),
+.canvas-editor table.canvas-table td:nth-child(3) {
+  width: 28%;
+}
+
+/* Storyboard */
+.canvas-editor table.canvas-table th:nth-child(4),
+.canvas-editor table.canvas-table td:nth-child(4) {
+  width: 160px;
+  min-width: 160px;
+  max-width: 160px;
+  vertical-align: middle;
+}
+
+/* =========================================================
+   SMALL GRID THUMBNAIL
+   ========================================================= */
+
+.canvas-storyboard-image {
+  display: block !important;
+
+  width: 140px !important;
+  height: 90px !important;
+
+  min-width: 140px !important;
+  min-height: 90px !important;
+
+  max-width: 140px !important;
+  max-height: 90px !important;
+
+  object-fit: contain !important;
+
+  margin: 0 auto !important;
+
+  border-radius: 6px;
+
+  background: #111;
+
+  cursor: zoom-in !important;
+}
+
+/* =========================================================
+   IMAGE PREVIEW OVERLAY
+   ========================================================= */
+
+.canvas-image-preview-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 99999;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 40px;
+
+  background: rgba(0, 0, 0, 0.82);
+
+  cursor: zoom-out;
+}
+
+/* Image wrapper */
+.canvas-image-preview-container {
+  position: relative;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  max-width: 85vw;
+
+  max-height: 85vh;
+
+  cursor: default;
+}
+
+/* Expanded image */
+.canvas-image-preview {
+  display: block;
+
+  max-width: 85vw;
+
+  max-height: 85vh;
+
+  width: auto;
+
+  height: auto;
+
+  object-fit: contain;
+
+  border-radius: 10px;
+
+  box-shadow:
+    0 20px 80px rgba(0, 0, 0, 0.65),
+    0 4px 20px rgba(0, 0, 0, 0.35);
+}
+
+/* Close button */
+.canvas-image-preview-close {
+  position: absolute;
+
+  top: -14px;
+
+  right: -14px;
+
+  width: 34px;
+
+  height: 34px;
+
+  padding: 0;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  background: rgba(20, 20, 20, 0.95);
+
+  color: rgba(255, 255, 255, 0.9);
+
+  font-size: 20px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.canvas-image-preview-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+
+  transform: scale(1.05);
+}
+
+
+
+
+
+/* =========================================================
+   ADD COMMENT PILL
+   ========================================================= */
+
+.canvas-add-comment-pill {
+  position: absolute;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 7px 11px;
+
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+
+  background: rgba(24,24,28,.96);
+  color: rgba(255,255,255,.88);
+
+  font-family: "Inter", sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+
+  box-shadow:
+    0 8px 24px rgba(0,0,0,.35),
+    0 2px 8px rgba(0,0,0,.25);
+
+  cursor: pointer;
+
+  z-index: 500;
+
+  backdrop-filter: blur(12px);
+
+  transition:
+    background .15s ease,
+    border-color .15s ease,
+    transform .15s ease;
+}
+
+.canvas-add-comment-pill:hover {
+  background: rgba(38,38,44,.98);
+  border-color: rgba(255,255,255,.22);
+  transform: translateY(-1px);
+}
+
+.canvas-add-comment-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+
+/* =========================================================
+   COMMENT COMPOSER
+   ========================================================= */
+
+.canvas-comment-composer {
+  position: absolute;
+
+  width: 320px;
+
+  padding: 12px;
+
+  background: rgba(22,22,27,.98);
+
+  border: 1px solid rgba(255,255,255,.12);
+
+  border-radius: 12px;
+
+  box-shadow:
+    0 16px 45px rgba(0,0,0,.45),
+    0 4px 12px rgba(0,0,0,.25);
+
+  backdrop-filter: blur(16px);
+
+  z-index: 600;
+}
+
+
+/* Header */
+
+.canvas-comment-composer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 8px;
+
+  color: rgba(255,255,255,.78);
+
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+
+.canvas-comment-composer-close {
+  width: 24px;
+  height: 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 50%;
+
+  background: transparent;
+
+  color: rgba(255,255,255,.35);
+
+  cursor: pointer;
+
+  font-size: 16px;
+}
+
+.canvas-comment-composer-close:hover {
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.8);
+}
+
+
+/* Selected text preview */
+
+.canvas-comment-selection-preview {
+  padding: 8px 10px;
+
+  margin-bottom: 8px;
+
+  background: rgba(255,255,255,.04);
+
+  border-left: 2px solid rgba(168,85,247,.75);
+
+  border-radius: 5px;
+
+  color: rgba(255,255,255,.48);
+
+  font-size: 10px;
+  line-height: 1.45;
+  font-family: "Inter", sans-serif;
+
+  max-height: 52px;
+  overflow: hidden;
+}
+
+
+/* Textarea */
+
+.canvas-comment-composer textarea {
+  width: 100%;
+
+  min-height: 74px;
+
+  resize: vertical;
+
+  box-sizing: border-box;
+
+  padding: 9px 10px;
+
+  background: rgba(255,255,255,.04);
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  border-radius: 8px;
+
+  outline: none;
+
+  color: rgba(255,255,255,.88);
+
+  font-size: 12px;
+  line-height: 1.5;
+  font-family: "Inter", sans-serif;
+}
+
+.canvas-comment-composer textarea:focus {
+  border-color: rgba(168,85,247,.45);
+  background: rgba(255,255,255,.055);
+}
+
+
+/* Buttons */
+
+.canvas-comment-composer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+
+  margin-top: 8px;
+}
+
+.canvas-comment-composer-actions button {
+  padding: 6px 11px;
+
+  border-radius: 999px;
+
+  border: 1px solid rgba(255,255,255,.08);
+
+  background: transparent;
+
+  color: rgba(255,255,255,.5);
+
+  font-size: 10px;
+  font-family: "Inter", sans-serif;
+
+  cursor: pointer;
+}
+
+.canvas-comment-composer-actions button:hover {
+  background: rgba(255,255,255,.06);
+  color: rgba(255,255,255,.8);
+}
+
+.canvas-comment-composer-actions .canvas-comment-submit {
+  background: rgba(255,255,255,.92);
+  border-color: rgba(255,255,255,.92);
+  color: #111;
+  font-weight: 600;
+}
+
+.canvas-comment-composer-actions .canvas-comment-submit:hover {
+  background: #fff;
+}
+
+.canvas-comment-composer-actions .canvas-comment-submit:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+
+/* Shortcut hint */
+
+.canvas-comment-shortcut {
+  margin-top: 7px;
+
+  text-align: right;
+
+  color: rgba(255,255,255,.22);
+
+  font-size: 9px;
+  font-family: "Inter", sans-serif;
 }

@@ -150,6 +150,8 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
   const [activeTab, setActiveTab] = useState("script"); // "script" | "storyboard"
   const [storyboardData, setStoryboardData] = useState(null);
   const [storyboardComments, setStoryboardComments] = useState([]);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [commentComposerOpen, setCommentComposerOpen] = useState(false);
 
   useEffect(() => {
     canvasIdRef.current = canvasId;
@@ -158,6 +160,17 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
   useEffect(() => {
     sessionRef.current = session;
   }, [session]);
+
+  // Kept in sync purely so the unmount-flush cleanup below (which runs
+  // once, with an empty dep array, so it fires only on unmount) can
+  // still read the latest editor instance / title instead of whatever
+  // was captured at mount time.
+  const editorRef = useRef(null);
+  const titleRef = useRef(title);
+
+  useEffect(() => {
+    titleRef.current = title;
+  }, [title]);
 
   const authHeaders = () => {
     const token = sessionRef.current?.access_token;
@@ -213,7 +226,12 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       TableHeader,
       TableCell,
       CommentMark,
-      Image,
+      // Image,
+      Image.configure({
+        HTMLAttributes: {
+          class: "canvas-storyboard-image",
+        },
+      }),
       AudioEmbed,
       Underline,
       Color,
@@ -281,22 +299,143 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
         return false;
       },
 
-      handleDOMEvents: {
-        cut(view, event) {
-          if (!editable) {
-            event.preventDefault();
-            return true;
-          }
-          return false;
-        },
-        beforeinput(view, event) {
-          if (!editable) {
-            event.preventDefault();
-            return true;
-          }
-          return false;
-        },
-      },
+
+handleDOMEvents: {
+  // ─────────────────────────────────────────────
+  // IMAGE CLICK
+  // ─────────────────────────────────────────────
+  mousedown(view, event) {
+    const target = event.target;
+
+    const image = target?.closest?.(
+      "img.canvas-storyboard-image"
+    );
+
+    if (!image) {
+      return false;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    setPreviewImage({
+      src: image.getAttribute("src") || "",
+      alt: image.getAttribute("alt") || "",
+    });
+
+    return true;
+  },
+
+  // ─────────────────────────────────────────────
+  // FINISHED TEXT SELECTION
+  // ─────────────────────────────────────────────
+  mouseup(view, event) {
+    if (!canComment) {
+      return false;
+    }
+
+    // Never trigger comments from image clicks.
+    const image = event.target?.closest?.(
+      "img.canvas-storyboard-image"
+    );
+
+    if (image) {
+      return false;
+    }
+
+    requestAnimationFrame(() => {
+      const ed = editorRef.current;
+
+      if (!ed) return;
+
+      const { from, to, empty } = ed.state.selection;
+
+      // No text selected.
+      if (empty || from === to) {
+        setSelectionRect(null);
+        setPendingAnchor(null);
+        setCommentComposerOpen(false);
+        return;
+      }
+
+      const selectedText = ed.state.doc
+        .textBetween(from, to, " ")
+        .trim();
+
+      // Ignore empty/whitespace selections.
+      if (!selectedText) {
+        setSelectionRect(null);
+        setPendingAnchor(null);
+        setCommentComposerOpen(false);
+        return;
+      }
+
+      // Ignore accidental tiny selections.
+      if (selectedText.length < 2) {
+        setSelectionRect(null);
+        setPendingAnchor(null);
+        setCommentComposerOpen(false);
+        return;
+      }
+
+      const containerEl = editorContainerRef.current;
+
+      if (!containerEl) return;
+
+      const endCoords = ed.view.coordsAtPos(to);
+      const containerRect =
+        containerEl.getBoundingClientRect();
+
+      setSelectionRect({
+        top: endCoords.top - containerRect.top + 8,
+        left: Math.min(
+          Math.max(
+            endCoords.left - containerRect.left,
+            0
+          ),
+          Math.max(containerRect.width - 170, 0)
+        ),
+      });
+
+      setPendingAnchor({
+        from,
+        to,
+        text: selectedText,
+      });
+
+      // New selection always starts with the small
+      // "Add comment" pill, not the full composer.
+      setCommentComposerOpen(false);
+      setComposerText("");
+    });
+
+    return false;
+  },
+
+  // ─────────────────────────────────────────────
+  // CUT
+  // ─────────────────────────────────────────────
+  cut(view, event) {
+    if (!editable) {
+      event.preventDefault();
+      return true;
+    }
+
+    return false;
+  },
+
+  // ─────────────────────────────────────────────
+  // BEFORE INPUT
+  // ─────────────────────────────────────────────
+  beforeinput(view, event) {
+    if (!editable) {
+      event.preventDefault();
+      return true;
+    }
+
+    return false;
+  },
+},
     },
 
     onUpdate({ editor: ed }) {
@@ -314,45 +453,50 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     },
 
     onSelectionUpdate({ editor: ed }) {
-      if (!canComment) return;
-      const { from, to } = ed.state.selection;
+  // Do NOT open the comment composer while the user is
+  // actively changing the selection.
+  //
+  // We intentionally keep this handler empty so normal
+  // text selection behaves like a normal text editor.
+  //
+  // The actual comment selection is handled on mouseup.
+},
 
-      if (from === to) {
-        setSelectionRect(null);
-        setPendingAnchor(null);
-        return;
-      }
 
-      const containerEl = editorContainerRef.current;
-      if (!containerEl) return;
-
-      const endCoords = ed.view.coordsAtPos(to);
-      const containerRect = containerEl.getBoundingClientRect();
-
-      // editorContainerRef is the ".canvas-document" element itself
-      // (position: relative, not the scroll container), so its own
-      // padding is already baked into coordsAtPos vs. this rect —
-      // no manual scrollTop offset needed.
-      setSelectionRect({
-        top: endCoords.top - containerRect.top + 8,
-        left: Math.min(
-          Math.max(endCoords.left - containerRect.left, 0),
-          containerRect.width - 170
-        ),
-      });
-
-      setPendingAnchor({
-        from,
-        to,
-        text: ed.state.doc.textBetween(from, to, " "),
-      });
-    },
 
     onFocus() {
-      setSaveStatus((s) => (s === "Saving…" ? s : "Editing"));
-    },
+  setSaveStatus((s) =>
+    s === "Saving…" ? s : "Editing"
+  );
+},
+
+onBlur() {
+  setTimeout(() => {
+    const active = document.activeElement;
+
+    if (
+      active?.closest?.(".canvas-comment-composer") ||
+      active?.closest?.(".canvas-add-comment-pill")
+    ) {
+      return;
+    }
+
+    if (!commentComposerOpen) {
+      setSelectionRect(null);
+      setPendingAnchor(null);
+    }
+  }, 0);
+},
   });
 
+
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+
+
+  
   /* ─────────────────────────────────────────
      LOAD-OR-CREATE ON MOUNT
   ───────────────────────────────────────── */
@@ -412,11 +556,35 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, editor, loaded]);
 
+  // Flush any pending debounced content/title save on unmount (e.g.
+  // switching canvases, tab close) instead of just clearing the
+  // timers — otherwise a quick edit-then-navigate-away within the
+  // 800ms debounce window is silently dropped. Cleanup fires once, so
+  // it reaches through refs for the latest editor/title/canvasId.
   useEffect(() => {
     return () => {
-      if (contentSaveTimer.current) clearTimeout(contentSaveTimer.current);
-      if (titleSaveTimer.current) clearTimeout(titleSaveTimer.current);
+      if (contentSaveTimer.current) {
+        clearTimeout(contentSaveTimer.current);
+        const ed = editorRef.current;
+        if (editable && ed) {
+          saveContent(ed.getJSON());
+        }
+      }
+      if (titleSaveTimer.current) {
+        clearTimeout(titleSaveTimer.current);
+        const id = canvasIdRef.current;
+        const headers = authHeaders();
+        if (editable && id && headers) {
+          // Fire-and-forget: an unmounting component can't await this.
+          fetch(`${API_BASE_URL}/canvas/${id}/title`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ title: titleRef.current.trim() || "Untitled Canvas" }),
+          }).catch(() => {});
+        }
+      }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ─────────────────────────────────────────
@@ -532,6 +700,21 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
     }, 50);
   }, []);
 
+  const openCommentComposer = () => {
+  if (!pendingAnchor) return;
+
+  setCommentComposerOpen(true);
+};
+
+const cancelCommentSelection = () => {
+  setSelectionRect(null);
+  setPendingAnchor(null);
+  setComposerText("");
+  setCommentComposerOpen(false);
+
+  editor?.commands.setTextSelection(0);
+};
+
   const submitComment = async () => {
     const headers = authHeaders();
     if (!pendingAnchor || !composerText.trim() || !canvasId || !headers) return;
@@ -560,6 +743,7 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       setComposerText("");
       setSelectionRect(null);
       setPendingAnchor(null);
+      setCommentComposerOpen(false);
       setCommentsOpen(true);
     } catch (err) {
       console.error("Failed to add comment:", err);
@@ -642,6 +826,29 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
       showToast(err.message || "Failed to add comment");
     }
   };
+
+  useEffect(() => {
+  const handleShortcut = (event) => {
+    const isShortcut =
+      (event.metaKey || event.ctrlKey) &&
+      event.shiftKey &&
+      event.key.toLowerCase() === "m";
+
+    if (!isShortcut) return;
+
+    if (!canComment || !pendingAnchor) return;
+
+    event.preventDefault();
+
+    setCommentComposerOpen(true);
+  };
+
+  window.addEventListener("keydown", handleShortcut);
+
+  return () => {
+    window.removeEventListener("keydown", handleShortcut);
+  };
+}, [canComment, pendingAnchor]);
 
   const resolveStoryboardComment = async (commentId, resolved) => {
     const headers = authHeaders();
@@ -1092,40 +1299,112 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
           <div className="canvas-document-area">
             <div className="canvas-document" ref={editorContainerRef}>
               <EditorContent editor={editor} className="canvas-editor" />
-
               {selectionRect && pendingAnchor && (
-                <div
-                  className="canvas-comment-composer"
-                  style={{ top: selectionRect.top, left: selectionRect.left }}
-                >
-                  <textarea
-                    autoFocus
-                    placeholder="Leave a comment…"
-                    value={composerText}
-                    onChange={(e) => setComposerText(e.target.value)}
-                  />
-                  <div className="canvas-comment-composer-actions">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectionRect(null);
-                        setPendingAnchor(null);
-                        setComposerText("");
-                      }}
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      className="canvas-comment-submit"
-                      onClick={submitComment}
-                      disabled={!composerText.trim()}
-                    >
-                      Comment
-                    </button>
-                  </div>
-                </div>
-              )}
+  <>
+    {!commentComposerOpen ? (
+      // =====================================================
+      // ADD COMMENT PILL
+      // =====================================================
+      <button
+        type="button"
+        className="canvas-add-comment-pill"
+        onMouseDown={(e) => {
+          // Prevent the click from destroying the text selection.
+          e.preventDefault();
+        }}
+        onClick={openCommentComposer}
+        style={{
+          top: selectionRect.top,
+          left: selectionRect.left,
+        }}
+      >
+        <span className="canvas-add-comment-icon">💬</span>
+        <span>Add comment</span>
+      </button>
+    ) : (
+      // =====================================================
+      // COMMENT COMPOSER
+      // =====================================================
+      <div
+        className="canvas-comment-composer"
+        style={{
+          top: selectionRect.top,
+          left: selectionRect.left,
+        }}
+        onMouseDown={(e) => {
+          // Keep the stored text selection alive.
+          e.stopPropagation();
+        }}
+      >
+        <div className="canvas-comment-composer-header">
+          <span>Comment on selection</span>
+
+          <button
+            type="button"
+            className="canvas-comment-composer-close"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={cancelCommentSelection}
+            aria-label="Close comment composer"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="canvas-comment-selection-preview">
+          “{pendingAnchor.text}”
+        </div>
+
+        <textarea
+          autoFocus
+          placeholder="Write a comment…"
+          value={composerText}
+          onChange={(e) => setComposerText(e.target.value)}
+          onKeyDown={(e) => {
+            if (
+              (e.metaKey || e.ctrlKey) &&
+              e.key === "Enter"
+            ) {
+              e.preventDefault();
+
+              if (composerText.trim()) {
+                submitComment();
+              }
+            }
+
+            if (e.key === "Escape") {
+              e.preventDefault();
+              cancelCommentSelection();
+            }
+          }}
+        />
+
+        <div className="canvas-comment-composer-actions">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={cancelCommentSelection}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="button"
+            className="canvas-comment-submit"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={submitComment}
+            disabled={!composerText.trim()}
+          >
+            Comment
+          </button>
+        </div>
+
+        <div className="canvas-comment-shortcut">
+          ⌘↵ to comment · Esc to cancel
+        </div>
+      </div>
+    )}
+  </>
+)}
             </div>
           </div>
         )}
@@ -1159,6 +1438,36 @@ function Canvas({ canvasId: canvasIdProp = null, accessLevel: accessLevelProp = 
           />
         )}
       </div>
+      {/* =========================================================
+    IMAGE PREVIEW
+   ========================================================= */}
+
+{previewImage && (
+  <div
+    className="canvas-image-preview-overlay"
+    onMouseDown={() => setPreviewImage(null)}
+  >
+    <div
+      className="canvas-image-preview-container"
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="canvas-image-preview-close"
+        onClick={() => setPreviewImage(null)}
+        aria-label="Close image preview"
+      >
+        ×
+      </button>
+
+      <img
+        src={previewImage.src}
+        alt={previewImage.alt}
+        className="canvas-image-preview"
+      />
+    </div>
+  </div>
+)}
     </main>
   );
 }

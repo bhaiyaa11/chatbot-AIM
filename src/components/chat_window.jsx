@@ -133,6 +133,116 @@ function parseMarkdownTable(tableLines) {
     </div>`;
 }
 
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// markdownTableToCanvasTable
+// Converts one Markdown table into a Tiptap table node.
+// Adds the matching storyboard image as a final "Storyboard" column.
+// ─────────────────────────────────────────────────────────────────────────────
+function markdownTableToCanvasTable(tableLines, storyboardImages = []) {
+  const rows = tableLines
+    .filter((line) => line.trim().startsWith("|"))
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^\||\|$/g, "")
+        .split("|")
+        .map((cell) => cell.trim())
+    );
+
+  if (rows.length < 2) return null;
+
+  // Remove Markdown separator row:
+  // |---|---|---|
+  const dataRows = rows.filter((row, index) => {
+    if (index === 0) return true;
+
+    return !row.every((cell) => /^:?-{3,}:?$/.test(cell));
+  });
+
+  if (!dataRows.length) return null;
+
+  const headerRow = dataRows[0];
+  const bodyRows = dataRows.slice(1);
+
+  // Add our image column.
+  const headers = [...headerRow, "Storyboard"];
+
+  const imageByScene = new Map(
+    (storyboardImages || [])
+      .filter((img) => img?.url)
+      .map((img) => [Number(img.scene_number), img])
+  );
+
+const getSceneNumber = (cells, rowIndex) => {
+  // Scene identity is based on table row order,
+  // NOT the first column, because the first column may be Time (s).
+  return rowIndex + 1;
+};
+
+  const makeTextCell = (text, isHeader = false) => ({
+    type: isHeader ? "tableHeader" : "tableCell",
+    content: [
+      {
+        type: "paragraph",
+        content: text
+          ? [{ type: "text", text: String(text) }]
+          : [],
+      },
+    ],
+  });
+
+const makeImageCell = (img) => ({
+  type: "tableCell",
+  content: img?.url
+    ? [
+        {
+          type: "image",
+          attrs: {
+            src: img.url,
+            alt: img.caption || `Scene ${img.scene_number}`,
+            title: img.caption || null,
+          },
+        },
+      ]
+    : [
+        {
+          type: "paragraph",
+        },
+      ],
+});
+
+  const tableContent = [
+    {
+      type: "tableRow",
+      content: [
+        ...headers.map((header) => makeTextCell(header, true)),
+      ],
+    },
+        ...bodyRows.map((cells, rowIndex) => {
+          const sceneNumber = getSceneNumber(cells, rowIndex);
+          const image = imageByScene.get(sceneNumber);
+
+          return {
+        type: "tableRow",
+        content: [
+          ...cells.map((cell) => makeTextCell(cell, false)),
+          makeImageCell(image),
+        ],
+      };
+    }),
+  ];
+
+  return {
+    type: "table",
+    attrs: {
+      class: null,
+    },
+    content: tableContent,
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // markdownToHtml
 // ─────────────────────────────────────────────────────────────────────────────
@@ -676,10 +786,18 @@ const downloadVoiceOver = async () => {
   );
 };
 
-const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateScene }) => {
+const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateScene, individualGeneratingScene, individualProgress}) => {
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [editPrompt, setEditPrompt] = useState("");
   const [editMode, setEditMode] = useState("edit"); // "edit" | "regenerate"
+
+  const [allScenesPrompt, setAllScenesPrompt] = useState("");
+  const [allScenesMode, setAllScenesMode] = useState("edit");
+  const [allScenesGenerating, setAllScenesGenerating] = useState(false);
+  // const [allScenesFinished, setAllScenesFinished] = useState(0);
+  const [allScenesCompleted, setAllScenesCompleted] = useState([]);
+  const [allScenesTotal, setAllScenesTotal] = useState(0);
+  const [allScenesErrors, setAllScenesErrors] = useState(0);
 
     // reset the box whenever you move to a different scene
   useEffect(() => {
@@ -705,6 +823,62 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateSce
     onRegenerateScene?.(expanded.scene_number, editPrompt, editMode);
     setEditPrompt("");
   };
+
+const submitAllScenes = async () => {
+  const prompt = allScenesPrompt.trim();
+
+  if (
+    !prompt ||
+    allScenesGenerating ||
+    !images?.length
+  ) {
+    return;
+  }
+
+  const scenes = [...images];
+
+  setAllScenesGenerating(true);
+  setAllScenesCompleted([]);
+  setAllScenesErrors(0);
+  setAllScenesTotal(scenes.length);
+
+  const handleSceneComplete = ({
+    sceneNumber,
+    success,
+  }) => {
+    if (success) {
+      setAllScenesCompleted((prev) =>
+        prev.includes(sceneNumber)
+          ? prev
+          : [...prev, sceneNumber]
+      );
+    } else {
+      setAllScenesErrors((prev) => prev + 1);
+    }
+  };
+
+  try {
+    await Promise.all(
+      scenes.map((scene) =>
+        onRegenerateScene?.(
+          scene.scene_number,
+          prompt,
+          allScenesMode,
+          handleSceneComplete
+        )
+      )
+    );
+  } finally {
+    setAllScenesGenerating(false);
+    setAllScenesPrompt("");
+  }
+};
+
+const allScenesProgress =
+  allScenesTotal > 0
+    ? (allScenesCompleted.length / allScenesTotal) * 100
+    : 0;
+
 
   return (
     <>
@@ -753,6 +927,324 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateSce
             ))}
           </div>
         )}
+            <div
+  style={{
+    marginTop: "14px",
+    paddingTop: "14px",
+    borderTop: "1px solid rgba(255,255,255,.07)",
+  }}
+>
+  {/* Header */}
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: "8px",
+    }}
+  >
+    <span
+      style={{
+        fontSize: "10px",
+        fontFamily: "'Inter',sans-serif",
+        fontWeight: 600,
+        color: "rgba(255,255,255,.45)",
+        textTransform: "uppercase",
+        letterSpacing: ".06em",
+      }}
+    >
+      Regenerate All Scenes
+    </span>
+
+    {allScenesGenerating && (
+      <span
+        style={{
+          fontSize: "10px",
+          fontFamily: "'Inter',sans-serif",
+          color: "rgba(255,255,255,.35)",
+        }}
+      >
+        {/* {allScenesFinished}/{allScenesTotal} */}
+        {allScenesCompleted.length}/{allScenesTotal}
+      </span>
+    )}
+  </div>
+
+  {/* Mode selector */}
+  <div
+    style={{
+      display: "flex",
+      gap: "6px",
+      marginBottom: "8px",
+    }}
+  >
+    {["edit", "regenerate"].map((mode) => {
+      const active = allScenesMode === mode;
+
+      return (
+        <button
+          key={mode}
+          type="button"
+          onClick={() => setAllScenesMode(mode)}
+          disabled={allScenesGenerating}
+          style={{
+            background: active
+              ? "rgba(255,255,255,.12)"
+              : "rgba(255,255,255,.04)",
+            border: `1px solid ${
+              active
+                ? "rgba(255,255,255,.16)"
+                : "rgba(255,255,255,.07)"
+            }`,
+            borderRadius: "9999px",
+            color: active
+              ? "rgba(255,255,255,.8)"
+              : "rgba(255,255,255,.35)",
+            cursor: allScenesGenerating
+              ? "not-allowed"
+              : "pointer",
+            fontSize: "10px",
+            fontFamily: "'Inter',sans-serif",
+            padding: "5px 11px",
+            textTransform: "capitalize",
+          }}
+        >
+          {mode}
+        </button>
+      );
+    })}
+  </div>
+
+  {/* Prompt input */}
+  <div
+    style={{
+      display: "flex",
+      gap: "8px",
+      alignItems: "center",
+    }}
+  >
+    <input
+      type="text"
+      value={allScenesPrompt}
+      onChange={(e) =>
+        setAllScenesPrompt(e.target.value)
+      }
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          submitAllScenes();
+        }
+      }}
+      disabled={allScenesGenerating}
+      placeholder={
+        allScenesMode === "edit"
+          ? "Describe changes to apply to every scene..."
+          : "Describe the new visual direction for every scene..."
+      }
+      style={{
+        flex: 1,
+        background: "rgba(255,255,255,.05)",
+        border: "1px solid rgba(255,255,255,.1)",
+        borderRadius: "9999px",
+        color: "rgba(255,255,255,.85)",
+        fontSize: "12px",
+        fontFamily: "'Inter',sans-serif",
+        padding: "9px 14px",
+        outline: "none",
+        opacity: allScenesGenerating ? 0.5 : 1,
+      }}
+    />
+
+    <button
+      type="button"
+      onClick={submitAllScenes}
+      disabled={
+        allScenesGenerating ||
+        !allScenesPrompt.trim() ||
+        !images?.length
+      }
+      style={{
+        background:
+          allScenesGenerating ||
+          !allScenesPrompt.trim()
+            ? "rgba(255,255,255,.12)"
+            : "rgba(255,255,255,.92)",
+        border: "none",
+        borderRadius: "9999px",
+        color:
+          allScenesGenerating ||
+          !allScenesPrompt.trim()
+            ? "rgba(255,255,255,.35)"
+            : "#0d0d0d",
+        cursor:
+          allScenesGenerating ||
+          !allScenesPrompt.trim()
+            ? "not-allowed"
+            : "pointer",
+        fontSize: "11px",
+        fontWeight: 600,
+        fontFamily: "'Inter',sans-serif",
+        padding: "9px 16px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {allScenesGenerating
+        ? "Generating…"
+        : "Apply to All"}
+    </button>
+  </div>
+
+  {/* Progress */}
+  {allScenesGenerating && (
+    <div
+      style={{
+        marginTop: "12px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "6px",
+        }}
+      >
+        <span
+          style={{
+            fontSize: "9px",
+            fontFamily: "'Inter',sans-serif",
+            color: "rgba(255,255,255,.35)",
+            textTransform: "uppercase",
+            letterSpacing: ".05em",
+          }}
+        >
+          Regenerating Scenes
+        </span>
+
+        <span
+          style={{
+            fontSize: "9px",
+            fontFamily: "'Inter',sans-serif",
+            color: "rgba(255,255,255,.3)",
+          }}
+        >
+          {Math.round(allScenesProgress)}%
+        </span>
+      </div>
+
+      <div
+        style={{
+          width: "100%",
+          height: "4px",
+          borderRadius: "999px",
+          background: "rgba(255,255,255,.08)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            width: `${Math.min(
+              allScenesProgress,
+              100
+            )}%`,
+            borderRadius: "999px",
+            background: "rgba(246,245,247,.85)",
+            transition: "width .3s ease",
+          }}
+        />
+      </div>
+
+      <div
+        style={{
+          marginTop: "8px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "3px",
+        }}
+      >
+        {Array.from(
+          { length: allScenesTotal },
+          (_, index) => {
+            const sceneNumber = index + 1;
+
+            const scene = images.find(
+              (img) =>
+                img.scene_number === sceneNumber
+            );
+
+            const isGenerating =
+              scene?.scene_status === "generating";
+
+            const isError =
+              scene?.scene_status === "error";
+
+  const isFinished =
+  allScenesCompleted.includes(sceneNumber);
+
+            return (
+              <div
+                key={sceneNumber}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "7px",
+                  fontSize: "9px",
+                  fontFamily: "'Inter',sans-serif",
+                  color: isError
+                    ? "rgba(255,120,120,.7)"
+                    : isFinished
+                    ? "rgba(255,255,255,.45)"
+                    : isGenerating
+                    ? "rgba(255,255,255,.75)"
+                    : "rgba(255,255,255,.25)",
+                }}
+              >
+                <span
+                  style={{
+                    width: "12px",
+                    textAlign: "center",
+                  }}
+                >
+                  {isError
+                    ? "!"
+                    : isFinished
+                    ? "✓"
+                    : isGenerating
+                    ? "◉"
+                    : "○"}
+                </span>
+
+                <span>
+                  Scene {sceneNumber}
+                  {isGenerating &&
+                    "  Generating..."}
+                  {isFinished &&
+                    "  Completed"}
+                  {isError &&
+                    "  Failed"}
+                </span>
+              </div>
+            );
+          }
+        )}
+      </div>
+    </div>
+  )}
+
+  {/* Helper text */}
+  {!allScenesGenerating && (
+    <div
+      style={{
+        marginTop: "6px",
+        fontSize: "9px",
+        fontFamily: "'Inter',sans-serif",
+        color: "rgba(255,255,255,.22)",
+      }}
+    >
+      This prompt will be applied to every scene.
+    </div>
+  )}
+</div>
       </div>
 
       {expanded && (
@@ -861,8 +1353,6 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateSce
     </button>
   </div>
 </div>
-
-
           </div>
         </div>
       )}
@@ -873,7 +1363,7 @@ const StoryboardPanel = ({ images, totalScenes, status, onClose, onRegenerateSce
 
 
 
-const MediaGenerationProgress = ({ value, label, buffer = 100 }) => {
+const MediaGenerationProgress = ({ value, label, buffer = 100, totalScenes = 0, completedScenes = 0, generatingScene = null, }) => {
   return (
     <div
       style={{
@@ -954,6 +1444,56 @@ const MediaGenerationProgress = ({ value, label, buffer = 100 }) => {
           }}
         />
       </div>
+      {totalScenes > 0 && (
+  <div
+    style={{
+      marginTop: "10px",
+      display: "flex",
+      flexDirection: "column",
+      gap: "4px",
+    }}
+  >
+    {Array.from({ length: totalScenes }, (_, index) => {
+      const sceneNumber = index + 1;
+      const isCompleted = sceneNumber <= completedScenes;
+      const isGenerating = sceneNumber === generatingScene;
+
+      return (
+        <div
+          key={sceneNumber}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "7px",
+            fontSize: "10px",
+            fontFamily: "'Inter',sans-serif",
+            color: isCompleted
+              ? "rgba(255,255,255,.55)"
+              : isGenerating
+              ? "rgba(255,255,255,.75)"
+              : "rgba(255,255,255,.25)",
+          }}
+        >
+          <span
+            style={{
+              width: "12px",
+              textAlign: "center",
+              fontSize: "9px",
+            }}
+          >
+            {isCompleted ? "✓" : isGenerating ? "◉" : "○"}
+          </span>
+
+          <span>
+            Scene {sceneNumber}
+            {isGenerating && "  Generating..."}
+            {isCompleted && "  Completed"}
+          </span>
+        </div>
+      );
+    })}
+  </div>
+)}
     </div>
   );
 };
@@ -1005,7 +1545,6 @@ const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
   { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
-
   { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
   { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"], age: "mid", gender: "female" },
   { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
@@ -1063,8 +1602,6 @@ const VOICES = [
  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
   { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
   { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
-
-
   { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
   { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"], age: "young", gender: "female" },
   { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"], age: "young", gender: "male" },
@@ -1121,16 +1658,17 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [audioSrc,        setAudioSrc]        = useState(null);
   const [showPlayer,      setShowPlayer]      = useState(false);
   const [visualizing,      setVisualizing]      = useState(false);
-  // const [generationProgress, setGenerationProgress] = useState(0);
   const [voiceProgress, setVoiceProgress] = useState(0);
   const [visualProgress, setVisualProgress] = useState(0);
+  const [generatingScene, setGeneratingScene] = useState(null);
   const [storyboardImages, setStoryboardImages] = useState([]);
   const [showStoryboard,   setShowStoryboard]   = useState(false);
   const [storyboardJobId, setStoryboardJobId] = useState(null);
   const [storyboardVideoType, setStoryboardVideoType] = useState(null);
-  // const [finalStoryboardVideo, setFinalStoryboardVideo] = useState(null);
   const [storyboardStatus, setStoryboardStatus] = useState(null);
   const [storyboardTotal, setStoryboardTotal] = useState(0);
+  const [individualGeneratingScene, setIndividualGeneratingScene] = useState(null);
+  const [individualProgress, setIndividualProgress] = useState(0);
   const [wordTimings, setWordTimings] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
@@ -1446,6 +1984,7 @@ const restoreStoryboard = useCallback(async () => {
         if (latest.status === "done" || latest.status === "error") {
           if (latest.status === "done") {
             setVisualProgress(100);
+            setGeneratingScene(null);
             setTimeout(() => { setVisualizing(false); setVisualProgress(0); }, 400);
           } else {
             setVisualizing(false);
@@ -1523,19 +2062,6 @@ const generateStoryboard = async (videoType) => {
 
     const { job_id } = await startRes.json();
 
-  //   setStoryboardJobId(job_id);
-  //   setStoryboardVideoType(videoType);
-  //   try {
-  //   localStorage.setItem(
-  //     storyboardKey(msgId),
-  //     JSON.stringify({
-  //       jobId: job_id,
-  //       videoType,
-  //     })
-  //   );
-  // } catch (err) {
-  //   console.warn("Could not persist storyboard job:", err);
-  // }
       setStoryboardJobId(job_id);
     setStoryboardVideoType(videoType);
 
@@ -1583,15 +2109,14 @@ const generateStoryboard = async (videoType) => {
 
         const totalScenes = data.total_scenes || 0;
         const completedScenes = images.length;
-
         if (totalScenes > 0) {
-          setVisualProgress(
-            Math.min(
-              (completedScenes / totalScenes) * 100,
-              99
-            )
-          );
-        }
+  setVisualProgress(
+    Math.min(
+      (completedScenes / totalScenes) * 100,
+      99
+    )
+  );
+}
 
         // ------------------------------------------------
         // Job finished
@@ -1690,11 +2215,14 @@ const generateStoryboard = async (videoType) => {
 const regenerateScene = async (
   sceneNumber,
   prompt,
-  mode
+  mode,
+ onComplete = null
 ) => {
   if (!storyboardJobId || !prompt?.trim()) {
     return;
   }
+  setIndividualGeneratingScene(sceneNumber);
+  setIndividualProgress(0);
 
   // Immediately show the scene as generating
   setStoryboardImages((prev) =>
@@ -1768,32 +2296,53 @@ const regenerateScene = async (
             img.scene_number === sceneNumber
         );
 
-        // Still generating
         if (
-          !updatedScene ||
-          updatedScene.scene_status === "generating"
-        ) {
-          setTimeout(poll, 2500);
-          return;
-        }
+            !updatedScene ||
+            updatedScene.scene_status === "generating"
+          ) {
+            setIndividualProgress((prev) =>
+              Math.min(prev + 8, 90)
+            );
+
+            await new Promise((resolve) =>
+              setTimeout(resolve, 2500)
+            );
+
+            return poll();
+          }
 
         // ------------------------------------------------
         // Replace the scene with the updated version
         // ------------------------------------------------
+        
+        const finalScene = {
+        ...updatedScene,
+        url:
+          updatedScene.url?.startsWith("http") ||
+          updatedScene.url?.startsWith("data:")
+            ? updatedScene.url
+            : `${API_BASE_URL}${updatedScene.url}`,
+      };
 
-        setStoryboardImages((prev) =>
-          prev.map((img) =>
-            img.scene_number === sceneNumber
-              ? {
-                  ...updatedScene,
-                  url: updatedScene.url?.startsWith("http") ||
-                  updatedScene.url?.startsWith("data:")
-                    ? updatedScene.url
-                    : `${API_BASE_URL}${updatedScene.url}`,
-                }
-              : img
-          )
-        );
+setStoryboardImages((prev) =>
+  prev.map((img) =>
+    img.scene_number === sceneNumber
+      ? finalScene
+      : img
+  )
+);
+setIndividualProgress(100);
+
+setTimeout(() => {
+  setIndividualGeneratingScene(null);
+  setIndividualProgress(0);
+}, 400);
+
+// Tell "Regenerate All" that this scene finished
+onComplete?.({
+  sceneNumber,
+  success: true,
+});
 
       } catch (err) {
         console.error(
@@ -1811,10 +2360,18 @@ const regenerateScene = async (
               : img
           )
         );
+
+setIndividualGeneratingScene(null);
+setIndividualProgress(0);
+        onComplete?.({
+  sceneNumber,
+  success: false,
+});
       }
     };
 
-    poll();
+
+    await poll();
 
   } catch (err) {
     console.error(
@@ -1832,6 +2389,13 @@ const regenerateScene = async (
           : img
       )
     );
+    
+setIndividualGeneratingScene(null);
+setIndividualProgress(0);
+  onComplete?.({
+    sceneNumber,
+    success: false,
+  });
   }
 };
 
@@ -2307,55 +2871,208 @@ const primaryFilled = (disabled = false) => ({
     typeof url === "string" &&
     (url.startsWith(API_BASE_URL) || url.startsWith(SUPABASE_STORAGE_ORIGIN));
 
-  const buildCanvasContentDoc = () => {
-    const scriptText = (rawMarkdownRef.current || "").trim();
-    const scriptLines = scriptText.split("\n").filter((l) => l.trim());
+  // const buildCanvasContentDoc = () => {
+  //   const scriptText = (rawMarkdownRef.current || "").trim();
+  //   const scriptLines = scriptText.split("\n").filter((l) => l.trim());
 
-    const docContent = [
-      {
-        type: "heading",
-        attrs: { level: 1 },
-        content: [{ type: "text", text: "Shared Script" }],
-      },
-      ...scriptLines.map((line) => ({
-        type: "paragraph",
-        content: [{ type: "text", text: line }],
-      })),
-    ];
+  //   const docContent = [
+  //     {
+  //       type: "heading",
+  //       attrs: { level: 1 },
+  //       content: [{ type: "text", text: "Shared Script" }],
+  //     },
+  //     ...scriptLines.map((line) => ({
+  //       type: "paragraph",
+  //       content: [{ type: "text", text: line }],
+  //     })),
+  //   ];
 
-    if (audioSrc && isAllowedAssetUrl(audioSrc)) {
-      docContent.push({
-        type: "audioEmbed",
-        attrs: { src: audioSrc, title: "Voice Over" },
-      });
+  //   if (audioSrc && isAllowedAssetUrl(audioSrc)) {
+  //     docContent.push({
+  //       type: "audioEmbed",
+  //       attrs: { src: audioSrc, title: "Voice Over" },
+  //     });
+  //   }
+
+  //   if (storyboardImages?.length) {
+  //     docContent.push({
+  //       type: "heading",
+  //       attrs: { level: 2 },
+  //       content: [{ type: "text", text: "Storyboard" }],
+  //     });
+
+  //     storyboardImages.forEach((img) => {
+  //       if (!isAllowedAssetUrl(img.url)) return; // silently skip anything not from our own backend
+  //       docContent.push({
+  //         type: "image",
+  //         attrs: { src: img.url, alt: img.caption || `Scene ${img.scene_number ?? ""}` },
+  //       });
+  //       if (img.caption) {
+  //         docContent.push({
+  //           type: "paragraph",
+  //           content: [{ type: "text", text: img.caption }],
+  //         });
+  //       }
+  //     });
+  //   }
+
+  //   return { type: "doc", content: docContent.length ? docContent : [{ type: "paragraph" }] };
+  // };
+
+
+
+  // ── Build the initial storyboard payload from generated scenes ──
+
+const buildCanvasContentDoc = () => {
+  const scriptText = (rawMarkdownRef.current || "").trim();
+
+  if (!scriptText) {
+    return {
+      type: "doc",
+      content: [{ type: "paragraph" }],
+    };
+  }
+
+  const lines = scriptText.split(/\r?\n/);
+
+  const docContent = [
+    {
+      type: "heading",
+      attrs: { level: 1 },
+      content: [{ type: "text", text: "Shared Script" }],
+    },
+  ];
+
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+
+    // Ignore blank lines.
+    if (!line) {
+      i++;
+      continue;
     }
 
-    if (storyboardImages?.length) {
+    // ─────────────────────────────────────────────
+    // Markdown table
+    // ─────────────────────────────────────────────
+    if (line.startsWith("|")) {
+      const tableLines = [];
+
+      while (
+        i < lines.length &&
+        lines[i].trim().startsWith("|")
+      ) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+
+      const tableNode = markdownTableToCanvasTable(
+        tableLines,
+        storyboardImages
+      );
+
+      if (tableNode) {
+        docContent.push(tableNode);
+        continue;
+      }
+    }
+
+    // ─────────────────────────────────────────────
+    // Heading 1
+    // ─────────────────────────────────────────────
+    if (line.startsWith("# ")) {
+      docContent.push({
+        type: "heading",
+        attrs: { level: 1 },
+        content: [
+          {
+            type: "text",
+            text: line.replace(/^#\s+/, ""),
+          },
+        ],
+      });
+
+      i++;
+      continue;
+    }
+
+    // ─────────────────────────────────────────────
+    // Heading 2
+    // ─────────────────────────────────────────────
+    if (line.startsWith("## ")) {
       docContent.push({
         type: "heading",
         attrs: { level: 2 },
-        content: [{ type: "text", text: "Storyboard" }],
+        content: [
+          {
+            type: "text",
+            text: line.replace(/^##\s+/, ""),
+          },
+        ],
       });
 
-      storyboardImages.forEach((img) => {
-        if (!isAllowedAssetUrl(img.url)) return; // silently skip anything not from our own backend
-        docContent.push({
-          type: "image",
-          attrs: { src: img.url, alt: img.caption || `Scene ${img.scene_number ?? ""}` },
-        });
-        if (img.caption) {
-          docContent.push({
-            type: "paragraph",
-            content: [{ type: "text", text: img.caption }],
-          });
-        }
-      });
+      i++;
+      continue;
     }
 
-    return { type: "doc", content: docContent.length ? docContent : [{ type: "paragraph" }] };
-  };
+    // ─────────────────────────────────────────────
+    // Heading 3
+    // ─────────────────────────────────────────────
+    if (line.startsWith("### ")) {
+      docContent.push({
+        type: "heading",
+        attrs: { level: 3 },
+        content: [
+          {
+            type: "text",
+            text: line.replace(/^###\s+/, ""),
+          },
+        ],
+      });
 
-  // ── Build the initial storyboard payload from generated scenes ──
+      i++;
+      continue;
+    }
+
+    // ─────────────────────────────────────────────
+    // Normal paragraph
+    // ─────────────────────────────────────────────
+    docContent.push({
+      type: "paragraph",
+      content: [
+        {
+          type: "text",
+          text: line,
+        },
+      ],
+    });
+
+    i++;
+  }
+
+  // ─────────────────────────────────────────────
+  // Voice-over
+  // ─────────────────────────────────────────────
+  if (audioSrc && isAllowedAssetUrl(audioSrc)) {
+    docContent.push({
+      type: "audioEmbed",
+      attrs: {
+        src: audioSrc,
+        title: "Voice Over",
+      },
+    });
+  }
+
+  return {
+    type: "doc",
+    content: docContent.length
+      ? docContent
+      : [{ type: "paragraph" }],
+  };
+};
+
   const buildInitialStoryboard = () => {
     if (!storyboardImages?.length) return null;
 
@@ -2472,10 +3189,18 @@ return (
   />
 )}
 
+
 {visualizing && (
   <MediaGenerationProgress
     value={visualProgress}
     label="Generating Visuals"
+    totalScenes={storyboardTotal}
+    completedScenes={storyboardImages.length}
+    generatingScene={
+      storyboardImages.length < storyboardTotal
+        ? storyboardImages.length + 1
+        : null
+    }
   />
 )}
 
@@ -2643,6 +3368,8 @@ return (
             status={storyboardStatus}
             onClose={() => setShowStoryboard(false)}
             onRegenerateScene={regenerateScene}
+            individualGeneratingScene={individualGeneratingScene}
+            individualProgress={individualProgress}
           />
         </div>
       )}
@@ -2659,8 +3386,72 @@ return (
         .ai-highlight{animation:aiIn .3s ease;}
         @keyframes voiceLoading { 0%{left:-35%} 100%{left:100%} }
       `}</style>
+    {visualizing && (
+  <MediaGenerationProgress
+    value={visualProgress}
+    label="Generating Visuals"
+    totalScenes={storyboardTotal}
+    completedScenes={storyboardImages.length}
+    generatingScene={
+      storyboardImages.length < storyboardTotal
+        ? storyboardImages.length + 1
+        : null
+    }
+  />
+)}
+{individualGeneratingScene !== null && (
+  <MediaGenerationProgress
+    value={individualProgress}
+    label={`Generating Scene ${individualGeneratingScene}`}
+  />
+)}
+{/* ===== BOTTOM ACTIONS ===== */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 14px 4px",
+    marginTop: "4px",
+    borderTop: "1px solid rgba(255,255,255,.06)",
+  }}
+>
+  {/* Generate Voice Over */}
+  <button
+    onClick={generateVoiceOver}
+    disabled={voiceGenerating}
+    title={voiceGenerating ? "Generating Voice Over…" : "Generate Voice Over"}
+    style={{
+      ...primaryFilled(voiceGenerating),
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    }}
+  >
+    <GraphicEqRoundedIcon sx={{ fontSize: 15 }} />
+    {voiceGenerating ? "Generating…" : "Generate Voice Over"}
+  </button>
+
+  {/* Share to Canvas */}
+  <button
+    onClick={shareToCanvas}
+    disabled={sharingToCanvas}
+    title={sharingToCanvas ? "Sharing…" : "Share to Canvas"}
+    style={{
+      ...primaryFilled(sharingToCanvas),
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    }}
+  >
+    <IosShareRoundedIcon sx={{ fontSize: 15 }} />
+    {sharingToCanvas ? "Sharing…" : "Share to Canvas"}
+  </button>
+</div>
     </div>
   );
+
 };
 
 // ── Copy Button ────────────────────────────────────────────────
@@ -2681,7 +3472,6 @@ const CopyButton = ({ editableRef }) => {
 };
 
 // ── BotMessage ─────────────────────────────────────────────────
-// const BotMessage = ({ msg, onFeedback, isLatestBot }) => {
   const BotMessage = ({ msg, onFeedback, isLatestBot, onShareToCanvas }) => {
   const editableRef = useRef(null);
   return (
@@ -2944,7 +3734,6 @@ function reconstructMessage(m) {
     researchPending: false,
     researchData: null,
     transcriptCount: 0,
-    // hideText: !!researchId,
     hideText: false,  
     researchLoading: !!researchId,
     researchId,
@@ -3433,7 +4222,6 @@ function ChatWindow({onShareToCanvas}) {
             if (realMsgId) botId = realMsgId;
             continue;
           }
-          // if (line.startsWith("status:")) { setPipelineStatus(targetConvId, line.replace("status:", "").trim()); continue; }
           if (line.startsWith("status:")) {
             const s = line.replace("status:", "").trim();
             setPipelineStatus(targetConvId, s);
@@ -3944,25 +4732,6 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

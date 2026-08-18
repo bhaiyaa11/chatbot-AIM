@@ -21,9 +21,23 @@ import FormatQuoteRoundedIcon from "@mui/icons-material/FormatQuoteRounded";
 import CodeRoundedIcon from "@mui/icons-material/CodeRounded";
 import HorizontalRuleRoundedIcon from "@mui/icons-material/HorizontalRuleRounded";
 import FormatClearRoundedIcon from "@mui/icons-material/FormatClearRounded";
+import TableChartRoundedIcon from "@mui/icons-material/TableChartRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 
 const TEXT_COLORS = ["#ffffff", "#f87171", "#fb923c", "#facc15", "#4ade80", "#60a5fa", "#c084fc", "#94a3b8"];
 const HIGHLIGHT_COLORS = ["#fde68a", "#bbf7d0", "#bfdbfe", "#fbcfe8", "#e9d5ff", "#fecaca"];
+
+// Only allow http(s) image sources. Explicitly reject data:/javascript:/etc,
+// since a `data:` or `javascript:` "image" URL saved into the doc is a
+// stored-XSS vector for anyone who later views this canvas.
+function isSafeImageUrl(value) {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 function useClickOutside(ref, onOutside) {
   useEffect(() => {
@@ -44,6 +58,7 @@ function ToolbarButton({ onClick, active, disabled, children, title }) {
       onClick={onClick}
       disabled={disabled}
       title={title}
+      aria-label={title}
       style={disabled ? { opacity: 0.35, cursor: "default" } : undefined}
     >
       {children}
@@ -77,6 +92,7 @@ function HeadingDropdown({ editor }) {
         type="button"
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => setOpen((v) => !v)}
+        aria-label="Text style"
         style={{
           display: "flex", alignItems: "center", gap: "6px", justifyContent: "space-between",
           background: open ? "rgba(255,255,255,.08)" : "none",
@@ -161,6 +177,7 @@ function ColorDropdown({ editor, mode }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => applyColor(c)}
               title={c}
+              aria-label={`Set color ${c}`}
               style={{ width: 20, height: 20, borderRadius: "50%", background: c, border: "1px solid rgba(255,255,255,.25)", cursor: "pointer" }}
             />
           ))}
@@ -224,6 +241,7 @@ function LinkButton({ editor }) {
               if (e.key === "Escape") setOpen(false);
             }}
             placeholder="https://…"
+            aria-label="Link URL"
             style={{
               flex: 1, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)",
               borderRadius: "5px", color: "rgba(255,255,255,.85)", fontSize: "11px", padding: "5px 7px", outline: "none",
@@ -240,6 +258,166 @@ function LinkButton({ editor }) {
           >
             Set
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Insert table popover ────────────────────────────────────── */
+function InsertTableButton({ editor }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState(3);
+  const [cols, setCols] = useState(3);
+  const ref = useRef(null);
+  useClickOutside(ref, () => setOpen(false));
+
+  const clamp = (n) => Math.min(20, Math.max(1, Number(n) || 1));
+
+  const apply = () => {
+    editor
+      .chain()
+      .focus()
+      .insertTable({ rows: clamp(rows), cols: clamp(cols), withHeaderRow: true })
+      .run();
+    setOpen(false);
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <ToolbarButton title="Insert table" active={open} onClick={() => setOpen((v) => !v)}>
+        <TableChartRoundedIcon sx={{ fontSize: 16 }} />
+      </ToolbarButton>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 30,
+            background: "#151515", border: "1px solid rgba(255,255,255,.15)", borderRadius: "8px",
+            boxShadow: "0 8px 24px rgba(0,0,0,.5)", padding: "10px",
+            display: "flex", flexDirection: "column", gap: "8px", width: "170px",
+          }}
+        >
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <label style={{ fontSize: "10.5px", color: "rgba(255,255,255,.6)", width: "40px" }}>Rows</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={rows}
+              onChange={(e) => setRows(e.target.value)}
+              aria-label="Number of rows"
+              style={{
+                flex: 1, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: "5px", color: "rgba(255,255,255,.85)", fontSize: "11px", padding: "4px 6px", outline: "none",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <label style={{ fontSize: "10.5px", color: "rgba(255,255,255,.6)", width: "40px" }}>Cols</label>
+            <input
+              type="number"
+              min={1}
+              max={20}
+              value={cols}
+              onChange={(e) => setCols(e.target.value)}
+              aria-label="Number of columns"
+              style={{
+                flex: 1, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: "5px", color: "rgba(255,255,255,.85)", fontSize: "11px", padding: "4px 6px", outline: "none",
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={apply}
+            style={{
+              background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.2)",
+              borderRadius: "5px", color: "rgba(255,255,255,.9)", fontSize: "11px", padding: "5px 0", cursor: "pointer",
+            }}
+          >
+            Insert
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Insert image popover (URL-based) ────────────────────────── */
+function InsertImageButton({ editor }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [error, setError] = useState("");
+  const ref = useRef(null);
+  useClickOutside(ref, () => {
+    setOpen(false);
+    setError("");
+  });
+
+  const apply = () => {
+    const url = value.trim();
+    if (!url) return;
+    if (!isSafeImageUrl(url)) {
+      setError("Only http:// or https:// image URLs are allowed.");
+      return;
+    }
+    editor.chain().focus().setImage({ src: url }).run();
+    setOpen(false);
+    setValue("");
+    setError("");
+  };
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <ToolbarButton title="Insert image" active={open} onClick={() => setOpen((v) => !v)}>
+        <ImageRoundedIcon sx={{ fontSize: 16 }} />
+      </ToolbarButton>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 30,
+            background: "#151515", border: "1px solid rgba(255,255,255,.15)", borderRadius: "8px",
+            boxShadow: "0 8px 24px rgba(0,0,0,.5)", padding: "8px",
+            display: "flex", flexDirection: "column", gap: "6px", width: "220px",
+          }}
+        >
+          <div style={{ display: "flex", gap: "6px" }}>
+            <input
+              autoFocus
+              value={value}
+              onChange={(e) => {
+                setValue(e.target.value);
+                if (error) setError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") apply();
+                if (e.key === "Escape") setOpen(false);
+              }}
+              placeholder="https://…image.png"
+              aria-label="Image URL"
+              style={{
+                flex: 1, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)",
+                borderRadius: "5px", color: "rgba(255,255,255,.85)", fontSize: "11px", padding: "5px 7px", outline: "none",
+              }}
+            />
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={apply}
+              style={{
+                background: "rgba(255,255,255,.14)", border: "1px solid rgba(255,255,255,.2)",
+                borderRadius: "5px", color: "rgba(255,255,255,.9)", fontSize: "11px", padding: "0 10px", cursor: "pointer",
+              }}
+            >
+              Set
+            </button>
+          </div>
+          {error && (
+            <div style={{ fontSize: "10px", color: "#f87171" }}>{error}</div>
+          )}
         </div>
       )}
     </div>
@@ -343,6 +521,11 @@ function CanvasToolbar({ editor }) {
       <ToolbarButton title="Horizontal rule" onClick={() => editor.chain().focus().setHorizontalRule().run()}>
         <HorizontalRuleRoundedIcon sx={{ fontSize: 16 }} />
       </ToolbarButton>
+
+      <Divider />
+
+      <InsertTableButton editor={editor} />
+      <InsertImageButton editor={editor} />
 
       <Divider />
 
