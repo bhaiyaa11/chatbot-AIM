@@ -1,7 +1,11 @@
 import { useState, useRef } from "react";
+import { createPortal } from "react-dom";
+
 
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+
 const VERDICT_CONFIG = {
   accurate:     { color: "rgba(111,207,151,.9)",  bg: "rgba(111,207,151,.10)", border: "rgba(111,207,151,.25)", icon: "✓", label: "Accurate" },
   inaccurate:   { color: "rgba(235,87,87,.9)",    bg: "rgba(235,87,87,.10)",   border: "rgba(235,87,87,.25)",   icon: "✕", label: "Inaccurate" },
@@ -149,7 +153,46 @@ const FactChecker = ({ getScript }) => {
       </button>
 
       {/* ── Overlay — rendered in a portal-like fixed layer, centered on screen ── */}
-      {open && (
+      
+      {/* {open && (
+        <>
+
+          <div
+            onClick={close}
+            style={{
+              position: "fixed", inset: 0,
+              background: "rgba(0,0,0,.55)",
+              zIndex: 9998,
+              animation: "fcFade .15s ease",
+            }}
+          />
+
+
+          <div style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "min(540px, 92vw)",
+            maxHeight: "72vh",
+            background: "#0f0f0f",
+            border: "1px solid rgba(255,255,255,.12)",
+            borderRadius: "1.1rem",
+            boxShadow: "0 24px 64px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04)",
+            zIndex: 9999,
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            animation: "fcSlide .2s ease",
+          }}>
+
+           
+          </div>
+        </>
+      )} */}
+
+
+      {open && createPortal(
         <>
           {/* Backdrop */}
           <div
@@ -180,8 +223,8 @@ const FactChecker = ({ getScript }) => {
             overflow: "hidden",
             animation: "fcSlide .2s ease",
           }}>
-            {/* Header */}
-            <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,.06)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+            {/* ...everything inside stays exactly the same... */}
+             <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid rgba(255,255,255,.06)", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                 <span style={{ fontSize: "11px", fontWeight: 700, fontFamily: "'Manrope',sans-serif", color: "rgba(255,255,255,.55)", letterSpacing: ".8px", textTransform: "uppercase" }}>
                   Fact Check
@@ -208,7 +251,7 @@ const FactChecker = ({ getScript }) => {
               </button>
             </div>
 
-            {/* Body */}
+
             {loading ? (
               <div style={{ padding: "32px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
                 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ animation: "spin .9s linear infinite" }}>
@@ -298,7 +341,8 @@ const FactChecker = ({ getScript }) => {
               </div>
             )}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </>
   );

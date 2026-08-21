@@ -29,6 +29,9 @@ import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from "@mui/material/Box";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import { createPortal } from "react-dom";
+
 
 
 // const API_BASE_URL = "http://localhost:8000";
@@ -36,7 +39,12 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // Storage key for persisting script canvas content per bot message
 const scriptKey = (msgId) => `script_content_${msgId}`;
-// const storyboardKey = (msgId) => `storyboard_job_${msgId}`;
+
+// In-memory cache for voice-over playback state, keyed by message id.
+// Survives ScriptCanvas unmount/remount (chat switches, canvas open/close)
+// because it lives outside React state — but it's just JS memory, so it's
+// automatically gone on refresh or tab close. Never touches localStorage.
+const voiceOverSessionCache = new Map();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // safeWriteClipboard — clipboard helper with execCommand fallback
@@ -1247,16 +1255,18 @@ const allScenesProgress =
 </div>
       </div>
 
-      {expanded && (
-        <div
-          onClick={() => setExpandedIndex(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "32px" }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "min(90vw, 1000px)", width: "100%", display: "flex", flexDirection: "column", gap: "12px", animation: "sbLightboxIn .15s ease" }}
-          >
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+
+{expanded && createPortal(
+  <div
+    onClick={() => setExpandedIndex(null)}
+    style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.85)", zIndex: 2000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "32px" }}
+  >
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{ maxWidth: "min(90vw, 1000px)", width: "100%", display: "flex", flexDirection: "column", gap: "12px", animation: "sbLightboxIn .15s ease" }}
+    >
+      {/* ...everything currently inside stays exactly the same... */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <span style={{ fontSize: "12px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.6)" }}>
                 {expanded.scene_number ? `Scene ${expanded.scene_number}` : `Frame ${expandedIndex + 1}`} of {images.length}
               </span>
@@ -1353,14 +1363,13 @@ const allScenesProgress =
     </button>
   </div>
 </div>
-          </div>
-        </div>
-      )}
+    </div>
+  </div>,
+  document.body
+)}
     </>
   );
 };
-
-
 
 
 const MediaGenerationProgress = ({ value, label, buffer = 100, totalScenes = 0, completedScenes = 0, generatingScene = null, }) => {
@@ -1546,8 +1555,8 @@ const VOICES = [
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
   { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
   { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
-  { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"], age: "mid", gender: "female" },
-  { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
+ { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
+
   { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
   { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
   { value: "BECCA_AUSSIE_ADVERTISEMENT",  label: "🇦🇺 Becca",         accent: "australian", tone: ["advertising"], age: "mid", gender: "female" },
@@ -1599,12 +1608,27 @@ const VOICES = [
   {value:"DARCY_BRIT_MID_N_SM", label:"🇬🇧 Darcy", accent:"british", tone: ["social_media","advertising"], age:"mid",gender:"neutral"},
   {value:"MARSHAL_BRIT_MID_N_CONVO", label:"🇬🇧 Marshal", accent:"british", tone: ["conversational", "social_media"], age:"mid",gender:"neutral"},
   {value:"EVELYN_BRIT_YOUNG_N_CONVO", label:"🇬🇧 Evelyn", accent:"british", tone:["conversational","social_media"], age:"young",gender:"neutral"},
- { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
+  { value: "ASHER_BRITISH_SOCIALMEDIA",   label: "🇬🇧 Asher",        accent: "british",    tone: ["social_media"], age: "young", gender: "male"},
+  { value: "KAIRA_AMERICAN_FEMALE",       label: "🇺🇸 Kaira",         accent: "american",   tone: ["advertising"], age: "mid", gender: "female" },
   { value: "british_male",                label: "🇬🇧 Nathan",        accent: "british",    tone: ["conversational", "advertising"], age: "young", gender: "male"},
   { value: "american_female",             label: "🇺🇸 Rita",          accent: "american",   tone: ["conversational"], age: "young", gender: "female" },
   { value: "american_male",               label: "🇺🇸 Dexter",        accent: "american",   tone: ["advertising"], age: "mid", gender:"male" },
   { value: "indian_female",               label: "🇮🇳 Indian Female", accent: "indian",     tone: ["conversational", "social_media"], age: "young", gender: "female" },
   { value: "indian_male",                 label: "🇮🇳 Indian Male",   accent: "indian",     tone: ["conversational", "advertising"], age: "young", gender: "male" },
+  {value:"RACHELLE_AMER_Y_F_AD", label:"🇺🇸 Rachelle", accent:"american", tone:["advertising"],age:"young", gender:"female"},
+  {value:"ALEXIS_AMER_Y_F_AD", label:"🇺🇸 Alexis", accent:"american",tone:["advertising"],age:"young", gender:"female"},
+  {value:"SIA_AMER_Y_F_AD", label:"🇺🇸 Sia", accent:"american", tone:"advertising", age:"young", gender:"female"},
+  {value:"KRISTEN_AMER_Y_F_SM", label:"🇺🇸 Kristen", accent:"american", tone:"advertising", age:"young", gender:"female"},
+  {value:"SKY_AMER_Y_F_SM", label:"🇺🇸 Sky", accent:"american", tone:"social_media", age:"young", gender:"female"},
+  {value:"BRITTNEY_AMER_Y_F_SM", label:"🇺🇸 Brittney", accent:"american", tone:"social_media", age:"young", gender:"female"},
+  {value:"HOPE_AMER_Y_F_SM", label:"🇺🇸 Hope", accent:"american", tone:"social_media", age:"young", gender:"female"},
+  {value:"BHEE_AMER_Y_F_C", label:"🇺🇸 Bhee", accent:"american", tone:"conversational", age:"young", gender:"female"},
+  {value:"IVANNA_AMER_Y_F_C", label:"🇺🇸 Ivanna", accent:"american", tone:"conversational", age:"young", gender:"female"},
+  {value:"JENI_AMER_Y_F_C", label:"🇺🇸 Jenni", accent:"american", tone:"conversational", age:"young", gender:"female"},
+  {value:"KAIRA_AMER_Y_F_C", label:"🇺🇸 Kaira", accent:"american", tone:"conversational", age:"young", gender:"female"}
+
+
+
 ];
 
 const DEFAULT_accent = "british";
@@ -1649,14 +1673,30 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [wordCount,       setWordCount]       = useState(0);
   const [canUndo,         setCanUndo]         = useState(false);
   const [canRedo,         setCanRedo]         = useState(false);
-  const [selectedVoice,   setSelectedVoice]   = useState(DEFAULT_VOICE);
-  const[gender,          setGender]          = useState(DEFAULT_GENDER);
-  const [age,             setAge]             = useState(DEFAULT_AGE);
-  const [accent,          setaccent]          = useState(DEFAULT_accent);
-  const [tone,            setTone]            = useState(DEFAULT_TONE);
+
+
+  // const [selectedVoice,   setSelectedVoice]   = useState(DEFAULT_VOICE);
+  // const[gender,          setGender]          = useState(DEFAULT_GENDER);
+  // const [age,             setAge]             = useState(DEFAULT_AGE);
+  // const [accent,          setaccent]          = useState(DEFAULT_accent);
+  // const [tone,            setTone]            = useState(DEFAULT_TONE);
+  // const [audioSrc,        setAudioSrc]        = useState(null);
+  // const [showPlayer,      setShowPlayer]      = useState(false);
+  // const [wordTimings, setWordTimings] = useState([]);
+  // const [sceneSegments, setSceneSegments] = useState([]);
+
+  const [selectedVoice,   setSelectedVoice]   = useState(() => voiceOverSessionCache.get(msgId)?.selectedVoice ?? DEFAULT_VOICE);
+  const [gender,          setGender]          = useState(() => voiceOverSessionCache.get(msgId)?.gender ?? DEFAULT_GENDER);
+  const [age,             setAge]             = useState(() => voiceOverSessionCache.get(msgId)?.age ?? DEFAULT_AGE);
+  const [accent,          setaccent]          = useState(() => voiceOverSessionCache.get(msgId)?.accent ?? DEFAULT_accent);
+  const [tone,            setTone]            = useState(() => voiceOverSessionCache.get(msgId)?.tone ?? DEFAULT_TONE);
+  const [audioSrc,        setAudioSrc]        = useState(() => voiceOverSessionCache.get(msgId)?.audioSrc ?? null);
+  const [showPlayer,      setShowPlayer]      = useState(() => voiceOverSessionCache.get(msgId)?.showPlayer ?? false);
+  const [wordTimings,     setWordTimings]     = useState(() => voiceOverSessionCache.get(msgId)?.wordTimings ?? []);
+  const [sceneSegments,   setSceneSegments]   = useState(() => voiceOverSessionCache.get(msgId)?.sceneSegments ?? []);
   const [voiceGenerating, setVoiceGenerating] = useState(false);
-  const [audioSrc,        setAudioSrc]        = useState(null);
-  const [showPlayer,      setShowPlayer]      = useState(false);
+  
+  
   const [visualizing,      setVisualizing]      = useState(false);
   const [voiceProgress, setVoiceProgress] = useState(0);
   const [visualProgress, setVisualProgress] = useState(0);
@@ -1669,11 +1709,11 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [storyboardTotal, setStoryboardTotal] = useState(0);
   const [individualGeneratingScene, setIndividualGeneratingScene] = useState(null);
   const [individualProgress, setIndividualProgress] = useState(0);
-  const [wordTimings, setWordTimings] = useState([]);
+  
   const [currentTime, setCurrentTime] = useState(0);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
   const [activeNarrationWordIndex, setActiveNarrationWordIndex] = useState(-1);
-  const [sceneSegments, setSceneSegments] = useState([]);
+  
   const [activeSceneIndex, setActiveSceneIndex] = useState(-1);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sharingToCanvas, setSharingToCanvas] = useState(false); // ADD THIS
@@ -2189,7 +2229,22 @@ const generateStoryboard = async (videoType) => {
 }, [restoreStoryboard]);
 
   useEffect(() => { if (content) rawMarkdownRef.current = content; }, [content]);
-
+  // Persist voice-over state to the in-memory session cache so it survives
+  // switching chats / opening the canvas, without writing to disk storage.
+  useEffect(() => {
+    if (!msgId) return;
+    voiceOverSessionCache.set(msgId, {
+      audioSrc,
+      showPlayer,
+      wordTimings,
+      sceneSegments,
+      selectedVoice,
+      accent,
+      gender,
+      age,
+      tone,
+    });
+  }, [msgId, audioSrc, showPlayer, wordTimings, sceneSegments, selectedVoice, accent, gender, age, tone]);
 
   const clearWordHighlight = () => {
   if (!canvasRef.current) return;
@@ -3226,11 +3281,12 @@ return (
             {visualizing ? "Visualising…" : "Visualise"}
           </button>
 
-          {showVideoTypePicker && (
+          {showVideoTypePicker && createPortal(
             <VideoTypeModal
               onSelect={(videoType) => { setShowVideoTypePicker(false); generateStoryboard(videoType); }}
               onClose={() => setShowVideoTypePicker(false)}
-            />
+            />,
+            document.body
           )}
         </div>
 
@@ -3326,8 +3382,6 @@ return (
 
             <button
               onClick={generateVoiceOver}
-              // disabled={voiceGenerating}
-              // disabled={voiceGenerating || visualizing}
               onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.96)")}
               onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
               onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
@@ -3405,6 +3459,14 @@ return (
     label={`Generating Scene ${individualGeneratingScene}`}
   />
 )}
+
+        {voiceGenerating && (
+  <MediaGenerationProgress
+    value={voiceProgress}
+    label="Generating Voice Over"
+  />
+)}
+
 {/* ===== BOTTOM ACTIONS ===== */}
 <div
   style={{
@@ -3417,6 +3479,24 @@ return (
     borderTop: "1px solid rgba(255,255,255,.06)",
   }}
 >
+
+    {/* Visualise */}
+  <button
+    onClick={() => setShowVideoTypePicker(true)}
+    disabled={visualizing}
+    title={visualizing ? "Visualising…" : "Visualise"}
+    style={{
+      ...primaryFilled(visualizing),
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    }}
+  >
+    <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
+    {visualizing ? "Visualising…" : "Visualise"}
+  </button>
+
+
   {/* Generate Voice Over */}
   <button
     onClick={generateVoiceOver}
@@ -3470,6 +3550,81 @@ const CopyButton = ({ editableRef }) => {
     </button>
   );
 };
+
+
+const MetadataDropdown = ({ metadata }) => {
+  const [open, setOpen] = useState(false);
+  if (!metadata) return null;
+
+  const fields = [
+    ["Client", metadata.client],
+    ["Industry", metadata.industries],
+    ["Service Line", metadata.serviceLines],
+    ["Video Type", metadata.video_type],
+    ["Video Tone", metadata.video_tone],
+    ["Duration", metadata.duration],
+    ["Style", metadata.styles],
+  ].filter(([, v]) => v && v.trim?.());
+
+  if (!fields.length) return null;
+
+  return (
+    <div style={{ marginTop: "6px" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          background: open ? "rgba(255,255,255,.08)" : "rgba(255,255,255,.04)",
+          border: "1px solid rgba(255,255,255,.1)",
+          borderRadius: "9999px",
+          padding: "4px 12px",
+          cursor: "pointer",
+          fontFamily: "'Inter',sans-serif",
+          fontSize: "11px",
+          color: "rgba(255,255,255,.5)",
+        }}
+      >
+        <TuneRoundedIcon sx={{ fontSize: 14 }} />
+        Meta Data
+        <ExpandMoreRoundedIcon
+          sx={{
+            fontSize: 15,
+            transition: "transform .2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          style={{
+            marginTop: "6px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "5px",
+            background: "rgba(255,255,255,.03)",
+            border: "1px solid rgba(255,255,255,.07)",
+            borderRadius: "10px",
+            padding: "10px 14px",
+            maxWidth: "320px",
+          }}
+        >
+          {fields.map(([label, value]) => (
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", gap: "12px", fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>
+              <span style={{ color: "rgba(255,255,255,.35)" }}>{label}</span>
+              <span style={{ color: "rgba(255,255,255,.75)", textAlign: "right" }}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+
 
 // ── BotMessage ─────────────────────────────────────────────────
   const BotMessage = ({ msg, onFeedback, isLatestBot, onShareToCanvas }) => {
@@ -4087,7 +4242,15 @@ function ChatWindow({onShareToCanvas}) {
     addMessage(targetConvId, {
       id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "",
       files: fpd, researchPending: false, reviewPending: true, researchData: null, hideText: false,
-      researchLoading: false, researchId: null, _reviewId: uid,
+      researchLoading: false, researchId: null, _reviewId: uid, metadata: {
+  client: formatList(selectedClient),
+  industries: formatList(selectedIndustries),
+  serviceLines: formatList(selectedServiceLines),
+  video_type: formatList(selectedVideoType),
+  video_tone: formatList(selectedVideoTone),
+  duration: selectedDuration,
+  styles: formatList(selectedStyles),
+},
     });
 
     const fd = new FormData();
@@ -4387,7 +4550,15 @@ stopGenerating(targetConvId);
     addMessage(targetConvId, {
       id: bid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "",
       files: fpd, researchPending: true, researchData: null, hideText: false, researchLoading: false,
-      researchId: null, _researchId: bid,
+      researchId: null, _researchId: bid, metadata: {
+  client: formatList(selectedClient),
+  industries: formatList(selectedIndustries),
+  serviceLines: formatList(selectedServiceLines),
+  video_type: formatList(selectedVideoType),
+  video_tone: formatList(selectedVideoTone),
+  duration: selectedDuration,
+  styles: formatList(selectedStyles),
+},
     });
 
     const fd = new FormData();
@@ -4458,7 +4629,15 @@ stopGenerating(targetConvId);
 
     if (!cr) {
       const uid = crypto.randomUUID();
-      addMessage(targetConvId, { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false });
+      addMessage(targetConvId, { id: uid, sender: "user", text: rawInput, content: rawInput, rawPrompt: rawInput, prompt: "", files: fpd, hideText: false, researchLoading: false , metadata: {
+  client: formatList(selectedClient),
+  industries: formatList(selectedIndustries),
+  serviceLines: formatList(selectedServiceLines),
+  video_type: formatList(selectedVideoType),
+  video_tone: formatList(selectedVideoTone),
+  duration: selectedDuration,
+  styles: formatList(selectedStyles),
+},});
     }
 
 setStreamText(targetConvId, "");
@@ -4519,8 +4698,6 @@ setStreamText(targetConvId, "");
             }
             continue;
           }
-          // if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
-          // if (line.startsWith("status:") || line.startsWith("<!-- ")) { setPipelineStatus(targetConvId, line.replace("status:", "").replace("<!--", "").replace("-->", "").trim()); continue; }
           if (line.startsWith("status:") || line.startsWith("<!-- ")) {
             const s = line.replace("status:", "").replace("<!--", "").replace("-->", "").trim();
             setPipelineStatus(targetConvId, s);
@@ -4654,30 +4831,30 @@ stopGenerating(targetConvId);
             {messages.map((msg) => (
               <div key={msg.id} className={`chat-bubble ${msg.sender}`}>
                 {msg.sender === "bot" ? (
-                  // <BotMessage msg={msg} onFeedback={sendFeedback} isLatestBot={msg.id === lastBotId} />
                   <BotMessage msg={msg} onFeedback={sendFeedback} isLatestBot={msg.id === lastBotId} onShareToCanvas={onShareToCanvas} />
                 ) : (
-                  <div>
-                    {!msg.hideText && (msg.rawPrompt || msg.text) && (
-                      <p style={{ margin: 0 }}>{msg.rawPrompt || msg.text}</p>
-                    )}
-                    {msg.files?.length > 0 && <FileChips fileList={msg.files} onPreview={openPreview} />}
-                    {msg.researchPending && <ResearchingIndicator />}
-                    {msg.reviewPending && <ReviewingIndicator />}
-                    {msg.researchLoading && !msg.researchPending && (
-                      <div style={{ fontSize: "12px", color: "rgba(255,255,255,.3)", fontFamily: "'Inter',sans-serif", marginTop: "6px" }}>Loading research…</div>
-                    )}
-                    {msg.researchData && (
-                      <InlineResearchPanel research={msg.researchData} transcriptCount={msg.transcriptCount} onResearchChange={setEditedResearch} />
-                    )}
-                    {msg.narrativeReviewData && (
-                      <InlineNarrativeReviewPanel
-                        reviewData={msg.narrativeReviewData}
-                        onGenerate={(payload) => generateApprovedScript(payload, msg.narrativeReviewData._promptContext, conversationId)}
-                        isGenerating={streaming}
-                      />
-                    )}
-                  </div>
+                    <div>
+                      {!msg.hideText && (msg.rawPrompt || msg.text) && (
+                        <p style={{ margin: 0 }}>{msg.rawPrompt || msg.text}</p>
+                      )}
+                      {msg.files?.length > 0 && <FileChips fileList={msg.files} onPreview={openPreview} />}
+                      <MetadataDropdown metadata={msg.metadata} />
+                      {msg.researchPending && <ResearchingIndicator />}
+                      {msg.reviewPending && <ReviewingIndicator />}
+                      {msg.researchLoading && !msg.researchPending && (
+                        <div style={{ fontSize: "12px", color: "rgba(255,255,255,.3)", fontFamily: "'Inter',sans-serif", marginTop: "6px" }}>Loading research…</div>
+                      )}
+                      {msg.researchData && (
+                        <InlineResearchPanel research={msg.researchData} transcriptCount={msg.transcriptCount} onResearchChange={setEditedResearch} />
+                      )}
+                      {msg.narrativeReviewData && (
+                        <InlineNarrativeReviewPanel
+                          reviewData={msg.narrativeReviewData}
+                          onGenerate={(payload) => generateApprovedScript(payload, msg.narrativeReviewData._promptContext, conversationId)}
+                          isGenerating={streaming}
+                        />
+                      )}
+                    </div>
                 )}
               </div>
             ))}
@@ -4732,6 +4909,26 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
