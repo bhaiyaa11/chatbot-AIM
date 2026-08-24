@@ -31,7 +31,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Box from "@mui/material/Box";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { createPortal } from "react-dom";
-
+import Slider from "@mui/material/Slider";
 
 
 // const API_BASE_URL = "http://localhost:8000";
@@ -451,6 +451,38 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
   );
 };
 
+
+const sliderSx = {
+  color: "rgba(168,85,247,.85)",
+  height: 4,
+  padding: "8px 0",
+  "& .MuiSlider-rail": {
+    height: 4,
+    borderRadius: 9999,
+    background: "rgba(255,255,255,.08)",
+    opacity: 1,
+  },
+  "& .MuiSlider-track": {
+    height: 4,
+    borderRadius: 9999,
+    border: "none",
+  },
+  "& .MuiSlider-thumb": {
+    width: 12,
+    height: 12,
+    background: "#fff",
+    boxShadow: "0 0 6px rgba(168,85,247,.6)",
+    "&:hover, &.Mui-focusVisible": {
+      boxShadow: "0 0 0 8px rgba(168,85,247,.16)",
+    },
+    "&.Mui-active": {
+      boxShadow: "0 0 0 12px rgba(168,85,247,.2)",
+    },
+  },
+};
+
+const volumeSliderSx = { ...sliderSx, width: 70 };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AudioPlayer
 // ─────────────────────────────────────────────────────────────────────────────
@@ -642,9 +674,6 @@ const downloadVoiceOver = async () => {
         @keyframes apIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
         .ap-seek:hover .ap-seek-fill { background: rgba(168,85,247,1) !important; }
         .ap-seek:hover .ap-seek-thumb { opacity: 1 !important; }
-        .ap-vol-track { -webkit-appearance:none; appearance:none; height:3px; border-radius:9999px; outline:none; cursor:pointer; }
-        .ap-vol-track::-webkit-slider-thumb { -webkit-appearance:none; width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.8); cursor:pointer; margin-top:-4px; }
-        .ap-vol-track::-moz-range-thumb { width:11px; height:11px; border-radius:50%; background:rgba(255,255,255,.8); border:none; cursor:pointer; }
         .ap-ctrl-btn { background:none; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; border-radius:50%; transition:background .15s, transform .1s; padding:6px; }
         .ap-ctrl-btn:hover { background:rgba(255,255,255,.08); }
         .ap-ctrl-btn:active { transform:scale(.9); }
@@ -787,7 +816,21 @@ const downloadVoiceOver = async () => {
               ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><line x1="23" y1="9" x2="17" y2="15" /><line x1="17" y1="9" x2="23" y2="15" /></svg>
               : <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" /><path d="M15.54 8.46a5 5 0 0 1 0 7.07" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14" /></svg>}
           </button>
-          <input type="range" min="0" max="1" step="0.02" value={muted ? 0 : volume} onChange={handleVolume} className="ap-vol-track" style={{ width: "70px", background: `linear-gradient(to right, rgba(168,85,247,.8) ${(muted ? 0 : volume) * 100}%, rgba(255,255,255,.1) ${(muted ? 0 : volume) * 100}%)` }} />
+          {/* <input type="range" min="0" max="1" step="0.02" value={muted ? 0 : volume} onChange={handleVolume} className="ap-vol-track" style={{ width: "70px", background: `linear-gradient(to right, rgba(168,85,247,.8) ${(muted ? 0 : volume) * 100}%, rgba(255,255,255,.1) ${(muted ? 0 : volume) * 100}%)` }} /> */}
+
+          <Slider
+  value={muted ? 0 : volume}
+  min={0}
+  max={1}
+  step={0.02}
+  onChange={(e, v) => {
+    setVolume(v);
+    if (audioRef.current) audioRef.current.volume = v;
+    setMuted(v === 0);
+  }}
+  aria-label="Volume"
+  sx={volumeSliderSx}
+/>
         </div>
       </div>
     </>
@@ -1553,9 +1596,7 @@ function htmlToMarkdown(container) {
 const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
-  { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
-  { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
- { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
+
 
   { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
   { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
@@ -1625,8 +1666,10 @@ const VOICES = [
   {value:"BHEE_AMER_Y_F_C", label:"🇺🇸 Bhee", accent:"american", tone:"conversational", age:"young", gender:"female"},
   {value:"IVANNA_AMER_Y_F_C", label:"🇺🇸 Ivanna", accent:"american", tone:"conversational", age:"young", gender:"female"},
   {value:"JENI_AMER_Y_F_C", label:"🇺🇸 Jenni", accent:"american", tone:"conversational", age:"young", gender:"female"},
-  {value:"KAIRA_AMER_Y_F_C", label:"🇺🇸 Kaira", accent:"american", tone:"conversational", age:"young", gender:"female"}
-
+  {value:"KAIRA_AMER_Y_F_C", label:"🇺🇸 Kaira", accent:"american", tone:"conversational", age:"young", gender:"female"},
+  { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
+  { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
+ { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
 
 
 ];
@@ -1963,7 +2006,8 @@ const generateVoiceOver = async () => {
   }
 };
 
-const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
+// const [showVideoTypePicker, setShowVideoTypePicker] = useState(false);
+const [visualsVideoType, setVisualsVideoType] = useState(null);
 
 const restoreStoryboard = useCallback(async () => {
   if (!msgId) return;
@@ -2926,55 +2970,6 @@ const primaryFilled = (disabled = false) => ({
     typeof url === "string" &&
     (url.startsWith(API_BASE_URL) || url.startsWith(SUPABASE_STORAGE_ORIGIN));
 
-  // const buildCanvasContentDoc = () => {
-  //   const scriptText = (rawMarkdownRef.current || "").trim();
-  //   const scriptLines = scriptText.split("\n").filter((l) => l.trim());
-
-  //   const docContent = [
-  //     {
-  //       type: "heading",
-  //       attrs: { level: 1 },
-  //       content: [{ type: "text", text: "Shared Script" }],
-  //     },
-  //     ...scriptLines.map((line) => ({
-  //       type: "paragraph",
-  //       content: [{ type: "text", text: line }],
-  //     })),
-  //   ];
-
-  //   if (audioSrc && isAllowedAssetUrl(audioSrc)) {
-  //     docContent.push({
-  //       type: "audioEmbed",
-  //       attrs: { src: audioSrc, title: "Voice Over" },
-  //     });
-  //   }
-
-  //   if (storyboardImages?.length) {
-  //     docContent.push({
-  //       type: "heading",
-  //       attrs: { level: 2 },
-  //       content: [{ type: "text", text: "Storyboard" }],
-  //     });
-
-  //     storyboardImages.forEach((img) => {
-  //       if (!isAllowedAssetUrl(img.url)) return; // silently skip anything not from our own backend
-  //       docContent.push({
-  //         type: "image",
-  //         attrs: { src: img.url, alt: img.caption || `Scene ${img.scene_number ?? ""}` },
-  //       });
-  //       if (img.caption) {
-  //         docContent.push({
-  //           type: "paragraph",
-  //           content: [{ type: "text", text: img.caption }],
-  //         });
-  //       }
-  //     });
-  //   }
-
-  //   return { type: "doc", content: docContent.length ? docContent : [{ type: "paragraph" }] };
-  // };
-
-
 
   // ── Build the initial storyboard payload from generated scenes ──
 
@@ -3164,19 +3159,76 @@ const buildCanvasContentDoc = () => {
     };
   };
 
-  const shareToCanvas = async () => {
-    const token = session?.access_token;
-    if (!token) {
-      console.error("Share to Canvas: no active session — refusing to proceed.");
-      return;
-    }
+  // const shareToCanvas = async () => {
+  //   const token = session?.access_token;
+  //   if (!token) {
+  //     console.error("Share to Canvas: no active session — refusing to proceed.");
+  //     return;
+  //   }
 
-    setSharingToCanvas(true);
-    try {
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      };
+  //   setSharingToCanvas(true);
+  //   try {
+  //     const headers = {
+  //       Authorization: `Bearer ${token}`,
+  //       "Content-Type": "application/json",
+  //     };
+
+  //     const createRes = await fetch(`${API_BASE_URL}/canvas`, {
+  //       method: "POST",
+  //       headers,
+  //       body: JSON.stringify({ title: "Shared Script" }),
+  //     });
+  //     if (!createRes.ok) throw new Error(`Failed to create canvas (${createRes.status})`);
+  //     const { canvas } = await createRes.json();
+
+  //     const contentRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/content`, {
+  //       method: "PATCH",
+  //       headers,
+  //       body: JSON.stringify({ content: buildCanvasContentDoc() }),
+  //     });
+  //     if (!contentRes.ok) throw new Error(`Failed to save canvas content (${contentRes.status})`);
+
+  //     // Storyboard is seeded best-effort: if it fails, the script itself
+  //     // already shared successfully — don't let a secondary write
+  //     // failure block the user from reaching their canvas.
+  //     const initialStoryboard = buildInitialStoryboard();
+  //     if (initialStoryboard) {
+  //       try {
+  //         const storyboardRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/storyboard`, {
+  //           method: "PATCH",
+  //           headers,
+  //           body: JSON.stringify({ storyboard: initialStoryboard }),
+  //         });
+  //         if (!storyboardRes.ok) {
+  //           console.error(`Failed to seed storyboard (${storyboardRes.status})`);
+  //         }
+  //       } catch (storyboardErr) {
+  //         console.error("Failed to seed storyboard:", storyboardErr);
+  //       }
+  //     }
+
+  //     onShareToCanvas?.(canvas.id);
+  //   } catch (err) {
+  //     console.error("Share to Canvas failed:", err);
+  //   } finally {
+  //     setSharingToCanvas(false);
+  //   }
+  // };
+
+const shareToCanvas = async () => {
+  const token = session?.access_token;
+  if (!token) {
+    console.error("Share to Canvas: no active session — refusing to proceed.");
+    return;
+  }
+
+  setSharingToCanvas(true);
+  try {
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
 
       const createRes = await fetch(`${API_BASE_URL}/canvas`, {
         method: "POST",
@@ -3212,14 +3264,13 @@ const buildCanvasContentDoc = () => {
         }
       }
 
-      onShareToCanvas?.(canvas.id);
-    } catch (err) {
-      console.error("Share to Canvas failed:", err);
-    } finally {
-      setSharingToCanvas(false);
-    }
-  };
-
+    onShareToCanvas?.(canvas.id);
+  } catch (err) {
+    console.error("Share to Canvas failed:", err);
+  } finally {
+    setSharingToCanvas(false);
+  }
+};
 
 return (
   
@@ -3270,25 +3321,33 @@ return (
           <button style={iconBtn()} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)">
             <RedoRoundedIcon sx={{ fontSize: 16, opacity: canRedo ? 1 : 0.35 }} />
           </button>
-
+{/* 
           <button
             onClick={() => setShowVideoTypePicker(true)}
             disabled={visualizing}
-            // disabled={visualizing || voiceGenerating}
             style={primaryPill(visualizing)}
           >
             <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
             {visualizing ? "Visualising…" : "Visualise"}
-          </button>
+          </button> */}
 
-          {showVideoTypePicker && createPortal(
+          {/* {showVideoTypePicker && createPortal(
             <VideoTypeModal
               onSelect={(videoType) => { setShowVideoTypePicker(false); generateStoryboard(videoType); }}
               onClose={() => setShowVideoTypePicker(false)}
             />,
             document.body
-          )}
+          )} */}
         </div>
+        {/* <button
+  onClick={() => setShowVideoTypePicker(true)}
+  disabled={visualizing}
+  title={visualizing ? "Visualising…" : "Visualise"}
+  style={{ ...primaryFilled(visualizing), display: "flex", alignItems: "center", gap: "6px" }}
+>
+  <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
+  {visualizing ? "Visualising…" : "Visualise"}
+</button> */}
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.2)" }}>{wordCount} words</span>
@@ -3311,7 +3370,7 @@ return (
 </button>
 
         </div>
-      </div>
+      </div> 
 
       {/* ===== VOICE OVER BOX — everything voice-generation related ===== */}
       <div style={{ margin: "12px 14px 4px", border: "1px solid rgba(255,255,255,.07)", borderRadius: "12px", background: "#111", overflow: "hidden" }}>
@@ -3408,6 +3467,63 @@ return (
         )}
       </div>
 
+      {/* ===== VISUALS BOX — everything storyboard-generation related ===== */}
+<div style={{ margin: "12px 14px 4px", border: "1px solid rgba(255,255,255,.07)", borderRadius: "12px", background: "#111", overflow: "hidden" }}>
+  <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+    <VisibilityRoundedIcon sx={{ fontSize: 16, color: "rgba(255,255,255,.5)" }} />
+    <span style={{ fontSize: "10px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.4)", textTransform: "uppercase", letterSpacing: ".06em" }}>
+      Visuals
+    </span>
+  </div>
+
+  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", gap: "10px", flexWrap: "wrap" }}>
+    {/* Video type pills — replaces the old modal picker */}
+    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+      {VIDEO_TYPES.map((t) => (
+        <button
+          key={t.value}
+          onClick={() => setVisualsVideoType(t.value)}
+          disabled={visualizing}
+          style={{
+            background: visualsVideoType === t.value ? "rgba(96,165,250,.18)" : "rgba(255,255,255,.04)",
+            border: `1px solid ${visualsVideoType === t.value ? "rgba(96,165,250,.5)" : "rgba(255,255,255,.08)"}`,
+            borderRadius: "9999px",
+            color: visualsVideoType === t.value ? "rgba(150,190,255,.95)" : "rgba(255,255,255,.6)",
+            cursor: visualizing ? "not-allowed" : "pointer",
+            fontSize: "11px",
+            fontFamily: "'Inter',sans-serif",
+            padding: "6px 12px",
+            opacity: visualizing ? 0.5 : 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {t.label}
+        </button>
+      ))}
+    </div>
+
+    {/* Actions */}
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      {storyboardImages.length > 0 && !showStoryboard && !visualizing && (
+        <button onClick={() => setShowStoryboard(true)} style={primaryPill()}>
+          <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
+          Show Storyboard
+        </button>
+      )}
+
+      <button
+        onClick={() => generateStoryboard(visualsVideoType)}
+        disabled={visualizing || !visualsVideoType}
+        title={!visualsVideoType ? "Pick a video type first" : undefined}
+        style={primaryPill(visualizing || !visualsVideoType)}
+      >
+        <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
+        {visualizing ? "Visualising…" : "Generate Visuals"}
+      </button>
+    </div>
+  </div>
+</div>
+
       <div ref={canvasRef} contentEditable suppressContentEditableWarning spellCheck={false}
         onMouseUp={onMouseUp} onKeyDown={onKeyDown} onInput={onInput}
         data-placeholder="Your script will appear here. Edit freely, or select text for AI options."
@@ -3481,7 +3597,7 @@ return (
 >
 
     {/* Visualise */}
-  <button
+  {/* <button
     onClick={() => setShowVideoTypePicker(true)}
     disabled={visualizing}
     title={visualizing ? "Visualising…" : "Visualise"}
@@ -3494,7 +3610,7 @@ return (
   >
     <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
     {visualizing ? "Visualising…" : "Visualise"}
-  </button>
+  </button> */}
 
 
   {/* Generate Voice Over */}
@@ -3884,6 +4000,7 @@ function reconstructMessage(m) {
     text: m.content,
     content: m.content,
     rawPrompt: m.raw_prompt ?? m.content,
+    metadata: m.metadata || {},   // ← ADD THIS
     prompt: m.prompt ?? "",
     files: [],
     researchPending: false,
@@ -4909,7 +5026,6 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
-
 
 
 

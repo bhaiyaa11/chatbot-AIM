@@ -64,19 +64,7 @@ export const ChatProvider = ({ children }) => {
     return res;
   };
 
-  // ── Load conversation list (first page) — merges into existing state ────
-  // const loadConversations = async () => {
-  //   try {
-  //     const res = await fetch(
-  //       `${API_BASE_URL}/conversations?limit=${CONVERSATIONS_PAGE_SIZE}&offset=0`,
-  //       { headers: getAuthHeaders() }
-  //     );
 
-  //     if (res.status === 401) {
-  //       setConversations([]);
-  //       setHasMoreConversations(false);
-  //       return;
-  //     }
 
         const loadConversations = async () => {
             if (authLoading) return; // don't fire until AuthContext has settled
@@ -139,17 +127,6 @@ export const ChatProvider = ({ children }) => {
     }
   };
 
-  // useEffect(() => {
-  //   if (session) {
-  //     loadConversations();
-  //   } else {
-  //     setConversationId(null);
-  //     setMessagesByConversation({});
-  //     setGeneratingConversations(new Set());
-  //     setActiveStreamTextByConversation({});
-  //     setConversations([]);
-  //   }
-  // }, [session]); // eslint-disable-line
   useEffect(() => {
   if (authLoading) return;
   if (session) {
@@ -314,15 +291,6 @@ const clearPipelineStatus = useCallback((convId) => {
     setConversationId(null);
   };
 
-  // const deleteConversation = async (id) => {
-  //   try {
-  //     await fetch(`${API_BASE_URL}/conversations/${id}`, {
-  //       method: "DELETE",
-  //       headers: getAuthHeaders(),
-  //     });
-  //   } catch (err) {
-  //     console.error("Failed to delete conversation:", err);
-  //   }
 
   const deleteConversation = async (id) => {
     try {
