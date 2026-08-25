@@ -347,7 +347,8 @@ function Ssidebar({  onOpenChat, onOpenCanvas }) {
           {/* <h1>AllinMotion</h1> */}
           <h1>ALL IN MOTION</h1>
           {/* <p>AI Creative Studio</p> */}
-          <p>B2B Creative Solitions</p>
+          <p>Global Leaders in B2B Creative</p>
+          <p> Solutions</p>
         </div>
       )}
 
