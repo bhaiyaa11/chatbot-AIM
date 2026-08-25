@@ -1670,6 +1670,15 @@ const VOICES = [
   { value: "EFFIE_BRITISH_ADVERTISEMENT", label: "🇬🇧 Effie",        accent: "british",    tone: ["advertising"], age: "mid", gender: "female"},
   { value: "MARK_AMERICAN_MALE",          label: "🇺🇸 Mark",          accent: "american",   tone: ["social_media"], age: "young", gender: "male"},
  { value: "TANYA_AUSSIE_SOCIALMEDIA",    label: "🇦🇺 Tanya",         accent: "australian", tone: ["social_media"], age: "young", gender: "female"},
+ {value:"CLAUDETTE_AMERI_MID_F_C", label:"🇺🇸 Claudette", accent:"american",tone:["conversational"], age:"mid", gender:"female"},
+ {value:"MELISSA_AMERI_MID_F_C", label:"🇺🇸 Melissa", accent:"american",tone:["conversational"], age:"mid", gender:"female"},
+ {value:"LAUREN_AMERI_MID_F_C", label:"🇺🇸 Lauren", accent:"american",tone:["conversational"], age:"mid", gender:"female"},
+ {value:"MAY_AMER_MID_F_SM", label:"🇺🇸 May", accent:"american",tone:["social_media"], age:"mid", gender:"female"},
+ {value:"BONNIE_AMER_MID_F_SM", label:"🇺🇸 Bonnie", accent:"american",tone:["social_media"], age:"mid", gender:"female"},
+ {value:"CAROLYN_AMER_MID_F_SM", label:"🇺🇸 Carolyn", accent:"american",tone:["social_media"], age:"mid", gender:"female"},
+ {value:"PIPER_AMER_MID_F_AD", label:"🇺🇸 Piper", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
+ {value:"JESSICA_AMER_MID_F_AD", label:"🇺🇸 Jessica", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
+ {value:"CLARA_AMER_MID_F_AD", label:"🇺🇸 Clara", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
 
 
 ];
@@ -2632,7 +2641,8 @@ useEffect(() => {
       const span = document.createElement("span");
 
       span.dataset.ttsHighlight = "true";
-      span.style.background = "rgba(168, 85, 247, 0.35)";
+      // span.style.background = "rgba(168, 85, 247, 0.35)";
+      span.style.background = "rgb(163, 5, 255)";
       span.style.borderRadius = "3px";
       span.style.padding = "1px 2px";
 
