@@ -10,7 +10,7 @@ export default function SliderSizes({ value, onChange }) {
           fontSize: "11px",
           marginBottom: "6px",
           textAlign: "center",
-          textShadow: "0 0 8px rgba(255, 255, 255, 0.5)", 
+          // textShadow: "0 0 8px rgba(255, 255, 255, 0.5)", 
         }}
       >
         Human AI Ratio: {value}
@@ -35,7 +35,7 @@ export default function SliderSizes({ value, onChange }) {
           color: "rgba(255,255,255,.6)",
           fontSize: "11px",
           marginTop: "-4px",
-          textShadow: "0 0 8px rgba(255, 255, 255, 0.5)", 
+          // textShadow: "0 0 8px rgba(255, 255, 255, 0.5)", 
         }}
       >
         <span>HUMAN</span>

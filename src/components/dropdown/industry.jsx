@@ -166,7 +166,7 @@ function Industrys({ onChange }) {
 
   return (
     <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
-      {/* <div
+      <div
         className={`dropdown-trigger ${isOpen ? "open" : ""} ${
           selectedIndustries.length > 0 ? "has-value" : ""
         }`}
@@ -174,8 +174,8 @@ function Industrys({ onChange }) {
       >
         <span className="dropdown-trigger-label">{displayLabel}</span>
         <span className="dropdown-trigger-chevron">▼</span>
-      </div> */}
-
+      </div>
+{/* 
       <div className="star-border-container" style={{ padding: "2px 0" }}>
   <div className="border-gradient-bottom" style={{ background: "radial-gradient(circle, #ffffff, transparent 10%)", animationDuration: "2.5s" }} />
   <div className="border-gradient-top" style={{ background: "radial-gradient(circle, #ffffff, transparent 10%)", animationDuration: "2.5s" }} />
@@ -186,7 +186,7 @@ function Industrys({ onChange }) {
     <span className="dropdown-trigger-label">{displayLabel}</span>
     <span className="dropdown-trigger-chevron">▼</span>
   </div>
-</div>
+</div> */}
 
       {isOpen && (
         <div className="dropdown-panel">

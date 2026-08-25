@@ -1,8 +1,8 @@
- * {
+/* * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  
+
 }
 
 .app {
@@ -10,6 +10,7 @@
   flex-direction: row;    
   height: 100%;
   width: 100%;
+  
   
 }
 
@@ -32,11 +33,12 @@
   height: 100vh;
   width: 100%;
   
+  
 }
 
 .app-layout {
   position: relative;
-
+  background-color: black;
   display: flex;
   flex-direction: row;
 
@@ -50,7 +52,6 @@
 .workspace-background {
   position: absolute;
   inset: 0;
-  /* background-color: black; */
 
   width: 100%;
   height: 100%;
@@ -64,72 +65,57 @@
 .app-layout > *:not(.workspace-background) {
   position: relative;
   z-index: 1;
-}
-
-/* .app-layout {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 100%;
-} */
+} 
 
 
 
-/* .app {
-  display: flex;         
-  flex-direction: row;    
-  height: 100vh;          
-  width: 100%;           
-}
 
  */
 
-
-
-
-
-
-
-
-/* #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.app-layout {
+  position: relative;
+  background-color: black;
+  display: flex;
+  flex-direction: row;
+
+  flex: 1;        /* fills remaining space below the 64px header */
+  min-height: 0;  /* critical — without this, flex children can force the row taller than available space */
+  width: 100%;
+
+  overflow: hidden;
+  isolation: isolate;
 }
 
-.card {
-  padding: 2em;
+.workspace-background {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 1;
 }
 
-.read-the-docs {
-  color: #888;
-} */
+.app-layout > *:not(.workspace-background) {
+  position: relative;
+  z-index: 1;
+}

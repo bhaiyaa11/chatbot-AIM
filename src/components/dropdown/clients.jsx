@@ -111,16 +111,16 @@ function Clients({ onChange }) {
     <div ref={dropdownRef} style={{ position: "relative", width: "100%" }}>
 
       {/* ── Trigger ── */}
-      {/* <div
+      <div
         className={`dropdown-trigger ${isOpen ? "open" : ""} ${selectedClients.length > 0 ? "has-value" : ""}`}
         onClick={() => setIsOpen((prev) => !prev)}
       >
         <span className="dropdown-trigger-label">{displayLabel}</span>
         <span className="dropdown-trigger-chevron">▼</span>
-      </div> */}
+      </div>
 
       {/* ── Trigger ── */}
-<div className="star-border-container" style={{ padding: "2px 0" }}>
+{/* <div className="star-border-container" style={{ padding: "2px 0" }}>
   <div
     className="border-gradient-bottom"
     style={{ background: "radial-gradient(circle, #ffffff, transparent 10%)", animationDuration: "2.5s" }}
@@ -136,7 +136,7 @@ function Clients({ onChange }) {
     <span className="dropdown-trigger-label">{displayLabel}</span>
     <span className="dropdown-trigger-chevron">▼</span>
   </div>
-</div>
+</div> */}
 
       {/* ── Panel ── */}
       {isOpen && (

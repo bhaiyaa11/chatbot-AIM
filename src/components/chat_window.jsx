@@ -32,6 +32,10 @@ import Box from "@mui/material/Box";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import { createPortal } from "react-dom";
 import Slider from "@mui/material/Slider";
+import { Document, Packer, Paragraph, HeadingLevel, Table, TableRow, TableCell, ImageRun, TextRun, WidthType } from "docx";
+import { saveAs } from "file-saver";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 
 // const API_BASE_URL = "http://localhost:8000";
@@ -1598,11 +1602,9 @@ const VOICES = [
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
 
 
-  { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
-  { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
-  { value: "BECCA_AUSSIE_ADVERTISEMENT",  label: "🇦🇺 Becca",         accent: "australian", tone: ["advertising"], age: "mid", gender: "female" },
-  { value: "LILY_AUSSIE_CONVERSATIONAL",  label: "🇦🇺 Lily",          accent: "australian", tone: ["conversational"], age: "young", gender: "female"},
-  { value: "SERENA_AMERICAN_SOCIALMEDIA", label: "🇺🇸 Serena",        accent: "american",   tone: ["social_media"], age: "young" ,gender: "female"},
+  
+
+
   { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
   {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
   {value:"ELLIS_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Ellis", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
@@ -1680,6 +1682,12 @@ const VOICES = [
  {value:"JESSICA_AMER_MID_F_AD", label:"🇺🇸 Jessica", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
  {value:"CLARA_AMER_MID_F_AD", label:"🇺🇸 Clara", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
 
+  { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
+  { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
+  { value: "BECCA_AUSSIE_ADVERTISEMENT",  label: "🇦🇺 Becca",         accent: "australian", tone: ["advertising"], age: "mid", gender: "female" },
+  { value: "LILY_AUSSIE_CONVERSATIONAL",  label: "🇦🇺 Lily",          accent: "australian", tone: ["conversational"], age: "young", gender: "female"},
+  { value: "SERENA_AMERICAN_SOCIALMEDIA", label: "🇺🇸 Serena",        accent: "american",   tone: ["social_media"], age: "young" ,gender: "female"},
+
 
 ];
 
@@ -1726,17 +1734,6 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [canUndo,         setCanUndo]         = useState(false);
   const [canRedo,         setCanRedo]         = useState(false);
 
-
-  // const [selectedVoice,   setSelectedVoice]   = useState(DEFAULT_VOICE);
-  // const[gender,          setGender]          = useState(DEFAULT_GENDER);
-  // const [age,             setAge]             = useState(DEFAULT_AGE);
-  // const [accent,          setaccent]          = useState(DEFAULT_accent);
-  // const [tone,            setTone]            = useState(DEFAULT_TONE);
-  // const [audioSrc,        setAudioSrc]        = useState(null);
-  // const [showPlayer,      setShowPlayer]      = useState(false);
-  // const [wordTimings, setWordTimings] = useState([]);
-  // const [sceneSegments, setSceneSegments] = useState([]);
-
   const [selectedVoice,   setSelectedVoice]   = useState(() => voiceOverSessionCache.get(msgId)?.selectedVoice ?? DEFAULT_VOICE);
   const [gender,          setGender]          = useState(() => voiceOverSessionCache.get(msgId)?.gender ?? DEFAULT_GENDER);
   const [age,             setAge]             = useState(() => voiceOverSessionCache.get(msgId)?.age ?? DEFAULT_AGE);
@@ -1770,6 +1767,9 @@ const ScriptCanvas = ({ content, msgId, onShareToCanvas  }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sharingToCanvas, setSharingToCanvas] = useState(false); // ADD THIS
   
+
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
+  const [downloadingPdf,  setDownloadingPdf]  = useState(false);
 
   const refreshBtns = () => {
     setCanUndo(undoStack.current.length > 0);
@@ -3169,6 +3169,254 @@ const buildCanvasContentDoc = () => {
     };
   };
 
+
+
+const parseScriptTable = () => {
+  const scriptText = (rawMarkdownRef.current || "").trim();
+  const lines = scriptText.split(/\r?\n/);
+  let headers = [];
+  let rows = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (line.startsWith("|")) {
+      const tableLines = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      const parsed = tableLines
+        .filter((l) => l.trim().startsWith("|"))
+        .map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
+      const dataRows = parsed.filter(
+        (row, idx) => idx === 0 || !row.every((c) => /^:?-{3,}:?$/.test(c))
+      );
+      if (dataRows.length) {
+        headers = dataRows[0];
+        rows = dataRows.slice(1);
+      }
+      continue;
+    }
+    i++;
+  }
+  return { headers, rows };
+};
+
+const imageBySceneMap = () =>
+  new Map(
+    (storyboardImages || [])
+      .filter((img) => img?.url)
+      .map((img) => [Number(img.scene_number), img])
+  );
+
+// remove docx from here |
+//                       v 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// fetchImageForDocx — fetches an image and detects its type so docx.js
+// writes it with a proper extension (fixes the ".undefined" media bug)
+// ─────────────────────────────────────────────────────────────────────────────
+const fetchImageForDocx = async (url) => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
+  const blob = await res.blob();
+  const buffer = await blob.arrayBuffer();
+
+  const mime = (blob.type || "").toLowerCase();
+  const type = mime.includes("png")  ? "png"
+    : mime.includes("gif")  ? "gif"
+    : mime.includes("bmp")  ? "bmp"
+    : mime.includes("webp") ? "png"   // docx.js doesn't support webp directly; PNG is a safe fallback if the blob is actually re-encodable — see note below
+    : "jpg";                          // covers image/jpeg and unknown mimes
+
+  return { buffer, type };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// downloadAsDocx
+// ─────────────────────────────────────────────────────────────────────────────
+const downloadAsDocx = async () => {
+  setDownloadingDocx(true);
+  try {
+    const { headers, rows } = parseScriptTable();
+    const imageByScene = imageBySceneMap();
+    const allHeaders = [...headers, "Storyboard"];
+
+    const headerRow = new TableRow({
+      children: allHeaders.map(
+        (h) =>
+          new TableCell({
+            width: { size: 2500, type: WidthType.DXA },
+            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
+          })
+      ),
+    });
+
+    const bodyRows = [];
+    for (let idx = 0; idx < rows.length; idx++) {
+      const cells = rows[idx];
+      const sceneNumber = idx + 1;
+      const image = imageByScene.get(sceneNumber);
+
+      const cellChildren = cells.map(
+        (c) =>
+          new TableCell({
+            width: { size: 2500, type: WidthType.DXA },
+            children: [new Paragraph(c)],
+          })
+      );
+
+      let imgCellContent = [new Paragraph("")];
+      if (image?.url) {
+        try {
+          const { buffer, type } = await fetchImageForDocx(image.url);
+          imgCellContent = [
+            new Paragraph({
+              children: [
+                new ImageRun({
+                  data: buffer,
+                  transformation: { width: 160, height: 90 },
+                  type,
+                }),
+              ],
+            }),
+          ];
+        } catch (err) {
+          console.error(`Storyboard image failed for scene ${sceneNumber}:`, err);
+          imgCellContent = [new Paragraph("Image unavailable")];
+        }
+      }
+
+      bodyRows.push(
+        new TableRow({
+          children: [
+            ...cellChildren,
+            new TableCell({ width: { size: 2500, type: WidthType.DXA }, children: imgCellContent }),
+          ],
+        })
+      );
+    }
+
+    const table = new Table({
+      rows: [headerRow, ...bodyRows],
+      width: { size: 100, type: WidthType.PERCENTAGE },
+    });
+
+    const docChildren = [
+      new Paragraph({ text: "Script", heading: HeadingLevel.HEADING_1 }),
+      table,
+    ];
+
+    if (audioSrc) {
+      docChildren.push(
+        new Paragraph({ text: "" }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "Voice Over: ", bold: true }),
+            new TextRun({ text: buildVoiceoverFilename() }),
+          ],
+        })
+      );
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: {
+              size: { orientation: "landscape" },
+            },
+          },
+          children: docChildren,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `script_${msgId || Date.now()}.docx`);
+  } catch (err) {
+    console.error("DOCX export failed:", err);
+  } finally {
+    setDownloadingDocx(false);
+  }
+};
+
+
+//           ^
+// till here |
+
+
+const fetchImageDataUrl = async (url) => {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+const downloadAsPdf = async () => {
+  setDownloadingPdf(true);
+  try {
+    const { headers, rows } = parseScriptTable();
+    const imageByScene = imageBySceneMap();
+
+    const imageDataByScene = new Map();
+    await Promise.all(
+      [...imageByScene.entries()].map(async ([sceneNumber, img]) => {
+        try {
+          imageDataByScene.set(sceneNumber, await fetchImageDataUrl(img.url));
+        } catch (e) {
+          console.warn(`Image load failed for scene ${sceneNumber}`, e);
+        }
+      })
+    );
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt" });
+    doc.setFontSize(16);
+    doc.text("Script", 40, 40);
+
+    const tableHeaders = [...headers, "Storyboard"];
+    const tableBody = rows.map((cells) => [...cells, ""]);
+
+    autoTable(doc, {
+      startY: 60,
+      head: [tableHeaders],
+      body: tableBody,
+      styles: { fontSize: 9, cellPadding: 6, minCellHeight: 70, valign: "middle" },
+      columnStyles: { [tableHeaders.length - 1]: { cellWidth: 110 } },
+      didDrawCell: (data) => {
+        if (data.section === "body" && data.column.index === tableHeaders.length - 1) {
+          const sceneNumber = data.row.index + 1;
+          const dataUrl = imageDataByScene.get(sceneNumber);
+          if (dataUrl) {
+            const imgW = 90, imgH = 50;
+            const x = data.cell.x + (data.cell.width - imgW) / 2;
+            const y = data.cell.y + (data.cell.height - imgH) / 2;
+            try { doc.addImage(dataUrl, "JPEG", x, y, imgW, imgH); } catch {}
+          }
+        }
+      },
+    });
+
+    if (audioSrc) {
+      const finalY = doc.lastAutoTable.finalY || 60;
+      doc.setFontSize(11);
+      doc.text(`Voice Over: ${buildVoiceoverFilename()}`, 40, finalY + 30);
+    }
+
+    doc.save(`script_${msgId || Date.now()}.pdf`);
+  } catch (err) {
+    console.error("PDF export failed:", err);
+  } finally {
+    setDownloadingPdf(false);
+  }
+};
+
+
   // const shareToCanvas = async () => {
   //   const token = session?.access_token;
   //   if (!token) {
@@ -3378,6 +3626,15 @@ return (
   <IosShareRoundedIcon sx={{ fontSize: 15 }} />
   {sharingToCanvas ? "Sharing…" : "Share to Canvas"}
 </button>
+
+
+<button onClick={downloadAsDocx} disabled={downloadingDocx} style={primaryFilled(downloadingDocx)}>
+  {downloadingDocx ? "Preparing…" : "⬇ Download .docx"}
+</button>
+<button onClick={downloadAsPdf} disabled={downloadingPdf} style={primaryFilled(downloadingPdf)}>
+  {downloadingPdf ? "Preparing…" : "⬇ Download .pdf"}
+</button>
+
 
         </div>
       </div> 
@@ -3621,6 +3878,13 @@ return (
     <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
     {visualizing ? "Visualising…" : "Visualise"}
   </button> */}
+
+<button onClick={downloadAsDocx} disabled={downloadingDocx} style={primaryFilled(downloadingDocx)}>
+  {downloadingDocx ? "Preparing…" : "⬇ Download .docx"}
+</button>
+<button onClick={downloadAsPdf} disabled={downloadingPdf} style={primaryFilled(downloadingPdf)}>
+  {downloadingPdf ? "Preparing…" : "⬇ Download .pdf"}
+</button>
 
 
   {/* Generate Voice Over */}
@@ -5036,6 +5300,12 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
+
+
+
+
+
+
 
 
 

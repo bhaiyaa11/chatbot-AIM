@@ -12,8 +12,9 @@
   /* In-flow — NOT fixed. Parent flex row handles layout. */
   flex-shrink: 0;
   width: var(--sidebar-width);
-  height: 100vh;
-  /* background: #0e0e0e; */
+  /* height: 100vh; */
+  height: 100%;
+  background: #0e0e0e;
   display: flex;
   flex-direction: column;
   padding: 32px 24px;
