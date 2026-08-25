@@ -272,8 +272,8 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
-// const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 
 /*
