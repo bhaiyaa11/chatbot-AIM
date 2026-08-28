@@ -37,6 +37,26 @@ import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import AutorenewRoundedIcon from "@mui/icons-material/AutorenewRounded";
+import ContentCutRoundedIcon from "@mui/icons-material/ContentCutRounded";
+import UnfoldMoreRoundedIcon from "@mui/icons-material/UnfoldMoreRounded";
+import KeyboardReturnRoundedIcon from "@mui/icons-material/KeyboardReturnRounded";
+import MovieCreationRoundedIcon from "@mui/icons-material/MovieCreationRounded";
+import EditRoundedIcon from "@mui/icons-material/EditRounded";
+import ErrorRoundedIcon from "@mui/icons-material/ErrorRounded";
+import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
+import RadioButtonCheckedRoundedIcon from "@mui/icons-material/RadioButtonCheckedRounded";
+import RadioButtonUncheckedRoundedIcon from "@mui/icons-material/RadioButtonUncheckedRounded";
+import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
+import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
+import PictureAsPdfRoundedIcon from "@mui/icons-material/PictureAsPdfRounded";
+import TableChartRoundedIcon from "@mui/icons-material/TableChartRounded";
+import SlideshowRoundedIcon from "@mui/icons-material/SlideshowRounded";
+import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
+import AttachFileRoundedIcon from "@mui/icons-material/AttachFileRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 
 // const API_BASE_URL = "http://localhost:8000";
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -431,12 +451,23 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
           </div>
         ) : (
           <>
-            {[["✨", "Improve clarity and tone", "Improve"], ["🔄", "Regenerate keeping the same context and tone", "Regenerate"], ["✂️", "Shorten this text", "Shorten"], ["📝", "Expand with more detail", "Expand"]].map(([icon, instruction, label]) => (
+            {/* {[["✨", "Improve clarity and tone", "Improve"], ["🔄", "Regenerate keeping the same context and tone", "Regenerate"], ["✂️", "Shorten this text", "Shorten"], ["📝", "Expand with more detail", "Expand"]].map(([icon, instruction, label]) => (
               <button key={label} className="sfm-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => onAction(instruction)}
                 style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "5px 11px", whiteSpace: "nowrap" }}>
                 {icon} {label}
               </button>
-            ))}
+            ))} */}
+            {[
+  [AutoAwesomeRoundedIcon, "Improve clarity and tone", "Improve"],
+  [AutorenewRoundedIcon, "Regenerate keeping the same context and tone", "Regenerate"],
+  [ContentCutRoundedIcon, "Shorten this text", "Shorten"],
+  [UnfoldMoreRoundedIcon, "Expand with more detail", "Expand"],
+].map(([Icon, instruction, label]) => (
+  <button key={label} className="sfm-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => onAction(instruction)}
+    style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "5px 11px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+    <Icon sx={{ fontSize: 13 }} /> {label}
+  </button>
+))}
             <div style={{ width: "100%", height: "1px", background: "rgba(255,255,255,.07)", margin: "2px 0" }} />
             <div style={{ width: "100%", display: "flex", gap: "4px", alignItems: "center" }}>
               <input className="sfm-ask" type="text" placeholder="Ask AI…" value={askInput}
@@ -446,7 +477,8 @@ const ScriptFloatingMenu = ({ position, onAction, onClose, isLoading }) => {
                 autoFocus
                 style={{ flex: 1, background: "rgba(255,255,255,.05)", border: "1px solid rgba(255,255,255,.1)", borderRadius: "9999px", color: "rgba(255,255,255,.85)", fontSize: "12px", fontFamily: "'Inter',sans-serif", padding: "5px 12px", outline: "none" }} />
               <button className="sfm-btn" onMouseDown={(e) => e.preventDefault()} onClick={() => { if (askInput.trim()) { onAction(askInput.trim()); setAskInput(""); } }}
-                style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: "14px", padding: "5px 10px" }}>↵</button>
+                // style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: "14px", padding: "5px 10px" }}>↵</button>
+                style={{ background: "none", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: "rgba(255,255,255,.6)", cursor: "pointer", fontSize: "14px", padding: "5px 10px", display: "inline-flex", alignItems: "center" }}><KeyboardReturnRoundedIcon sx={{ fontSize: 14 }} /></button>
             </div>
           </>
         )}
@@ -693,7 +725,8 @@ const downloadVoiceOver = async () => {
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(255,255,255,.08)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 2px 8px rgba(0,0,0,.5)", animation: "apIn .2s ease" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px" }}>🎙</span>
+            {/* <span style={{ fontSize: "14px" }}>🎙</span> */}
+            <MicNoneRoundedIcon sx={{ fontSize: 15, color: "rgba(255,255,255,.55)" }} />
             <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(255,255,255,.5)", letterSpacing: ".6px", textTransform: "uppercase" }}>Voice Over</span>
             {loading && <span style={{ display: "inline-block", width: "10px", height: "10px", border: "1.5px solid rgba(255,255,255,.15)", borderTopColor: "rgba(255,255,255,.7)", borderRadius: "50%", animation: "spin .7s linear infinite" }} />}
           </div>
@@ -720,6 +753,7 @@ const downloadVoiceOver = async () => {
   >
     {downloading ? (
       <span style={{ width: "10px", height: "10px", border: "1.5px solid rgba(200,160,255,.2)", borderTopColor: "rgba(200,160,255,.9)", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+      // <FileDownloadRoundedIcon sx={{ fontSize: 30 }} />
     ) : (
       "⬇"
     )}
@@ -947,7 +981,8 @@ const allScenesProgress =
       <div style={{ display: "flex", flexDirection: "column", gap: "10px", background: "linear-gradient(135deg,rgba(20,20,28,.98),rgba(14,14,20,.98))", border: "1px solid rgba(96,165,250,.25)", borderRadius: "14px", padding: "14px 16px", marginTop: "10px", boxShadow: "0 4px 24px rgba(96,165,250,.12), 0 2px 8px rgba(0,0,0,.5)", animation: "sbIn .2s ease" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontSize: "14px" }}>🎬</span>
+            {/* <span style={{ fontSize: "14px" }}>🎬</span> */}
+            <MovieCreationRoundedIcon sx={{ fontSize: 15, color: "rgba(96,165,250,.9)" }} />
             <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", fontWeight: 600, color: "rgba(96,165,250,.9)", letterSpacing: ".6px", textTransform: "uppercase" }}>
               Storyboard
               {status && status !== "done" && totalScenes > 0 && (
@@ -1019,7 +1054,6 @@ const allScenesProgress =
           color: "rgba(255,255,255,.35)",
         }}
       >
-        {/* {allScenesFinished}/{allScenesTotal} */}
         {allScenesCompleted.length}/{allScenesTotal}
       </span>
     )}
@@ -1254,19 +1288,16 @@ const allScenesProgress =
                     : "rgba(255,255,255,.25)",
                 }}
               >
-                <span
-                  style={{
-                    width: "12px",
-                    textAlign: "center",
-                  }}
-                >
-                  {isError
-                    ? "!"
-                    : isFinished
-                    ? "✓"
-                    : isGenerating
-                    ? "◉"
-                    : "○"}
+                <span style={{ width: "12px", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                  {isError ? (
+                    <ErrorRoundedIcon sx={{ fontSize: 12 }} />
+                  ) : isFinished ? (
+                    <CheckCircleRoundedIcon sx={{ fontSize: 12 }} />
+                  ) : isGenerating ? (
+                    <RadioButtonCheckedRoundedIcon sx={{ fontSize: 10 }} />
+                  ) : (
+                    <RadioButtonUncheckedRoundedIcon sx={{ fontSize: 10 }} />
+                  )}
                 </span>
 
                 <span>
@@ -1344,24 +1375,27 @@ const allScenesProgress =
 {/* ── Regenerate / Edit box ── */}
 <div style={{ display: "flex", flexDirection: "column", gap: "8px", background: "rgba(255,255,255,.03)", border: "1px solid rgba(255,255,255,.08)", borderRadius: "12px", padding: "12px" }}>
   <div style={{ display: "flex", gap: "6px" }}>
-    {[["edit", "✎ Edit this image"], ["regenerate", "🔄 Regenerate fresh"]].map(([val, label]) => (
-      <button
-        key={val}
-        onClick={() => setEditMode(val)}
-        style={{
-          background: editMode === val ? "rgba(96,165,250,.18)" : "transparent",
-          border: `1px solid ${editMode === val ? "rgba(96,165,250,.5)" : "rgba(255,255,255,.1)"}`,
-          borderRadius: "9999px",
-          color: editMode === val ? "rgba(150,190,255,.95)" : "rgba(255,255,255,.5)",
-          cursor: "pointer",
-          fontSize: "11px",
-          fontFamily: "'Inter',sans-serif",
-          padding: "5px 12px",
-        }}
-      >
-        {label}
-      </button>
-    ))}
+    {[["edit", EditRoundedIcon, "Edit this image"], ["regenerate", AutorenewRoundedIcon, "Regenerate fresh"]].map(([val, Icon, label]) => (
+  <button
+    key={val}
+    onClick={() => setEditMode(val)}
+    style={{
+      background: editMode === val ? "rgba(96,165,250,.18)" : "transparent",
+      border: `1px solid ${editMode === val ? "rgba(96,165,250,.5)" : "rgba(255,255,255,.1)"}`,
+      borderRadius: "9999px",
+      color: editMode === val ? "rgba(150,190,255,.95)" : "rgba(255,255,255,.5)",
+      cursor: "pointer",
+      fontSize: "11px",
+      fontFamily: "'Inter',sans-serif",
+      padding: "5px 12px",
+      display: "inline-flex",
+      alignItems: "center",
+      gap: "4px",
+    }}
+  >
+    <Icon sx={{ fontSize: 13 }} /> {label}
+  </button>
+))}
   </div>
 
   <div style={{ display: "flex", gap: "8px" }}>
@@ -1600,10 +1634,6 @@ function htmlToMarkdown(container) {
 const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
-
-
-  
-
 
   { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
   {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
@@ -3210,142 +3240,6 @@ const imageBySceneMap = () =>
       .map((img) => [Number(img.scene_number), img])
   );
 
-// remove docx from here |
-//                       v 
-
-// ─────────────────────────────────────────────────────────────────────────────
-// fetchImageForDocx — fetches an image and detects its type so docx.js
-// writes it with a proper extension (fixes the ".undefined" media bug)
-// ─────────────────────────────────────────────────────────────────────────────
-const fetchImageForDocx = async (url) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
-  const blob = await res.blob();
-  const buffer = await blob.arrayBuffer();
-
-  const mime = (blob.type || "").toLowerCase();
-  const type = mime.includes("png")  ? "png"
-    : mime.includes("gif")  ? "gif"
-    : mime.includes("bmp")  ? "bmp"
-    : mime.includes("webp") ? "png"   // docx.js doesn't support webp directly; PNG is a safe fallback if the blob is actually re-encodable — see note below
-    : "jpg";                          // covers image/jpeg and unknown mimes
-
-  return { buffer, type };
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// downloadAsDocx
-// ─────────────────────────────────────────────────────────────────────────────
-const downloadAsDocx = async () => {
-  setDownloadingDocx(true);
-  try {
-    const { headers, rows } = parseScriptTable();
-    const imageByScene = imageBySceneMap();
-    const allHeaders = [...headers, "Storyboard"];
-
-    const headerRow = new TableRow({
-      children: allHeaders.map(
-        (h) =>
-          new TableCell({
-            width: { size: 2500, type: WidthType.DXA },
-            children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })],
-          })
-      ),
-    });
-
-    const bodyRows = [];
-    for (let idx = 0; idx < rows.length; idx++) {
-      const cells = rows[idx];
-      const sceneNumber = idx + 1;
-      const image = imageByScene.get(sceneNumber);
-
-      const cellChildren = cells.map(
-        (c) =>
-          new TableCell({
-            width: { size: 2500, type: WidthType.DXA },
-            children: [new Paragraph(c)],
-          })
-      );
-
-      let imgCellContent = [new Paragraph("")];
-      if (image?.url) {
-        try {
-          const { buffer, type } = await fetchImageForDocx(image.url);
-          imgCellContent = [
-            new Paragraph({
-              children: [
-                new ImageRun({
-                  data: buffer,
-                  transformation: { width: 160, height: 90 },
-                  type,
-                }),
-              ],
-            }),
-          ];
-        } catch (err) {
-          console.error(`Storyboard image failed for scene ${sceneNumber}:`, err);
-          imgCellContent = [new Paragraph("Image unavailable")];
-        }
-      }
-
-      bodyRows.push(
-        new TableRow({
-          children: [
-            ...cellChildren,
-            new TableCell({ width: { size: 2500, type: WidthType.DXA }, children: imgCellContent }),
-          ],
-        })
-      );
-    }
-
-    const table = new Table({
-      rows: [headerRow, ...bodyRows],
-      width: { size: 100, type: WidthType.PERCENTAGE },
-    });
-
-    const docChildren = [
-      new Paragraph({ text: "Script", heading: HeadingLevel.HEADING_1 }),
-      table,
-    ];
-
-    if (audioSrc) {
-      docChildren.push(
-        new Paragraph({ text: "" }),
-        new Paragraph({
-          children: [
-            new TextRun({ text: "Voice Over: ", bold: true }),
-            new TextRun({ text: buildVoiceoverFilename() }),
-          ],
-        })
-      );
-    }
-
-    const doc = new Document({
-      sections: [
-        {
-          properties: {
-            page: {
-              size: { orientation: "landscape" },
-            },
-          },
-          children: docChildren,
-        },
-      ],
-    });
-
-    const blob = await Packer.toBlob(doc);
-    saveAs(blob, `script_${msgId || Date.now()}.docx`);
-  } catch (err) {
-    console.error("DOCX export failed:", err);
-  } finally {
-    setDownloadingDocx(false);
-  }
-};
-
-
-//           ^
-// till here |
-
 
 const fetchImageDataUrl = async (url) => {
   const res = await fetch(url);
@@ -3415,63 +3309,6 @@ const downloadAsPdf = async () => {
     setDownloadingPdf(false);
   }
 };
-
-
-  // const shareToCanvas = async () => {
-  //   const token = session?.access_token;
-  //   if (!token) {
-  //     console.error("Share to Canvas: no active session — refusing to proceed.");
-  //     return;
-  //   }
-
-  //   setSharingToCanvas(true);
-  //   try {
-  //     const headers = {
-  //       Authorization: `Bearer ${token}`,
-  //       "Content-Type": "application/json",
-  //     };
-
-  //     const createRes = await fetch(`${API_BASE_URL}/canvas`, {
-  //       method: "POST",
-  //       headers,
-  //       body: JSON.stringify({ title: "Shared Script" }),
-  //     });
-  //     if (!createRes.ok) throw new Error(`Failed to create canvas (${createRes.status})`);
-  //     const { canvas } = await createRes.json();
-
-  //     const contentRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/content`, {
-  //       method: "PATCH",
-  //       headers,
-  //       body: JSON.stringify({ content: buildCanvasContentDoc() }),
-  //     });
-  //     if (!contentRes.ok) throw new Error(`Failed to save canvas content (${contentRes.status})`);
-
-  //     // Storyboard is seeded best-effort: if it fails, the script itself
-  //     // already shared successfully — don't let a secondary write
-  //     // failure block the user from reaching their canvas.
-  //     const initialStoryboard = buildInitialStoryboard();
-  //     if (initialStoryboard) {
-  //       try {
-  //         const storyboardRes = await fetch(`${API_BASE_URL}/canvas/${canvas.id}/storyboard`, {
-  //           method: "PATCH",
-  //           headers,
-  //           body: JSON.stringify({ storyboard: initialStoryboard }),
-  //         });
-  //         if (!storyboardRes.ok) {
-  //           console.error(`Failed to seed storyboard (${storyboardRes.status})`);
-  //         }
-  //       } catch (storyboardErr) {
-  //         console.error("Failed to seed storyboard:", storyboardErr);
-  //       }
-  //     }
-
-  //     onShareToCanvas?.(canvas.id);
-  //   } catch (err) {
-  //     console.error("Share to Canvas failed:", err);
-  //   } finally {
-  //     setSharingToCanvas(false);
-  //   }
-  // };
 
 const shareToCanvas = async () => {
   const token = session?.access_token;
@@ -3579,36 +3416,10 @@ return (
           <button style={iconBtn()} disabled={!canRedo} onClick={redo} title="Redo (Ctrl+Y)">
             <RedoRoundedIcon sx={{ fontSize: 16, opacity: canRedo ? 1 : 0.35 }} />
           </button>
-{/* 
-          <button
-            onClick={() => setShowVideoTypePicker(true)}
-            disabled={visualizing}
-            style={primaryPill(visualizing)}
-          >
-            <VisibilityRoundedIcon sx={{ fontSize: 16 }} />
-            {visualizing ? "Visualising…" : "Visualise"}
-          </button> */}
-
-          {/* {showVideoTypePicker && createPortal(
-            <VideoTypeModal
-              onSelect={(videoType) => { setShowVideoTypePicker(false); generateStoryboard(videoType); }}
-              onClose={() => setShowVideoTypePicker(false)}
-            />,
-            document.body
-          )} */}
         </div>
-        {/* <button
-  onClick={() => setShowVideoTypePicker(true)}
-  disabled={visualizing}
-  title={visualizing ? "Visualising…" : "Visualise"}
-  style={{ ...primaryFilled(visualizing), display: "flex", alignItems: "center", gap: "6px" }}
->
-  <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
-  {visualizing ? "Visualising…" : "Visualise"}
-</button> */}
 
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span style={{ fontSize: "11px", fontFamily: "'Inter',sans-serif", color: "rgba(255,255,255,.2)" }}>{wordCount} words</span>
+          <span style={{ fontSize: "12px", fontFamily: "'Inter',sans-serif" }}>{wordCount} words</span>
           <FactChecker getScript={() => rawMarkdownRef.current ?? ""} />
           <button style={{ ...iconBtn(), color: copied ? "#6fcf97" : "rgba(255,255,255,.6)", width: "auto", padding: "0 10px", gap: "6px" }} onClick={copy}>
             {copied ? <CheckRoundedIcon sx={{ fontSize: 15 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 15 }} />}
@@ -3627,10 +3438,6 @@ return (
   {sharingToCanvas ? "Sharing…" : "Share to Canvas"}
 </button>
 
-
-<button onClick={downloadAsDocx} disabled={downloadingDocx} style={primaryFilled(downloadingDocx)}>
-  {downloadingDocx ? "Preparing…" : "⬇ Download .docx"}
-</button>
 <button onClick={downloadAsPdf} disabled={downloadingPdf} style={primaryFilled(downloadingPdf)}>
   {downloadingPdf ? "Preparing…" : "⬇ Download .pdf"}
 </button>
@@ -3864,24 +3671,10 @@ return (
 >
 
     {/* Visualise */}
-  {/* <button
-    onClick={() => setShowVideoTypePicker(true)}
-    disabled={visualizing}
-    title={visualizing ? "Visualising…" : "Visualise"}
-    style={{
-      ...primaryFilled(visualizing),
-      display: "flex",
-      alignItems: "center",
-      gap: "6px",
-    }}
-  >
-    <VisibilityRoundedIcon sx={{ fontSize: 15 }} />
-    {visualizing ? "Visualising…" : "Visualise"}
-  </button> */}
 
-<button onClick={downloadAsDocx} disabled={downloadingDocx} style={primaryFilled(downloadingDocx)}>
+{/* <button onClick={downloadAsDocx} disabled={downloadingDocx} style={primaryFilled(downloadingDocx)}>
   {downloadingDocx ? "Preparing…" : "⬇ Download .docx"}
-</button>
+</button> */}
 <button onClick={downloadAsPdf} disabled={downloadingPdf} style={primaryFilled(downloadingPdf)}>
   {downloadingPdf ? "Preparing…" : "⬇ Download .pdf"}
 </button>
@@ -3935,9 +3728,13 @@ const CopyButton = ({ editableRef }) => {
     } catch (err) { console.warn("Clipboard write failed:", err); }
   };
   return (
-    <button onClick={handleCopy} title="Copy response" style={{ backgroundColor: "#1f1f1f", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: copied ? "#6fcf97" : "rgba(255,255,255,.5)", cursor: "pointer", fontSize: "12px", fontFamily: "'Inter',sans-serif", fontWeight: 500, padding: "5px 14px", transition: "color .2s,background .2s" }}>
-      {copied ? "✓ Copied" : "⧉ Copy"}
-    </button>
+    // <button onClick={handleCopy} title="Copy response" style={{ backgroundColor: "#1f1f1f", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: copied ? "#6fcf97" : "rgba(255,255,255,.5)", cursor: "pointer", fontSize: "12px", fontFamily: "'Inter',sans-serif", fontWeight: 500, padding: "5px 14px", transition: "color .2s,background .2s" }}>
+    //   {copied ? "✓ Copied" : "⧉ Copy"}
+    // </button>
+    <button onClick={handleCopy} title="Copy response" style={{ backgroundColor: "#1f1f1f", border: "1px solid rgba(255,255,255,.07)", borderRadius: "9999px", color: copied ? "#6fcf97" : "rgba(255,255,255,.5)", cursor: "pointer", fontSize: "12px", fontFamily: "'Inter',sans-serif", fontWeight: 500, padding: "5px 14px", transition: "color .2s,background .2s", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+  {copied ? <CheckRoundedIcon sx={{ fontSize: 14 }} /> : <ContentCopyRoundedIcon sx={{ fontSize: 14 }} />}
+  {copied ? "Copied" : "Copy"}
+</button>
   );
 };
 
@@ -4040,7 +3837,8 @@ const MetadataDropdown = ({ metadata }) => {
           const editedText = saved || editableRef.current?.innerText || msg.content;
           onFeedback(1, msg.prompt, editedText);
         }}
-      >🛢️</button>
+      // >🛢️</button>
+        ><StorageRoundedIcon sx={{ fontSize: 15 }} /></button>
           {/* Every bot message — old or new — gets the full ScriptCanvas UI */}
       <ScriptCanvas content={msg.content} msgId={msg.id} onShareToCanvas={onShareToCanvas} />
     </div>
@@ -4048,14 +3846,15 @@ const MetadataDropdown = ({ metadata }) => {
 };
 
 // ── Helpers ────────────────────────────────────────────────────
-const getFileIcon = (file) => {
-  if (file.type?.startsWith("image/")) return "🖼️";
-  if (file.type === "application/pdf") return "📕";
-  if (file.name?.endsWith(".docx")) return "📝";
-  if (file.name?.endsWith(".xlsx")) return "📊";
-  if (file.name?.endsWith(".pptx")) return "📋";
-  if (file.name?.endsWith(".csv")) return "📊";
-  return "📄";
+
+const getFileIcon = (file, size = 15) => {
+  if (file.type?.startsWith("image/")) return <ImageRoundedIcon sx={{ fontSize: size }} />;
+  if (file.type === "application/pdf") return <PictureAsPdfRoundedIcon sx={{ fontSize: size }} />;
+  if (file.name?.endsWith(".docx")) return <DescriptionRoundedIcon sx={{ fontSize: size }} />;
+  if (file.name?.endsWith(".xlsx")) return <TableChartRoundedIcon sx={{ fontSize: size }} />;
+  if (file.name?.endsWith(".pptx")) return <SlideshowRoundedIcon sx={{ fontSize: size }} />;
+  if (file.name?.endsWith(".csv")) return <TableChartRoundedIcon sx={{ fontSize: size }} />;
+  return <DescriptionRoundedIcon sx={{ fontSize: size }} />;
 };
 
 const formatList = (v) => {
@@ -4129,11 +3928,13 @@ const InlineNarrativeReviewPanel = ({ reviewData, onGenerate, isGenerating }) =>
           color: "rgba(200,180,255,.9)", transition: "background .15s",
         }}
       >
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+        {/* <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
           <circle cx="6.5" cy="6.5" r="4" stroke="rgba(180,150,255,.8)" strokeWidth="1.3"/>
           <path d="M4 6.5h5M6.5 4v5" stroke="rgba(180,150,255,.8)" strokeWidth="1.3" strokeLinecap="round"/>
         </svg>
-        ◈ Human Review — ready
+        ◈ Human Review — ready */}
+        <RateReviewRoundedIcon sx={{ fontSize: 13, color: "rgba(180,150,255,.8)" }} />
+          Human Review — ready
         <svg width="10" height="10" viewBox="0 0 10 10" fill="none"
           style={{ transition: "transform .2s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
           <path d="M2 3.5L5 6.5L8 3.5" stroke="rgba(180,150,255,.7)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
@@ -4244,7 +4045,8 @@ const FilePreviewModal = ({ previewFile, onClose }) => {
           {isPDF && <iframe src={previewFile.url} title={previewFile.name} style={{ width: "100%", height: "70vh", border: "none", borderRadius: "12px" }} />}
           {!isImage && !isPDF && (
             <div style={{ color: "rgba(255,255,255,.4)", textAlign: "center", padding: "48px", fontSize: "14px", fontFamily: "'Inter',sans-serif" }}>
-              <div style={{ fontSize: "48px", marginBottom: "12px" }}>{getFileIcon({ name: previewFile.name, type: previewFile.type })}</div>
+              {/* <div style={{ fontSize: "48px", marginBottom: "12px" }}>{getFileIcon({ name: previewFile.name, type: previewFile.type })}</div> */}
+              <div style={{ marginBottom: "12px", display: "flex", justifyContent: "center" }}>{getFileIcon({ name: previewFile.name, type: previewFile.type }, 48)}</div>
               <div style={{ color: "rgba(255,255,255,.7)" }}>{previewFile.name}</div>
               <a href={previewFile.url} download={previewFile.name} style={{ display: "inline-block", marginTop: "16px", color: "rgba(255,255,255,.55)", fontSize: "13px" }}>↓ Download to view</a>
             </div>
@@ -4539,6 +4341,9 @@ const GenerationProgress = ({ isStreaming, log }) => {
 
   return null;
 };
+
+
+
 
 function ChatWindow({onShareToCanvas}) {
   const {
@@ -5175,13 +4980,15 @@ stopGenerating(targetConvId);
               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
               <div className="og-bottom-row">
                 <div className="og-bottom-left">
-                  <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+                  {/* <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button> */}
+                  <button className="attach-btn-og" onClick={() => fileInputRef.current.click()} title="Attach files"><AttachFileRoundedIcon sx={{ fontSize: 16 }} /></button>
                     <VoiceInputButton onTranscript={handleTranscript} />
                 </div>
                 <div className="og-bottom-right">
                   <EnhancePromptButton input={input} setInput={setInput} />
                   <button className="btn-research" onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
-                    🔍 {isResearching ? "Researching…" : "Research"}
+                    {/* 🔍 {isResearching ? "Researching…" : "Research"} */}
+                    <SearchRoundedIcon sx={{ fontSize: 14 }} /> {isResearching ? "Researching…" : "Research"}
                   </button>
                   <button
                     onClick={runCreativeReview}
@@ -5201,7 +5008,8 @@ stopGenerating(targetConvId);
                     {creativeReviewLabel}
                   </button>
                   <button className="btn-send" onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
-                    {editedResearch ? "✦ Generate Script →" : "Send →"}
+                    {/* {editedResearch ? "✦ Generate Script →" : "Send →"} */}
+                    {editedResearch ? (<><AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} /> Generate Script →</>) : "Send →"}
                   </button>
                 </div>
               </div>
@@ -5264,12 +5072,14 @@ stopGenerating(targetConvId);
           <div className={`chat-input-area ${isDragging ? "drag-active" : ""}`} onDragEnter={handleDragEnter} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
             <div className="chat-input-inner">
               <input ref={fileInputRef} type="file" multiple accept=".pdf,.png,.jpeg,.jpg,.csv,.docx,.xlsx,.txt,.pptx" hidden onChange={(e) => setFiles(Array.from(e.target.files))} />
-              <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button>
+              {/* <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files">📎</button> */}
+              <button className="attach-btn" onClick={() => fileInputRef.current.click()} title="Attach files"><AttachFileRoundedIcon sx={{ fontSize: 16 }} /></button>
               <VoiceInputButton onTranscript={handleTranscript} />
               {files.length > 0 && <FileChips fileList={files} onRemove={removeFile} onPreview={openPreview} />}
               <textarea placeholder="Start generating..." value={input} onChange={(e) => setInput(e.target.value)} rows={4} cols={50} />
               <button onClick={runResearch} disabled={researchDisabled} style={{ opacity: researchDisabled ? 0.4 : 1 }}>
-                🔍 {isResearching ? "Researching…" : "Research"}
+                {/* 🔍 {isResearching ? "Researching…" : "Research"} */}
+                <SearchRoundedIcon sx={{ fontSize: 14 }} /> {isResearching ? "Researching…" : "Research"}
               </button>
               <button
                 onClick={runCreativeReview}
@@ -5289,7 +5099,8 @@ stopGenerating(targetConvId);
                 {creativeReviewLabel}
               </button>
               <button onClick={generateScript} disabled={sendDisabled} style={{ opacity: sendDisabled ? 0.4 : 1 }}>
-                {editedResearch ? "✦ Generate Script →" : "Send →"}
+                {/* {editedResearch ? "✦ Generate Script →" : "Send →"} */}
+                {editedResearch ? (<><AutoAwesomeRoundedIcon sx={{ fontSize: 14 }} /> Generate Script →</>) : "Send →"}
               </button>
             </div>
           </div>
@@ -5300,37 +5111,5 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

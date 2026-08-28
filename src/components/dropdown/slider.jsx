@@ -1,7 +1,7 @@
 import Box from "@mui/material/Box";
 import Slider from "@mui/material/Slider";
 
-export default function SliderSizes({ value, onChange }) {
+export default function SliderSizes({ onChange }) {
   return (
     <Box sx={{ width: 180, px: 1 }}>
       <div
@@ -10,16 +10,16 @@ export default function SliderSizes({ value, onChange }) {
           fontSize: "11px",
           marginBottom: "6px",
           textAlign: "center",
-          // textShadow: "0 0 8px rgba(255, 255, 255, 0.5)", 
         }}
       >
-        Human AI Ratio: {value}
+        Human AI Ratio:
       </div>
 
       <Slider
-        value={value}
+        // value={value}
+        defaultValue={50}
         onChange={(e, newValue) => onChange(newValue)}
-        valueLabelDisplay="auto"
+        // valueLabelDisplay="auto"
         min={0}
         max={100}
         color="black"
@@ -44,7 +44,4 @@ export default function SliderSizes({ value, onChange }) {
     </Box>
   );
 }
-
-
-
 

@@ -6,9 +6,12 @@ const DURATION_OPTIONS = [
   "30 seconds",
   "60 seconds",
   "90 seconds",
-  "2 minutes",
-  "3 minutes",
-  "5 minutes",
+  // "2 minutes",
+  "120 seconds",
+  // "3 minutes",
+  "180 seconds",
+  // "5 minutes",
+  "300 seconds",
 ];
 
 
