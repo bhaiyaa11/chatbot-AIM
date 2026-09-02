@@ -1636,27 +1636,7 @@ const VOICES = [
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
 
 
- {value:"LLOYD_BRIT_YOUNG_M_SM", label:"🇬🇧 Lloyd", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
-  {value:"JOSH_BRIT_YOUNG_M_SM", label:"🇬🇧 Josh", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
-  {value:"HARRY_BRIT_YOUNG_M_SM", label:"🇬🇧 Harry", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
-  {value:"ALFIE_BRIT_YOUNG_M_AD", label:"🇬🇧 Alfie", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
-  {value:"ROCK_BRIT_YOUNG_M_AD", label:"🇬🇧 Rock", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
-  {value:"JAMES_BRIT_YOUNG_M_AD", label:"🇬🇧 James", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
-  {value:"JAMES_BRIT_MID_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
-  {value:"FINN_BRIT_MID_M_CONVO", label:"🇬🇧 Finn", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
-  {value:"MARTIN_BRIT_MID_M_CONVO", label:"🇬🇧 Martin", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
-  {value:"DANIEL_BRIT_MID_M_SM", label:"🇬🇧 Daniel", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
-  {value:"MYSTERIOUS_BRIT_MID_M_SM", label:"🇬🇧 Mysterious", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
-  {value:"EDMUND_BRIT_MID_M_SM",label:"🇬🇧 Edmund", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
-  {value:"RUSS_BRIT_MID_AD",label:"🇬🇧 Russ", accent:"british", tone: ["advertising"], age:"mid",gender:"male"},
-  {value:"CONOR_BRIT_MID_AD", label:"🇬🇧 Conor", accent:"british", tone: ["advertising"], age:"mid",gender:"male"},
-  {value:"CHRIS_BRIT_MID_AD", label:"🇬🇧 Chris", accent:"british",tone: ["advertising"], age:"mid",gender:"male"},
-  {value:"grandpa_brit_ad", label:"🇬🇧 Grandpa", accent:"british", tone: ["advertising"], age:"senior",gender:"male"},
-  {value:"JOE_brit_old_sm", label:"🇬🇧 Joe", accent:"british", tone: ["social_media"], age:"senior",gender:"male"},
-  {value:"DAN_brit_old_sm", label:"🇬🇧 Dan", accent:"british", tone: ["social_media"], age:"senior",gender:"male"},
-  {value:"sam_brit_ad", label:"🇬🇧 Sam", accent:"british", tone: ["advertising"], age:"senior",gender:"male"},
-  {value:"Charlotte_BRIT_YOUNG_F_CONVO", label:"🇬🇧 Amelia", accent:"british", tone: ["conversational"], age:"young",gender:"female"},
-  {value:"ABIGAIL_BRIT_YOUNG_F_CONVO", label:"🇬🇧 Abigail", accent:"british", tone: ["conversational"], age:"young",gender:"female"},
+ {value:"ABIGAIL_BRIT_YOUNG_F_CONVO", label:"🇬🇧 Abigail", accent:"british", tone: ["conversational"], age:"young",gender:"female"},
   {value:"KATRINA_BRIT_YOUNG_F_CONVO",label:"🇬🇧 Katrina", accent:"british", tone: ["conversational"], age:"young",gender:"female"},
   {value:"KRISTY_BRIT_YOUNG_F_SM",label:"🇬🇧 Kristy", accent:"british", tone: ["social_media"], age:"young",gender:"female"},
   {value:"PEACH_BRIT_YOUNG_F_SM",label:"🇬🇧 Peach", accent:"british", tone: ["social_media"], age:"young",gender:"female"},
@@ -1710,6 +1690,28 @@ const VOICES = [
   {value:"ELLIS_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Ellis", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
   {value:"JAMES_BRIT_YOUNG_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
   {value:"JACK_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Jack", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+ 
+
+ {value:"LLOYD_BRIT_YOUNG_M_SM", label:"🇬🇧 Lloyd", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"JOSH_BRIT_YOUNG_M_SM", label:"🇬🇧 Josh", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"HARRY_BRIT_YOUNG_M_SM", label:"🇬🇧 Harry", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+  {value:"ALFIE_BRIT_YOUNG_M_AD", label:"🇬🇧 Alfie", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"ROCK_BRIT_YOUNG_M_AD", label:"🇬🇧 Rock", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"JAMES_BRIT_YOUNG_M_AD", label:"🇬🇧 James", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
+  {value:"JAMES_BRIT_MID_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
+  {value:"FINN_BRIT_MID_M_CONVO", label:"🇬🇧 Finn", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
+  {value:"MARTIN_BRIT_MID_M_CONVO", label:"🇬🇧 Martin", accent:"british", tone: ["conversational"], age:"mid",gender:"male"},
+  {value:"DANIEL_BRIT_MID_M_SM", label:"🇬🇧 Daniel", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
+  {value:"MYSTERIOUS_BRIT_MID_M_SM", label:"🇬🇧 Mysterious", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
+  {value:"EDMUND_BRIT_MID_M_SM",label:"🇬🇧 Edmund", accent:"british", tone: ["social_media"], age:"mid",gender:"male"},
+  {value:"RUSS_BRIT_MID_AD",label:"🇬🇧 Russ", accent:"british", tone: ["advertising"], age:"mid",gender:"male"},
+  {value:"CONOR_BRIT_MID_AD", label:"🇬🇧 Conor", accent:"british", tone: ["advertising"], age:"mid",gender:"male"},
+  {value:"CHRIS_BRIT_MID_AD", label:"🇬🇧 Chris", accent:"british",tone: ["advertising"], age:"mid",gender:"male"},
+  {value:"grandpa_brit_ad", label:"🇬🇧 Grandpa", accent:"british", tone: ["advertising"], age:"senior",gender:"male"},
+  {value:"JOE_brit_old_sm", label:"🇬🇧 Joe", accent:"british", tone: ["social_media"], age:"senior",gender:"male"},
+  {value:"DAN_brit_old_sm", label:"🇬🇧 Dan", accent:"british", tone: ["social_media"], age:"senior",gender:"male"},
+  {value:"sam_brit_ad", label:"🇬🇧 Sam", accent:"british", tone: ["advertising"], age:"senior",gender:"male"},
+  {value:"Charlotte_BRIT_YOUNG_F_CONVO", label:"🇬🇧 Amelia", accent:"british", tone: ["conversational"], age:"young",gender:"female"},
  
  {value:"JESSICA_AMER_MID_F_AD", label:"🇺🇸 Jessica", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
  {value:"CLARA_AMER_MID_F_AD", label:"🇺🇸 Clara", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
@@ -5150,8 +5152,6 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
-
-
 
 
 
