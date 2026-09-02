@@ -4,6 +4,10 @@
 // import { showToast } from "./toast.js";
 // import "./Canvas.css";
 
+// import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+// import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+// import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+
 // const API_BASE_URL = "http://127.0.0.1:8000";
 // // const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -146,7 +150,7 @@
 //       onClick={() => setCollapsed((prev) => !prev)}
 //       title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
 //     >
-//       {collapsed ? "→" : "←"}
+//       {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
 //     </button>
 
 //     {!collapsed && (
@@ -240,7 +244,7 @@
 //                       }
 //                       disabled={deletingId === c.id}
 //                     >
-//                       🗑
+//                       <DeleteOutlineOutlinedIcon fontSize="small" />
 //                     </button>
 //                   )}
 //                 </>
@@ -255,6 +259,37 @@
 // }
 
 // export default CanvasSidebar;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -298,6 +333,7 @@ function CanvasSidebar({ activeCanvasId, onSelect, onCreated, onDeleted }) {
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [query, setQuery] = useState("");
 
   const authHeaders = () => {
     const token = session?.access_token;
@@ -354,172 +390,189 @@ function CanvasSidebar({ activeCanvasId, onSelect, onCreated, onDeleted }) {
     }
   };
 
-
   const handleDeleteClick = (e, canvasId) => {
-  e.stopPropagation();
-  setConfirmDeleteId(canvasId);
-};
+    e.stopPropagation();
+    setConfirmDeleteId(canvasId);
+  };
 
-const handleConfirmDelete = async (e, canvas) => {
-  e.stopPropagation();
+  const handleConfirmDelete = async (e, canvas) => {
+    e.stopPropagation();
 
-  const headers = authHeaders();
-  if (!headers) return;
+    const headers = authHeaders();
+    if (!headers) return;
 
-  try {
-    setDeletingId(canvas.id);
+    try {
+      setDeletingId(canvas.id);
 
-    const res = await fetch(`${API_BASE_URL}/canvas/${canvas.id}`, {
-      method: "DELETE",
-      headers,
-    });
+      const res = await fetch(`${API_BASE_URL}/canvas/${canvas.id}`, {
+        method: "DELETE",
+        headers,
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      throw new Error(
-        data?.detail || "Failed to delete canvas"
-      );
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.detail || "Failed to delete canvas");
+      }
+
+      setCanvases((prev) => prev.filter((c) => c.id !== canvas.id));
+      setConfirmDeleteId(null);
+      onDeleted?.(canvas.id);
+    } catch (err) {
+      console.error("Failed to delete canvas:", err);
+      showToast(err.message || "Failed to delete canvas");
+    } finally {
+      setDeletingId(null);
     }
+  };
 
-    setCanvases((prev) =>
-      prev.filter((c) => c.id !== canvas.id)
-    );
-
+  const handleCancelDelete = (e) => {
+    e.stopPropagation();
     setConfirmDeleteId(null);
+  };
 
-    onDeleted?.(canvas.id);
-  } catch (err) {
-    console.error("Failed to delete canvas:", err);
-    showToast(err.message || "Failed to delete canvas");
-  } finally {
-    setDeletingId(null);
-  }
-};
+  const filtered = canvases.filter((c) =>
+    (c.title || "Untitled Canvas").toLowerCase().includes(query.trim().toLowerCase())
+  );
 
-const handleCancelDelete = (e) => {
-  e.stopPropagation();
-  setConfirmDeleteId(null);
-};
+  const groupByRecency = (list) => {
+    const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const now = new Date();
+    const today = startOfDay(now);
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const weekAgo = new Date(today);
+    weekAgo.setDate(today.getDate() - 7);
+
+    const groups = { Today: [], Yesterday: [], "Past 7 days": [], Earlier: [] };
+    list.forEach((c) => {
+      const updated = startOfDay(new Date(c.updated_at));
+      if (updated.getTime() === today.getTime()) groups.Today.push(c);
+      else if (updated.getTime() === yesterday.getTime()) groups.Yesterday.push(c);
+      else if (updated >= weekAgo) groups["Past 7 days"].push(c);
+      else groups.Earlier.push(c);
+    });
+    return groups;
+  };
+
+  const grouped = groupByRecency(filtered);
 
   return (
-  <aside
-    className={`canvas-sidebar ${
-      collapsed ? "collapsed" : ""
-    }`}
-  >
-    {/* Collapse / Expand */}
-    <button
-      type="button"
-      className="sidebar-toggle canvas-sidebar-toggle"
-      onClick={() => setCollapsed((prev) => !prev)}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-    >
-      {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
-    </button>
+    <aside className={`canvas-sidebar ${collapsed ? "collapsed" : ""}`}>
+      {/* Collapse / Expand */}
+      <button
+        type="button"
+        className="sidebar-toggle canvas-sidebar-toggle"
+        onClick={() => setCollapsed((prev) => !prev)}
+        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        {collapsed ? <ChevronRightIcon fontSize="small" /> : <ChevronLeftIcon fontSize="small" />}
+      </button>
 
-    {!collapsed && (
-      <>
-        {/* Header */}
-        <div className="canvas-sidebar-header">
-          <span className="canvas-sidebar-title">
-            Canvas
-          </span>
+      {!collapsed && (
+        <>
+          {/* Header */}
+          <div className="canvas-sidebar-header">
+            <span className="canvas-sidebar-title">Canvas</span>
+            <NotificationBell />
+          </div>
 
-          <NotificationBell />
-        </div>
+          {/* New Canvas */}
+          <button
+            type="button"
+            className="canvas-sidebar-new-btn"
+            onClick={createCanvas}
+            disabled={creating}
+          >
+            {creating ? "Creating…" : "+ New Canvas"}
+          </button>
 
-        {/* New Canvas */}
-        <button
-          type="button"
-          className="canvas-sidebar-new-btn"
-          onClick={createCanvas}
-          disabled={creating}
-        >
-          {creating ? "Creating…" : "+ New Canvas"}
-        </button>
+          {/* Search */}
+          <input
+            type="text"
+            className="canvas-sidebar-search"
+            placeholder="Search canvases…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
 
-        {/* Canvas List */}
-        <div className="canvas-sidebar-list">
-          {loading && (
-            <p className="canvas-share-hint">
-              Loading…
-            </p>
-          )}
+          {/* Canvas List */}
+          <div className="canvas-sidebar-list">
+            {loading && <p className="canvas-share-hint">Loading…</p>}
 
-          {!loading && canvases.length === 0 && (
-            <p className="canvas-share-hint">
-              No canvases yet.
-            </p>
-          )}
+            {!loading && filtered.length === 0 && (
+              <p className="canvas-share-hint">{query ? "No matches." : "No canvases yet."}</p>
+            )}
 
-          {canvases.map((c) => (
-            <div
-              key={c.id}
-              className={`canvas-sidebar-item ${
-                c.id === activeCanvasId ? "active" : ""
-              }`}
-              onClick={() => onSelect?.(c.id)}
-            >
-              <div className="canvas-sidebar-item-main">
-                <span className="canvas-sidebar-item-title">
-                  {c.title || "Untitled Canvas"}
-                </span>
-
-                <span className="canvas-sidebar-item-date">
-                  {new Date(c.updated_at).toLocaleDateString()}
-                </span>
-              </div>
-
-              {c.owner_id === currentUserId && (
-                <>
-                  {confirmDeleteId === c.id ? (
-                    <div className="canvas-confirm-delete-bar">
-                      <span>Delete canvas?</span>
-
+            {!loading &&
+              Object.entries(grouped).map(([label, items]) =>
+                items.length === 0 ? null : (
+                  <div key={label}>
+                    <div className="canvas-sidebar-group-label">{label}</div>
+                    {items.map((c) => (
                       <button
                         type="button"
-                        className="confirm-delete-btn"
-                        onClick={(e) =>
-                          handleConfirmDelete(e, c)
-                        }
-                        disabled={deletingId === c.id}
+                        key={c.id}
+                        className={`canvas-sidebar-item ${c.id === activeCanvasId ? "active" : ""}`}
+                        onClick={() => onSelect?.(c.id)}
                       >
-                        {deletingId === c.id
-                          ? "…"
-                          : "Delete"}
-                      </button>
+                        <div className="canvas-sidebar-item-main">
+                          <span className="canvas-sidebar-item-title">
+                            {c.title || "Untitled Canvas"}
+                          </span>
+                          <span className="canvas-sidebar-item-date">
+                            {new Date(c.updated_at).toLocaleDateString()}
+                          </span>
+                        </div>
 
-                      <button
-                        type="button"
-                        className="confirm-cancel-btn"
-                        onClick={handleCancelDelete}
-                        disabled={deletingId === c.id}
-                      >
-                        Cancel
+                        {c.owner_id === currentUserId && (
+                          confirmDeleteId === c.id ? (
+                            <div
+                              className="canvas-confirm-delete-bar"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span>Delete?</span>
+                              <button
+                                type="button"
+                                className="canvas-confirm-delete-btn"
+                                onClick={(e) => handleConfirmDelete(e, c)}
+                                disabled={deletingId === c.id}
+                              >
+                                {deletingId === c.id ? "…" : "Delete"}
+                              </button>
+                              <button
+                                type="button"
+                                className="canvas-confirm-cancel-btn"
+                                onClick={handleCancelDelete}
+                                disabled={deletingId === c.id}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              className="canvas-sidebar-item-delete"
+                              title="Delete canvas"
+                              onClick={(e) => handleDeleteClick(e, c.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") handleDeleteClick(e, c.id);
+                              }}
+                            >
+                              <DeleteOutlineOutlinedIcon fontSize="small" />
+                            </span>
+                          )
+                        )}
                       </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      className="canvas-sidebar-item-delete"
-                      title="Delete canvas"
-                      onClick={(e) =>
-                        handleDeleteClick(e, c.id)
-                      }
-                      disabled={deletingId === c.id}
-                    >
-                      <DeleteOutlineOutlinedIcon fontSize="small" />
-                    </button>
-                  )}
-                </>
+                    ))}
+                  </div>
+                )
               )}
-            </div>
-          ))}
-        </div>
-      </>
-    )}
-  </aside>
-);
+          </div>
+        </>
+      )}
+    </aside>
+  );
 }
 
 export default CanvasSidebar;

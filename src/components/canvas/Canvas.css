@@ -1830,3 +1830,29 @@
   font-size: 9px;
   font-family: "Inter", sans-serif;
 }
+
+
+
+.canvas-sidebar-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: #141414;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #e5e5e5;
+  font-family: "Inter", sans-serif;
+  font-size: 12px;
+  margin-bottom: 10px;
+  outline: none;
+}
+
+.canvas-sidebar-group-label {
+  font-family: "Inter", sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.3);
+  padding: 10px 10px 4px;
+}

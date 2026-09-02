@@ -1635,12 +1635,8 @@ const VOICES = [
   { value: "british_female",              label: "🇬🇧 Alice",        accent: "british",    tone: ["social_media"], age: "young", gender: "female"},
   { value: "BLONDE_BRITISH_FEMALE",       label: "🇬🇧 Charlotte",    accent: "british",    tone: ["conversational"], age: "young", gender: "female"},
 
-  { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
-  {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
-  {value:"ELLIS_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Ellis", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
-  {value:"JAMES_BRIT_YOUNG_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
-  {value:"JACK_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Jack", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
-  {value:"LLOYD_BRIT_YOUNG_M_SM", label:"🇬🇧 Lloyd", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
+
+ {value:"LLOYD_BRIT_YOUNG_M_SM", label:"🇬🇧 Lloyd", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
   {value:"JOSH_BRIT_YOUNG_M_SM", label:"🇬🇧 Josh", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
   {value:"HARRY_BRIT_YOUNG_M_SM", label:"🇬🇧 Harry", accent:"british", tone: ["social_media"], age:"young",gender:"male"},
   {value:"ALFIE_BRIT_YOUNG_M_AD", label:"🇬🇧 Alfie", accent:"british", tone: ["advertising"], age:"young",gender:"male"},
@@ -1709,8 +1705,16 @@ const VOICES = [
  {value:"BONNIE_AMER_MID_F_SM", label:"🇺🇸 Bonnie", accent:"american",tone:["social_media"], age:"mid", gender:"female"},
  {value:"CAROLYN_AMER_MID_F_SM", label:"🇺🇸 Carolyn", accent:"american",tone:["social_media"], age:"mid", gender:"female"},
  {value:"PIPER_AMER_MID_F_AD", label:"🇺🇸 Piper", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
+  { value: "MR_DAVID_BRIT_CONVO_MALE_OLD", label: "🇬🇧 MR David",     accent: "british",    tone: ["conversational"], age: "senior", gender: "male"},
+  {value: "SAMMY_AEMRICAN_CONVO_NUETRAL_YOUNG", label:"🇺🇸 sammy", accent:"american", tone: ["conversational"], age: "young", gender: "neutral"},
+  {value:"ELLIS_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Ellis", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+  {value:"JAMES_BRIT_YOUNG_M_CONVO", label:"🇬🇧 James", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+  {value:"JACK_BRIT_YOUNG_M_CONVO", label:"🇬🇧 Jack", accent:"british", tone: ["conversational"], age: "young", gender: "male"},
+ 
  {value:"JESSICA_AMER_MID_F_AD", label:"🇺🇸 Jessica", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
  {value:"CLARA_AMER_MID_F_AD", label:"🇺🇸 Clara", accent:"american",tone:["advertising"], age:"mid", gender:"female"},
+
+
 
   { value: "MIKE_AUSSIE_SOCIALMEDIA",     label: "🇦🇺 Mike",          accent: "australian", tone: ["social_media"], age: "mid", gender: "male"},
   { value: "PETTER_AUSSIE_ADVERTISEMENT", label: "🇦🇺 Petter",        accent: "australian", tone: ["advertising"], age: "young", gender: "male" },
@@ -4029,6 +4033,18 @@ const ReviewingIndicator = () => (
   </div>
 );
 
+const ProcessingIndicator = () => (
+  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "12px 18px", borderRadius: "9999px", background: "#1A1A1A", border: "1px solid rgba(139,92,246,.2)", maxWidth: "300px", margin: "8px 0", boxShadow: "0 4px 20px rgba(0,0,0,.5)" }}>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ flexShrink: 0, animation: "spin 1s linear infinite" }}>
+      <circle cx="8" cy="8" r="6.5" stroke="rgba(139,92,246,.15)" strokeWidth="1.5" />
+      <path d="M8 1.5A6.5 6.5 0 0 1 14.5 8" stroke="rgba(139,92,246,.9)" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+    <div style={{ fontSize: "13px", color: "#e5e5e5", fontWeight: 600, fontFamily: "'Manrope',sans-serif" }}>
+      Processing your request…
+    </div>
+  </div>
+);
+
 const FilePreviewModal = ({ previewFile, onClose }) => {
   if (!previewFile) return null;
   const isImage = previewFile.type?.startsWith("image/");
@@ -4330,18 +4346,32 @@ const EditReasoning = ({ isStreaming, log, duration }) => {
   );
 };
 
-const GenerationProgress = ({ isStreaming, log }) => {
+// const GenerationProgress = ({ isStreaming, log }) => {
+//   if (isStreaming) {
+//     return <PipelineStages isStreaming={true} log={log} />;
+//   }
+
+//   if (log?.length > 0) {
+//     return <PipelineStages isStreaming={false} log={log} />;
+//   }
+
+//   return null;
+// };
+
+const GenerationProgress = ({ isStreaming, log, isFollowUp }) => {
+  if (isFollowUp) {
+    // Existing conversation — don't replay the "first script" pipeline UI
+    if (isStreaming) return <ProcessingIndicator />;
+    return null;
+  }
   if (isStreaming) {
     return <PipelineStages isStreaming={true} log={log} />;
   }
-
   if (log?.length > 0) {
     return <PipelineStages isStreaming={false} log={log} />;
   }
-
   return null;
 };
-
 
 
 
@@ -4390,6 +4420,9 @@ function ChatWindow({onShareToCanvas}) {
   const pipelineStartRef = useRef(new Map());
   const pipelineLog = (conversationId && pipelineLogs[conversationId]) || [];
   const pipelineDuration = (conversationId && pipelineDurations[conversationId]) || 0;
+  const [pipelineFollowUp, setPipelineFollowUp] = useState({});
+  const isFollowUp = (conversationId && pipelineFollowUp[conversationId]) || false;
+  const hasExistingBotMessage = messages.some((m) => m.sender === "bot" && m.content);
 
   // Per-conversation abort controllers — never a single shared controller,
   // so switching chats doesn't kill background generation.
@@ -4840,6 +4873,7 @@ setStreamText(targetConvId, "");
     startGenerating(targetConvId);
     pipelineStartRef.current.set(targetConvId, Date.now());
     setPipelineLogs(prev => ({ ...prev, [targetConvId]: [] }));
+    setPipelineFollowUp(prev => ({ ...prev, [targetConvId]: hasExistingBotMessage }));
 
     convAbortControllers.current.get(targetConvId)?.abort();
 
@@ -5057,7 +5091,12 @@ stopGenerating(targetConvId);
                 )}
               </div>
             ))}
-            <GenerationProgress isStreaming={streaming} log={pipelineLog} duration={pipelineDuration} />
+            <GenerationProgress
+              isStreaming={streaming}
+              log={pipelineLog}
+              duration={pipelineDuration}
+              isFollowUp={isFollowUp}
+            />
             <ContextDebugBar conversationId={conversationId} isStreaming={streaming} />
             <div className="scroll-anchor" ref={chatEndRef} />
           </div>
@@ -5111,5 +5150,53 @@ stopGenerating(targetConvId);
 }
 
 export default ChatWindow;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
